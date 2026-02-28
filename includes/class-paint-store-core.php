@@ -22,12 +22,18 @@ class Paint_Store_Core {
 	private function load_dependencies() {
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-paint-store-loader.php';
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-paint-store-activator.php';
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/class-paint-store-admin.php';
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'public/class-paint-store-public.php';
 		
 		$this->loader = new Paint_Store_Loader();
 	}
 
 	private function define_admin_hooks() {
-		// Admin specific hooks will go here
+		$plugin_admin = new Paint_Store_Admin( $this->get_plugin_name(), $this->get_version() );
+
+		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_styles' );
+		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts' );
+		$this->loader->add_action( 'admin_menu', $plugin_admin, 'add_plugin_admin_menu' );
 	}
 
 	private function define_public_hooks() {

@@ -11,11 +11,35 @@ class Paint_Store_Admin {
 	}
 
 	public function enqueue_styles() {
-		// wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/paint-store-admin.css', array(), $this->version, 'all' );
+		$css_path = plugin_dir_url( dirname( __FILE__ ) ) . 'build/admin/index.css';
+		if ( file_exists( plugin_dir_path( dirname( __FILE__ ) ) . 'build/admin/index.css' ) ) {
+			wp_enqueue_style( $this->plugin_name . '-admin', $css_path, array(), $this->version, 'all' );
+		}
 	}
 
 	public function enqueue_scripts() {
-		// wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/paint-store-admin.js', array( 'jquery' ), $this->version, false );
+		$asset_file = plugin_dir_path( dirname( __FILE__ ) ) . 'build/admin/index.asset.php';
+		
+		if ( file_exists( $asset_file ) ) {
+			$assets = require( $asset_file );
+			wp_enqueue_script( $this->plugin_name . '-admin', plugin_dir_url( dirname( __FILE__ ) ) . 'build/admin/index.js', $assets['dependencies'], $assets['version'], true );
+		}
+	}
+
+	public function add_plugin_admin_menu() {
+		add_menu_page(
+			'Paint Store',
+			'Paint Store',
+			'manage_options',
+			$this->plugin_name,
+			array( $this, 'display_plugin_admin_page' ),
+			'dashicons-art',
+			25
+		);
+	}
+
+	public function display_plugin_admin_page() {
+		echo '<div class="wrap"><div id="paint-store-admin-root"></div></div>';
 	}
 
 }
