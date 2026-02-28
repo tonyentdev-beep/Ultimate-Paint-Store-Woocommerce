@@ -53,10 +53,25 @@ class Paint_Store_API {
 				'permission_callback' => array( $this, 'permissions_check' ),
 			),
 		) );
+
+		// Temporary DB Upgrade Endpoint
+		register_rest_route( $this->namespace, '/upgrade-db', array(
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'upgrade_db_schema' ),
+				'permission_callback' => array( $this, 'permissions_check' ),
+			),
+		) );
 	}
 
 	public function permissions_check( $request ) {
 		return current_user_can( 'manage_options' );
+	}
+
+	public function upgrade_db_schema( $request ) {
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-paint-store-activator.php';
+		Paint_Store_Activator::activate();
+		return rest_ensure_response( array( 'success' => true, 'message' => 'Database schema updated' ) );
 	}
 
 	// --- Colors Handlers ---
@@ -88,6 +103,7 @@ class Paint_Store_API {
 		$color_bases_table = $wpdb->prefix . 'ps_color_bases';
 
 		$name        = sanitize_text_field( $request->get_param( 'name' ) );
+		$color_code  = sanitize_text_field( $request->get_param( 'color_code' ) );
 		$hex_value   = sanitize_text_field( $request->get_param( 'hex_value' ) );
 		$rgb_value   = sanitize_text_field( $request->get_param( 'rgb_value' ) );
 		$family_id   = intval( $request->get_param( 'family_id' ) );
@@ -106,12 +122,13 @@ class Paint_Store_API {
 		$wpdb->insert(
 			$table_name,
 			array(
-				'name'      => $name,
-				'hex_value' => $hex_value,
-				'rgb_value' => $rgb_value,
-				'family_id' => $family_id,
+				'name'       => $name,
+				'color_code' => $color_code,
+				'hex_value'  => $hex_value,
+				'rgb_value'  => $rgb_value,
+				'family_id'  => $family_id,
 			),
-			array( '%s', '%s', '%s', '%d' )
+			array( '%s', '%s', '%s', '%s', '%d' )
 		);
 
 		$color_id = $wpdb->insert_id;

@@ -53,11 +53,23 @@ const ColorFamilies = () => {
                     />
                 </PanelRow>
                 <PanelRow>
-                    <TextControl
-                        label="Representative Hex Color (e.g., #0000FF)"
-                        value={newFamilyHex}
-                        onChange={(value) => setNewFamilyHex(value)}
-                    />
+                    <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: '15px' }}>
+                        <div style={{ flex: 1 }}>
+                            <TextControl
+                                label="Representative Hex Color (e.g., #0000FF)"
+                                value={newFamilyHex}
+                                onChange={(value) => setNewFamilyHex(value)}
+                            />
+                        </div>
+                        <div style={{
+                            width: '50px',
+                            height: '50px',
+                            backgroundColor: newFamilyHex || '#ffffff',
+                            border: '1px solid #ccc',
+                            borderRadius: '4px',
+                            marginTop: '15px'
+                        }}></div>
+                    </div>
                 </PanelRow>
                 <Button
                     variant="primary"
@@ -96,7 +108,8 @@ const ColorFamilies = () => {
                                             height: '20px',
                                             backgroundColor: family.hex_representative,
                                             marginRight: '10px',
-                                            border: '1px solid #ccc'
+                                            border: '1px solid #ccc',
+                                            verticalAlign: 'middle'
                                         }}></span>
                                         {family.hex_representative}
                                     </td>

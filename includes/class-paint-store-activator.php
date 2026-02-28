@@ -41,6 +41,7 @@ class Paint_Store_Activator {
 		$tables[] = "CREATE TABLE $table_name (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			name varchar(255) NOT NULL,
+			color_code varchar(50) DEFAULT '' NOT NULL,
 			hex_value varchar(10) DEFAULT '' NOT NULL,
 			rgb_value varchar(50) DEFAULT '' NOT NULL,
 			family_id bigint(20) unsigned DEFAULT 0 NOT NULL,

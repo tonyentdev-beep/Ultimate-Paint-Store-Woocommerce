@@ -7,6 +7,7 @@ const ColorsManager = () => {
     const [families, setFamilies] = useState([]);
     const [allBases, setAllBases] = useState([]);
     const [newColorName, setNewColorName] = useState('');
+    const [newColorCode, setNewColorCode] = useState('');
     const [newColorHex, setNewColorHex] = useState('');
     const [newColorFamilyId, setNewColorFamilyId] = useState('');
     const [selectedBases, setSelectedBases] = useState([]);
@@ -57,6 +58,7 @@ const ColorsManager = () => {
                 method: 'POST',
                 data: {
                     name: newColorName,
+                    color_code: newColorCode,
                     hex_value: newColorHex,
                     rgb_value: '', // Auto-calculate later if needed
                     family_id: newColorFamilyId,
@@ -64,6 +66,7 @@ const ColorsManager = () => {
                 },
             });
             setNewColorName('');
+            setNewColorCode('');
             setNewColorHex('');
             setNewColorFamilyId('');
             setSelectedBases([]);
@@ -106,10 +109,29 @@ const ColorsManager = () => {
                 </PanelRow>
                 <PanelRow>
                     <TextControl
-                        label="Hex Value (e.g., #324354)"
-                        value={newColorHex}
-                        onChange={(value) => setNewColorHex(value)}
+                        label="Color Code (e.g., SW 6593)"
+                        value={newColorCode}
+                        onChange={(value) => setNewColorCode(value)}
                     />
+                </PanelRow>
+                <PanelRow>
+                    <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: '15px' }}>
+                        <div style={{ flex: 1 }}>
+                            <TextControl
+                                label="Hex Value (e.g., #324354)"
+                                value={newColorHex}
+                                onChange={(value) => setNewColorHex(value)}
+                            />
+                        </div>
+                        <div style={{
+                            width: '50px',
+                            height: '50px',
+                            backgroundColor: newColorHex || '#ffffff',
+                            border: '1px solid #ccc',
+                            borderRadius: '4px',
+                            marginTop: '15px'
+                        }}></div>
+                    </div>
                 </PanelRow>
                 <PanelRow>
                     <SelectControl
@@ -154,6 +176,7 @@ const ColorsManager = () => {
                     <thead>
                         <tr>
                             <th>ID</th>
+                            <th>Code</th>
                             <th>Name</th>
                             <th>Family ID</th>
                             <th>Color Hex</th>
@@ -162,11 +185,12 @@ const ColorsManager = () => {
                     </thead>
                     <tbody>
                         {colors.length === 0 ? (
-                            <tr><td colSpan="5">No colors found.</td></tr>
+                            <tr><td colSpan="6">No colors found.</td></tr>
                         ) : (
                             colors.map(color => (
                                 <tr key={color.id}>
                                     <td>{color.id}</td>
+                                    <td><strong>{color.color_code || '-'}</strong></td>
                                     <td>{color.name}</td>
                                     <td>{color.family_id}</td>
                                     <td>
@@ -176,7 +200,8 @@ const ColorsManager = () => {
                                             height: '20px',
                                             backgroundColor: color.hex_value,
                                             marginRight: '10px',
-                                            border: '1px solid #ccc'
+                                            border: '1px solid #ccc',
+                                            verticalAlign: 'middle'
                                         }}></span>
                                         {color.hex_value}
                                     </td>
