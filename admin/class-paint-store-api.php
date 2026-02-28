@@ -40,6 +40,19 @@ class Paint_Store_API {
 				'permission_callback' => array( $this, 'permissions_check' ),
 			),
 		) );
+		// Bases Endpoints
+		register_rest_route( $this->namespace, '/bases', array(
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_bases' ),
+				'permission_callback' => array( $this, 'permissions_check' ),
+			),
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'create_base' ),
+				'permission_callback' => array( $this, 'permissions_check' ),
+			),
+		) );
 	}
 
 	public function permissions_check( $request ) {
@@ -50,22 +63,44 @@ class Paint_Store_API {
 
 	public function get_colors( $request ) {
 		global $wpdb;
-		$table_name = $wpdb->prefix . 'ps_colors';
-		$results = $wpdb->get_results( "SELECT * FROM $table_name", ARRAY_A );
-		return rest_ensure_response( $results );
+		$colors_table = $wpdb->prefix . 'ps_colors';
+		$color_bases_table = $wpdb->prefix . 'ps_color_bases';
+
+		// Fetch all colors
+		$colors = $wpdb->get_results( "SELECT * FROM $colors_table", ARRAY_A );
+
+		// For each color, fetch its assigned bases
+		foreach ( $colors as &$color ) {
+			$color_id = $color['id'];
+			$bases = $wpdb->get_col( $wpdb->prepare(
+				"SELECT base_id FROM $color_bases_table WHERE color_id = %d",
+				$color_id
+			) );
+			$color['base_ids'] = $bases ? array_map('intval', $bases) : array();
+		}
+		
+		return rest_ensure_response( $colors );
 	}
 
 	public function create_color( $request ) {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'ps_colors';
+		$color_bases_table = $wpdb->prefix . 'ps_color_bases';
 
 		$name        = sanitize_text_field( $request->get_param( 'name' ) );
 		$hex_value   = sanitize_text_field( $request->get_param( 'hex_value' ) );
 		$rgb_value   = sanitize_text_field( $request->get_param( 'rgb_value' ) );
 		$family_id   = intval( $request->get_param( 'family_id' ) );
+		
+		// The frontend will send an array of selected base IDs
+		$base_ids    = $request->get_param( 'base_ids' );
 
 		if ( empty( $name ) ) {
 			return new WP_Error( 'missing_name', 'Color name is required', array( 'status' => 400 ) );
+		}
+
+		if ( empty( $base_ids ) || ! is_array( $base_ids ) ) {
+			return new WP_Error( 'missing_bases', 'At least one Base is required for a Color', array( 'status' => 400 ) );
 		}
 
 		$wpdb->insert(
@@ -79,7 +114,21 @@ class Paint_Store_API {
 			array( '%s', '%s', '%s', '%d' )
 		);
 
-		return rest_ensure_response( array( 'id' => $wpdb->insert_id ) );
+		$color_id = $wpdb->insert_id;
+
+		// Save the multiple Base assignments to the junction table
+		foreach ( $base_ids as $base_id ) {
+			$wpdb->insert(
+				$color_bases_table,
+				array(
+					'color_id' => $color_id,
+					'base_id'  => intval( $base_id ),
+				),
+				array( '%d', '%d' )
+			);
+		}
+
+		return rest_ensure_response( array( 'id' => $color_id ) );
 	}
 
 	// --- Families Handlers ---
@@ -111,6 +160,36 @@ class Paint_Store_API {
 				'hex_representative' => $hex_representative,
 			),
 			array( '%s', '%s', '%s' )
+		);
+
+		return rest_ensure_response( array( 'id' => $wpdb->insert_id ) );
+	}
+
+	// --- Bases Handlers ---
+
+	public function get_bases( $request ) {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ps_bases';
+		$results = $wpdb->get_results( "SELECT * FROM $table_name", ARRAY_A );
+		return rest_ensure_response( $results );
+	}
+
+	public function create_base( $request ) {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ps_bases';
+
+		$name = sanitize_text_field( $request->get_param( 'name' ) );
+
+		if ( empty( $name ) ) {
+			return new WP_Error( 'missing_name', 'Base name is required', array( 'status' => 400 ) );
+		}
+
+		$wpdb->insert(
+			$table_name,
+			array(
+				'name' => $name,
+			),
+			array( '%s' )
 		);
 
 		return rest_ensure_response( array( 'id' => $wpdb->insert_id ) );

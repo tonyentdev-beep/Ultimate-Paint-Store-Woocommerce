@@ -1,6 +1,7 @@
 import { useState } from '@wordpress/element';
 import ColorFamilies from './colors/ColorFamilies';
 import ColorsManager from './colors/ColorsManager';
+import BasesManager from './products/BasesManager';
 
 const App = () => {
     const [activeTab, setActiveTab] = useState('colors');
@@ -41,8 +42,10 @@ const App = () => {
 
                 {activeTab === 'products' && (
                     <div>
-                        <h2>Manage Products</h2>
-                        <p>Product mapping and bases interface will go here.</p>
+                        <BasesManager />
+                        <hr style={{ margin: '40px 0' }} />
+                        <h2>Manage Products (Coming Soon)</h2>
+                        <p>Product mapping interface will go here.</p>
                     </div>
                 )}
 

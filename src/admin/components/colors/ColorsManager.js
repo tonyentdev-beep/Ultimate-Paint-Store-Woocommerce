@@ -1,17 +1,20 @@
 import { useState, useEffect } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
-import { Button, TextControl, SelectControl, PanelBody, PanelRow } from '@wordpress/components';
+import { Button, TextControl, SelectControl, PanelBody, PanelRow, CheckboxControl } from '@wordpress/components';
 
 const ColorsManager = () => {
     const [colors, setColors] = useState([]);
     const [families, setFamilies] = useState([]);
+    const [allBases, setAllBases] = useState([]);
     const [newColorName, setNewColorName] = useState('');
     const [newColorHex, setNewColorHex] = useState('');
     const [newColorFamilyId, setNewColorFamilyId] = useState('');
+    const [selectedBases, setSelectedBases] = useState([]);
     const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
         fetchFamilies();
+        fetchBases();
         fetchColors();
     }, []);
 
@@ -21,6 +24,15 @@ const ColorsManager = () => {
             setFamilies(data);
         } catch (error) {
             console.error('Error fetching families:', error);
+        }
+    };
+
+    const fetchBases = async () => {
+        try {
+            const data = await apiFetch({ path: '/paint-store/v1/bases' });
+            setAllBases(data);
+        } catch (error) {
+            console.error('Error fetching bases:', error);
         }
     };
 
@@ -34,7 +46,10 @@ const ColorsManager = () => {
     };
 
     const handleCreateColor = async () => {
-        if (!newColorName || !newColorFamilyId) return;
+        if (!newColorName || !newColorFamilyId || selectedBases.length === 0) {
+            alert("Name, Family, and at least one Base are required.");
+            return;
+        }
         setIsSaving(true);
         try {
             await apiFetch({
@@ -43,13 +58,15 @@ const ColorsManager = () => {
                 data: {
                     name: newColorName,
                     hex_value: newColorHex,
-                    rgb_value: '', // We can auto-calculate this later if needed
-                    family_id: newColorFamilyId
+                    rgb_value: '', // Auto-calculate later if needed
+                    family_id: newColorFamilyId,
+                    base_ids: selectedBases
                 },
             });
             setNewColorName('');
             setNewColorHex('');
             setNewColorFamilyId('');
+            setSelectedBases([]);
             fetchColors(); // Refresh the list
         } catch (error) {
             console.error('Error creating color:', error);
@@ -57,10 +74,25 @@ const ColorsManager = () => {
         setIsSaving(false);
     };
 
+    const toggleBaseSelection = (baseId) => {
+        setSelectedBases((prev) =>
+            prev.includes(baseId)
+                ? prev.filter((id) => id !== baseId)
+                : [...prev, baseId]
+        );
+    };
+
     const familyOptions = [
         { label: 'Select a Family...', value: '' },
         ...families.map(family => ({ label: family.name, value: family.id }))
     ];
+
+    const getBaseNames = (baseIds) => {
+        if (!baseIds || baseIds.length === 0) return 'None';
+        return baseIds
+            .map(id => allBases.find(b => parseInt(b.id) === id)?.name || id)
+            .join(', ');
+    };
 
     return (
         <div className="colors-manager" style={{ marginTop: '30px' }}>
@@ -87,11 +119,30 @@ const ColorsManager = () => {
                         onChange={(value) => setNewColorFamilyId(value)}
                     />
                 </PanelRow>
+                <div style={{ marginTop: '15px' }}>
+                    <p style={{ fontWeight: 600, marginBottom: '10px' }}>Compatible Bases (Required)</p>
+                    {allBases.length === 0 ? (
+                        <p style={{ color: 'red', fontStyle: 'italic' }}>Please create Paint Bases in the Products & Bases tab first.</p>
+                    ) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                            {allBases.map((base) => (
+                                <CheckboxControl
+                                    key={base.id}
+                                    label={base.name}
+                                    checked={selectedBases.includes(parseInt(base.id))}
+                                    onChange={() => toggleBaseSelection(parseInt(base.id))}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </div>
+
                 <Button
                     variant="primary"
                     onClick={handleCreateColor}
                     isBusy={isSaving}
-                    disabled={!newColorName || !newColorFamilyId || isSaving}
+                    disabled={!newColorName || !newColorFamilyId || selectedBases.length === 0 || isSaving}
+                    style={{ marginTop: '20px' }}
                 >
                     Add Color
                 </Button>
@@ -106,11 +157,12 @@ const ColorsManager = () => {
                             <th>Name</th>
                             <th>Family ID</th>
                             <th>Color Hex</th>
+                            <th>Compatible Bases</th>
                         </tr>
                     </thead>
                     <tbody>
                         {colors.length === 0 ? (
-                            <tr><td colSpan="4">No colors found.</td></tr>
+                            <tr><td colSpan="5">No colors found.</td></tr>
                         ) : (
                             colors.map(color => (
                                 <tr key={color.id}>
@@ -128,6 +180,7 @@ const ColorsManager = () => {
                                         }}></span>
                                         {color.hex_value}
                                     </td>
+                                    <td>{getBaseNames(color.base_ids)}</td>
                                 </tr>
                             ))
                         )}
