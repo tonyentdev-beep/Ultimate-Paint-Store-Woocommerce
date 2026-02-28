@@ -29,7 +29,7 @@ use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
 
 // TODO: Replace with your actual GitHub repository URL and branch
 $myUpdateChecker = PucFactory::buildUpdateChecker(
-	'https://github.com/your-username/your-repo/',
+	'https://github.com/tonyentdev-beep/Ultimate-Paint-Store-Woocommerce',
 	__FILE__,
 	'paint-store-core'
 );
