@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Configuration
+.env
+wp-config.php
+
+# Operating System
+.DS_Store
+Thumbs.db
+
+# Build output
+dist/
+build/
+
+# Logs
+*.log
