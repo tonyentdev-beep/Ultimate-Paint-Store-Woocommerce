@@ -1,4 +1,5 @@
 import { useState } from '@wordpress/element';
+import ColorFamilies from './colors/ColorFamilies';
 
 const App = () => {
     const [activeTab, setActiveTab] = useState('colors');
@@ -31,8 +32,7 @@ const App = () => {
             <div className="tab-content">
                 {activeTab === 'colors' && (
                     <div>
-                        <h2>Manage Colors</h2>
-                        <p>Color management interface will go here.</p>
+                        <ColorFamilies />
                     </div>
                 )}
 
