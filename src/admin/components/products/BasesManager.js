@@ -49,17 +49,19 @@ const BasesManager = () => {
                         onChange={(value) => setNewBaseName(value)}
                     />
                 </PanelRow>
-                <Button
-                    variant="primary"
-                    onClick={handleCreateBase}
-                    isBusy={isSaving}
-                    disabled={!newBaseName || isSaving}
-                >
-                    Add Base
-                </Button>
+                <div style={{ padding: '10px 20px 20px' }}>
+                    <Button
+                        variant="primary"
+                        onClick={handleCreateBase}
+                        isBusy={isSaving}
+                        disabled={!newBaseName || isSaving}
+                    >
+                        Add Base
+                    </Button>
+                </div>
             </PanelBody>
 
-            <div style={{ marginTop: '20px' }}>
+            <div style={{ marginTop: '30px' }}>
                 <h3>Existing Bases</h3>
                 <table className="wp-list-table widefat fixed striped">
                     <thead>
@@ -75,7 +77,7 @@ const BasesManager = () => {
                             bases.map(base => (
                                 <tr key={base.id}>
                                     <td>{base.id}</td>
-                                    <td>{base.name}</td>
+                                    <td><strong>{base.name}</strong></td>
                                 </tr>
                             ))
                         )}

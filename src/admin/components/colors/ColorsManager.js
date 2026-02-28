@@ -123,12 +123,10 @@ const ColorsManager = () => {
                                 onChange={(value) => setNewColorHex(value)}
                             />
                         </div>
-                        <div style={{
-                            width: '50px',
-                            height: '50px',
+                        <div className="color-swatch-box" style={{
+                            width: '45px',
+                            height: '45px',
                             backgroundColor: newColorHex || '#ffffff',
-                            border: '1px solid #ccc',
-                            borderRadius: '4px',
                             marginTop: '15px'
                         }}></div>
                     </div>
@@ -141,12 +139,12 @@ const ColorsManager = () => {
                         onChange={(value) => setNewColorFamilyId(value)}
                     />
                 </PanelRow>
-                <div style={{ marginTop: '15px' }}>
+                <div style={{ marginTop: '15px', padding: '15px 20px' }}>
                     <p style={{ fontWeight: 600, marginBottom: '10px' }}>Compatible Bases (Required)</p>
                     {allBases.length === 0 ? (
                         <p style={{ color: 'red', fontStyle: 'italic' }}>Please create Paint Bases in the Products & Bases tab first.</p>
                     ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                             {allBases.map((base) => (
                                 <CheckboxControl
                                     key={base.id}
@@ -159,18 +157,19 @@ const ColorsManager = () => {
                     )}
                 </div>
 
-                <Button
-                    variant="primary"
-                    onClick={handleCreateColor}
-                    isBusy={isSaving}
-                    disabled={!newColorName || !newColorFamilyId || selectedBases.length === 0 || isSaving}
-                    style={{ marginTop: '20px' }}
-                >
-                    Add Color
-                </Button>
+                <div style={{ padding: '0 20px 20px' }}>
+                    <Button
+                        variant="primary"
+                        onClick={handleCreateColor}
+                        isBusy={isSaving}
+                        disabled={!newColorName || !newColorFamilyId || selectedBases.length === 0 || isSaving}
+                    >
+                        Add Color
+                    </Button>
+                </div>
             </PanelBody>
 
-            <div style={{ marginTop: '20px' }}>
+            <div style={{ marginTop: '30px' }}>
                 <h3>Existing Colors</h3>
                 <table className="wp-list-table widefat fixed striped">
                     <thead>
@@ -191,21 +190,20 @@ const ColorsManager = () => {
                                 <tr key={color.id}>
                                     <td>{color.id}</td>
                                     <td><strong>{color.color_code || '-'}</strong></td>
-                                    <td>{color.name}</td>
+                                    <td><strong>{color.name}</strong></td>
                                     <td>{color.family_id}</td>
                                     <td>
-                                        <span style={{
-                                            display: 'inline-block',
-                                            width: '20px',
-                                            height: '20px',
-                                            backgroundColor: color.hex_value,
-                                            marginRight: '10px',
-                                            border: '1px solid #ccc',
-                                            verticalAlign: 'middle'
-                                        }}></span>
-                                        {color.hex_value}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <span className="color-swatch-box" style={{
+                                                display: 'inline-block',
+                                                width: '24px',
+                                                height: '24px',
+                                                backgroundColor: color.hex_value
+                                            }}></span>
+                                            {color.hex_value}
+                                        </div>
                                     </td>
-                                    <td>{getBaseNames(color.base_ids)}</td>
+                                    <td><em>{getBaseNames(color.base_ids)}</em></td>
                                 </tr>
                             ))
                         )}

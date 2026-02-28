@@ -61,12 +61,10 @@ const ColorFamilies = () => {
                                 onChange={(value) => setNewFamilyHex(value)}
                             />
                         </div>
-                        <div style={{
-                            width: '50px',
-                            height: '50px',
+                        <div className="color-swatch-box" style={{
+                            width: '45px',
+                            height: '45px',
                             backgroundColor: newFamilyHex || '#ffffff',
-                            border: '1px solid #ccc',
-                            borderRadius: '4px',
                             marginTop: '15px'
                         }}></div>
                     </div>
@@ -81,7 +79,7 @@ const ColorFamilies = () => {
                 </Button>
             </PanelBody>
 
-            <div style={{ marginTop: '20px' }}>
+            <div style={{ marginTop: '30px' }}>
                 <h3>Existing Families</h3>
                 <table className="wp-list-table widefat fixed striped">
                     <thead>
@@ -99,19 +97,18 @@ const ColorFamilies = () => {
                             families.map(family => (
                                 <tr key={family.id}>
                                     <td>{family.id}</td>
-                                    <td>{family.name}</td>
-                                    <td>{family.slug}</td>
+                                    <td><strong>{family.name}</strong></td>
+                                    <td><code>{family.slug}</code></td>
                                     <td>
-                                        <span style={{
-                                            display: 'inline-block',
-                                            width: '20px',
-                                            height: '20px',
-                                            backgroundColor: family.hex_representative,
-                                            marginRight: '10px',
-                                            border: '1px solid #ccc',
-                                            verticalAlign: 'middle'
-                                        }}></span>
-                                        {family.hex_representative}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <span className="color-swatch-box" style={{
+                                                display: 'inline-block',
+                                                width: '24px',
+                                                height: '24px',
+                                                backgroundColor: family.hex_representative
+                                            }}></span>
+                                            {family.hex_representative}
+                                        </div>
                                     </td>
                                 </tr>
                             ))
