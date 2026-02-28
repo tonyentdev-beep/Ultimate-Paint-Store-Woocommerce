@@ -16,6 +16,31 @@ if ( ! defined( 'WPINC' ) ) {
 }
 
 /**
+ * Autoload Composer dependencies (e.g. Plugin Update Checker)
+ */
+if ( file_exists( plugin_dir_path( __FILE__ ) . 'vendor/autoload.php' ) ) {
+	require_once plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
+}
+
+/**
+ * Initialize the Plugin Update Checker
+ */
+use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
+
+// TODO: Replace with your actual GitHub repository URL and branch
+$myUpdateChecker = PucFactory::buildUpdateChecker(
+	'https://github.com/your-username/your-repo/',
+	__FILE__,
+	'paint-store-core'
+);
+
+// Set the branch that contains the stable release.
+$myUpdateChecker->setBranch('main');
+
+// Optional: If it's a private repository, you'll need to set an authentication token.
+// $myUpdateChecker->setAuthentication('your-github-personal-access-token');
+
+/**
  * Currently plugin version.
  * Start at version 1.0.0 and use SemVer - https://semver.org
  */
