@@ -1,6 +1,8 @@
-import { useState } from '@wordpress/element';
+import { useState, useMemo } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import { Button, TextControl, SelectControl, PanelBody, PanelRow, CheckboxControl } from '@wordpress/components';
+
+const ITEMS_PER_PAGE = 25;
 
 const ColorsManager = ({ colors, families, allBases, brands, fetchColors }) => {
     const [newColorName, setNewColorName] = useState('');
@@ -11,6 +13,12 @@ const ColorsManager = ({ colors, families, allBases, brands, fetchColors }) => {
     const [selectedBases, setSelectedBases] = useState([]);
     const [isSaving, setIsSaving] = useState(false);
     const [editingId, setEditingId] = useState(null);
+
+    // Filter & pagination state
+    const [searchText, setSearchText] = useState('');
+    const [filterBrand, setFilterBrand] = useState('');
+    const [filterFamily, setFilterFamily] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
 
     const handleSaveColor = async () => {
         if (!newColorName || !newColorFamilyId || !newColorBrandId || selectedBases.length === 0) {
@@ -23,7 +31,7 @@ const ColorsManager = ({ colors, families, allBases, brands, fetchColors }) => {
                 name: newColorName,
                 color_code: newColorCode,
                 hex_value: newColorHex,
-                rgb_value: '', // Auto-calculate later if needed
+                rgb_value: '',
                 family_id: newColorFamilyId,
                 brand_id: newColorBrandId,
                 base_ids: selectedBases
@@ -50,7 +58,7 @@ const ColorsManager = ({ colors, families, allBases, brands, fetchColors }) => {
             setNewColorBrandId('');
             setSelectedBases([]);
             setEditingId(null);
-            fetchColors(); // Refresh the list
+            fetchColors();
         } catch (error) {
             console.error('Error saving color:', error);
             alert('Error saving color: ' + (error.message || JSON.stringify(error)));
@@ -111,6 +119,16 @@ const ColorsManager = ({ colors, families, allBases, brands, fetchColors }) => {
         ...brands.map(brand => ({ label: brand.name, value: brand.id }))
     ];
 
+    // Filter options (for the filter bar, includes "All" option)
+    const filterFamilyOptions = [
+        { label: 'All Families', value: '' },
+        ...families.map(family => ({ label: family.name, value: String(family.id) }))
+    ];
+    const filterBrandOptions = [
+        { label: 'All Brands', value: '' },
+        ...brands.map(brand => ({ label: brand.name, value: String(brand.id) }))
+    ];
+
     const getBaseNames = (baseIds) => {
         if (!baseIds || baseIds.length === 0) return 'None';
         return baseIds
@@ -121,6 +139,49 @@ const ColorsManager = ({ colors, families, allBases, brands, fetchColors }) => {
     const getBrandName = (brandId) => {
         if (!brandId) return '-';
         return brands.find(b => parseInt(b.id) === parseInt(brandId))?.name || brandId;
+    };
+
+    const getFamilyName = (familyId) => {
+        if (!familyId) return '-';
+        return families.find(f => parseInt(f.id) === parseInt(familyId))?.name || familyId;
+    };
+
+    // Filtered + paginated colors
+    const filteredColors = useMemo(() => {
+        let result = colors;
+
+        if (searchText) {
+            const q = searchText.toLowerCase();
+            result = result.filter(c =>
+                (c.name && c.name.toLowerCase().includes(q)) ||
+                (c.color_code && c.color_code.toLowerCase().includes(q)) ||
+                (c.hex_value && c.hex_value.toLowerCase().includes(q))
+            );
+        }
+
+        if (filterBrand) {
+            result = result.filter(c => String(c.brand_id) === filterBrand);
+        }
+
+        if (filterFamily) {
+            result = result.filter(c => String(c.family_id) === filterFamily);
+        }
+
+        return result;
+    }, [colors, searchText, filterBrand, filterFamily]);
+
+    const totalPages = Math.max(1, Math.ceil(filteredColors.length / ITEMS_PER_PAGE));
+    const safePage = Math.min(currentPage, totalPages);
+    const paginatedColors = filteredColors.slice(
+        (safePage - 1) * ITEMS_PER_PAGE,
+        safePage * ITEMS_PER_PAGE
+    );
+
+    const handleClearFilters = () => {
+        setSearchText('');
+        setFilterBrand('');
+        setFilterFamily('');
+        setCurrentPage(1);
     };
 
     return (
@@ -210,6 +271,53 @@ const ColorsManager = ({ colors, families, allBases, brands, fetchColors }) => {
 
             <div style={{ marginTop: '30px' }}>
                 <h3>Existing Colors</h3>
+
+                {/* ─── Filter Bar ─── */}
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '2fr 1fr 1fr auto',
+                    gap: '15px',
+                    alignItems: 'end',
+                    marginBottom: '15px',
+                    padding: '15px',
+                    background: '#f0f0f1',
+                    borderRadius: '6px',
+                    border: '1px solid #ddd'
+                }}>
+                    <TextControl
+                        label="Search by name, code, or hex"
+                        value={searchText}
+                        onChange={(v) => { setSearchText(v); setCurrentPage(1); }}
+                        placeholder="e.g. Naval or SW 6593"
+                    />
+                    <SelectControl
+                        label="Filter by Brand"
+                        value={filterBrand}
+                        options={filterBrandOptions}
+                        onChange={(v) => { setFilterBrand(v); setCurrentPage(1); }}
+                    />
+                    <SelectControl
+                        label="Filter by Family"
+                        value={filterFamily}
+                        options={filterFamilyOptions}
+                        onChange={(v) => { setFilterFamily(v); setCurrentPage(1); }}
+                    />
+                    <Button
+                        variant="secondary"
+                        isSmall
+                        onClick={handleClearFilters}
+                        style={{ marginBottom: '8px' }}
+                    >
+                        Clear Filters
+                    </Button>
+                </div>
+
+                <p style={{ color: '#666', marginBottom: '10px' }}>
+                    Showing <strong>{paginatedColors.length}</strong> of <strong>{filteredColors.length}</strong> colors
+                    {filteredColors.length !== colors.length && ` (${colors.length} total)`}
+                    {' '} — Page <strong>{safePage}</strong> of <strong>{totalPages}</strong>
+                </p>
+
                 <table className="wp-list-table widefat fixed striped">
                     <thead>
                         <tr>
@@ -217,21 +325,23 @@ const ColorsManager = ({ colors, families, allBases, brands, fetchColors }) => {
                             <th>Code</th>
                             <th>Name</th>
                             <th>Brand</th>
+                            <th>Family</th>
                             <th>Color Hex</th>
                             <th>Compatible Bases</th>
                             <th style={{ width: '150px' }}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {colors.length === 0 ? (
-                            <tr><td colSpan="7">No colors found.</td></tr>
+                        {paginatedColors.length === 0 ? (
+                            <tr><td colSpan="8">No colors match your filters.</td></tr>
                         ) : (
-                            colors.map(color => (
+                            paginatedColors.map(color => (
                                 <tr key={color.id}>
                                     <td>{color.id}</td>
                                     <td><strong>{color.color_code || '-'}</strong></td>
                                     <td><strong>{color.name}</strong></td>
                                     <td>{getBrandName(color.brand_id)}</td>
+                                    <td>{getFamilyName(color.family_id)}</td>
                                     <td>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                             <span className="color-swatch-box" style={{
@@ -255,6 +365,54 @@ const ColorsManager = ({ colors, families, allBases, brands, fetchColors }) => {
                         )}
                     </tbody>
                 </table>
+
+                {/* ─── Pagination Controls ─── */}
+                {totalPages > 1 && (
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        gap: '8px',
+                        marginTop: '20px',
+                        padding: '10px'
+                    }}>
+                        <Button
+                            variant="secondary"
+                            isSmall
+                            disabled={safePage <= 1}
+                            onClick={() => setCurrentPage(1)}
+                        >
+                            « First
+                        </Button>
+                        <Button
+                            variant="secondary"
+                            isSmall
+                            disabled={safePage <= 1}
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        >
+                            ‹ Prev
+                        </Button>
+                        <span style={{ padding: '0 12px', fontWeight: 600 }}>
+                            Page {safePage} of {totalPages}
+                        </span>
+                        <Button
+                            variant="secondary"
+                            isSmall
+                            disabled={safePage >= totalPages}
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        >
+                            Next ›
+                        </Button>
+                        <Button
+                            variant="secondary"
+                            isSmall
+                            disabled={safePage >= totalPages}
+                            onClick={() => setCurrentPage(totalPages)}
+                        >
+                            Last »
+                        </Button>
+                    </div>
+                )}
             </div>
         </div>
     );
