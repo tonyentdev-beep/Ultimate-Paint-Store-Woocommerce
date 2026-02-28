@@ -1,5 +1,6 @@
 import { useState } from '@wordpress/element';
 import ColorFamilies from './colors/ColorFamilies';
+import ColorsManager from './colors/ColorsManager';
 
 const App = () => {
     const [activeTab, setActiveTab] = useState('colors');
@@ -33,6 +34,8 @@ const App = () => {
                 {activeTab === 'colors' && (
                     <div>
                         <ColorFamilies />
+                        <hr style={{ margin: '40px 0' }} />
+                        <ColorsManager />
                     </div>
                 )}
 
