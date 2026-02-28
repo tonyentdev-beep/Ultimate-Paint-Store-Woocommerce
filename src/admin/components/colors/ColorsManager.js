@@ -10,39 +10,87 @@ const ColorsManager = ({ colors, families, allBases, brands, fetchColors }) => {
     const [newColorBrandId, setNewColorBrandId] = useState('');
     const [selectedBases, setSelectedBases] = useState([]);
     const [isSaving, setIsSaving] = useState(false);
+    const [editingId, setEditingId] = useState(null);
 
-    const handleCreateColor = async () => {
+    const handleSaveColor = async () => {
         if (!newColorName || !newColorFamilyId || !newColorBrandId || selectedBases.length === 0) {
             alert("Name, Family, Brand, and at least one Base are required.");
             return;
         }
         setIsSaving(true);
         try {
-            await apiFetch({
-                path: '/paint-store/v1/colors',
-                method: 'POST',
-                data: {
-                    name: newColorName,
-                    color_code: newColorCode,
-                    hex_value: newColorHex,
-                    rgb_value: '', // Auto-calculate later if needed
-                    family_id: newColorFamilyId,
-                    brand_id: newColorBrandId,
-                    base_ids: selectedBases
-                },
-            });
+            const payload = {
+                name: newColorName,
+                color_code: newColorCode,
+                hex_value: newColorHex,
+                rgb_value: '', // Auto-calculate later if needed
+                family_id: newColorFamilyId,
+                brand_id: newColorBrandId,
+                base_ids: selectedBases
+            };
+
+            if (editingId) {
+                await apiFetch({
+                    path: `/paint-store/v1/colors/${editingId}`,
+                    method: 'PUT',
+                    data: payload,
+                });
+            } else {
+                await apiFetch({
+                    path: '/paint-store/v1/colors',
+                    method: 'POST',
+                    data: payload,
+                });
+            }
+
             setNewColorName('');
             setNewColorCode('');
             setNewColorHex('');
             setNewColorFamilyId('');
             setNewColorBrandId('');
             setSelectedBases([]);
+            setEditingId(null);
             fetchColors(); // Refresh the list
         } catch (error) {
-            console.error('Error creating color:', error);
-            alert('Error creating color: ' + (error.message || JSON.stringify(error)));
+            console.error('Error saving color:', error);
+            alert('Error saving color: ' + (error.message || JSON.stringify(error)));
         }
         setIsSaving(false);
+    };
+
+    const handleEdit = (color) => {
+        setEditingId(color.id);
+        setNewColorName(color.name);
+        setNewColorCode(color.color_code || '');
+        setNewColorHex(color.hex_value || '');
+        setNewColorFamilyId(color.family_id == 0 ? '' : color.family_id);
+        setNewColorBrandId(color.brand_id == 0 ? '' : color.brand_id);
+        setSelectedBases(color.base_ids || []);
+    };
+
+    const handleCancelEdit = () => {
+        setEditingId(null);
+        setNewColorName('');
+        setNewColorCode('');
+        setNewColorHex('');
+        setNewColorFamilyId('');
+        setNewColorBrandId('');
+        setSelectedBases([]);
+    };
+
+    const handleDelete = async (id) => {
+        if (!confirm('Are you sure you want to delete this color?')) return;
+        try {
+            await apiFetch({
+                path: `/paint-store/v1/colors/${id}`,
+                method: 'DELETE',
+            });
+            if (editingId === id) handleCancelEdit();
+            fetchColors();
+        } catch (error) {
+            console.error('Error deleting color:', error);
+            alert('Error deleting color: ' + (error.message || JSON.stringify(error)));
+        }
     };
 
     const toggleBaseSelection = (baseId) => {
@@ -77,7 +125,7 @@ const ColorsManager = ({ colors, families, allBases, brands, fetchColors }) => {
 
     return (
         <div className="colors-manager" style={{ marginTop: '30px' }}>
-            <PanelBody title="Add New Specific Color" initialOpen={true}>
+            <PanelBody title={editingId ? "Edit Specific Color" : "Add New Specific Color"} initialOpen={true}>
                 <PanelRow>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', width: '100%' }}>
                         <TextControl
@@ -143,15 +191,20 @@ const ColorsManager = ({ colors, families, allBases, brands, fetchColors }) => {
                     )}
                 </div>
 
-                <div style={{ padding: '0 20px 20px' }}>
+                <div style={{ padding: '0 20px 20px', display: 'flex', gap: '10px' }}>
                     <Button
                         variant="primary"
-                        onClick={handleCreateColor}
+                        onClick={handleSaveColor}
                         isBusy={isSaving}
                         disabled={!newColorName || !newColorFamilyId || !newColorBrandId || selectedBases.length === 0 || isSaving}
                     >
-                        Add Color
+                        {editingId ? 'Update Color' : 'Add Color'}
                     </Button>
+                    {editingId && (
+                        <Button variant="secondary" onClick={handleCancelEdit}>
+                            Cancel Edit
+                        </Button>
+                    )}
                 </div>
             </PanelBody>
 
@@ -166,11 +219,12 @@ const ColorsManager = ({ colors, families, allBases, brands, fetchColors }) => {
                             <th>Brand</th>
                             <th>Color Hex</th>
                             <th>Compatible Bases</th>
+                            <th style={{ width: '150px' }}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {colors.length === 0 ? (
-                            <tr><td colSpan="6">No colors found.</td></tr>
+                            <tr><td colSpan="7">No colors found.</td></tr>
                         ) : (
                             colors.map(color => (
                                 <tr key={color.id}>
@@ -190,6 +244,12 @@ const ColorsManager = ({ colors, families, allBases, brands, fetchColors }) => {
                                         </div>
                                     </td>
                                     <td><em>{getBaseNames(color.base_ids)}</em></td>
+                                    <td>
+                                        <div style={{ display: 'flex', gap: '10px' }}>
+                                            <Button isSmall variant="secondary" onClick={() => handleEdit(color)}>Edit</Button>
+                                            <Button isSmall isDestructive onClick={() => handleDelete(color.id)}>Delete</Button>
+                                        </div>
+                                    </td>
                                 </tr>
                             ))
                         )}

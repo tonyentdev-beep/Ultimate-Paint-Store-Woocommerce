@@ -26,6 +26,18 @@ class Paint_Store_API {
 				'permission_callback' => array( $this, 'permissions_check' ),
 			),
 		) );
+		register_rest_route( $this->namespace, '/colors/(?P<id>\\d+)', array(
+			array(
+				'methods'             => WP_REST_Server::EDITABLE,
+				'callback'            => array( $this, 'update_color' ),
+				'permission_callback' => array( $this, 'permissions_check' ),
+			),
+			array(
+				'methods'             => WP_REST_Server::DELETABLE,
+				'callback'            => array( $this, 'delete_color' ),
+				'permission_callback' => array( $this, 'permissions_check' ),
+			),
+		) );
 
 		// Color Families Endpoints
 		register_rest_route( $this->namespace, '/families', array(
@@ -37,6 +49,18 @@ class Paint_Store_API {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'create_family' ),
+				'permission_callback' => array( $this, 'permissions_check' ),
+			),
+		) );
+		register_rest_route( $this->namespace, '/families/(?P<id>\\d+)', array(
+			array(
+				'methods'             => WP_REST_Server::EDITABLE,
+				'callback'            => array( $this, 'update_family' ),
+				'permission_callback' => array( $this, 'permissions_check' ),
+			),
+			array(
+				'methods'             => WP_REST_Server::DELETABLE,
+				'callback'            => array( $this, 'delete_family' ),
 				'permission_callback' => array( $this, 'permissions_check' ),
 			),
 		) );
@@ -53,6 +77,18 @@ class Paint_Store_API {
 				'permission_callback' => array( $this, 'permissions_check' ),
 			),
 		) );
+		register_rest_route( $this->namespace, '/bases/(?P<id>\\d+)', array(
+			array(
+				'methods'             => WP_REST_Server::EDITABLE,
+				'callback'            => array( $this, 'update_base' ),
+				'permission_callback' => array( $this, 'permissions_check' ),
+			),
+			array(
+				'methods'             => WP_REST_Server::DELETABLE,
+				'callback'            => array( $this, 'delete_base' ),
+				'permission_callback' => array( $this, 'permissions_check' ),
+			),
+		) );
 
 		// Brands Endpoints
 		register_rest_route( $this->namespace, '/brands', array(
@@ -64,6 +100,18 @@ class Paint_Store_API {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'create_brand' ),
+				'permission_callback' => array( $this, 'permissions_check' ),
+			),
+		) );
+		register_rest_route( $this->namespace, '/brands/(?P<id>\\d+)', array(
+			array(
+				'methods'             => WP_REST_Server::EDITABLE,
+				'callback'            => array( $this, 'update_brand' ),
+				'permission_callback' => array( $this, 'permissions_check' ),
+			),
+			array(
+				'methods'             => WP_REST_Server::DELETABLE,
+				'callback'            => array( $this, 'delete_brand' ),
 				'permission_callback' => array( $this, 'permissions_check' ),
 			),
 		) );
@@ -168,6 +216,74 @@ class Paint_Store_API {
 		return rest_ensure_response( array( 'id' => $color_id ) );
 	}
 
+	public function update_color( $request ) {
+		global $wpdb;
+		$id = $request->get_param( 'id' );
+		$table_name = $wpdb->prefix . 'ps_colors';
+		$color_bases_table = $wpdb->prefix . 'ps_color_bases';
+
+		$name        = sanitize_text_field( $request->get_param( 'name' ) );
+		$color_code  = sanitize_text_field( $request->get_param( 'color_code' ) );
+		$hex_value   = sanitize_text_field( $request->get_param( 'hex_value' ) );
+		$rgb_value   = sanitize_text_field( $request->get_param( 'rgb_value' ) );
+		$family_id   = intval( $request->get_param( 'family_id' ) );
+		$brand_id    = intval( $request->get_param( 'brand_id' ) );
+		
+		$base_ids    = $request->get_param( 'base_ids' );
+
+		if ( empty( $name ) ) {
+			return new WP_Error( 'missing_name', 'Color name is required', array( 'status' => 400 ) );
+		}
+
+		if ( empty( $base_ids ) || ! is_array( $base_ids ) ) {
+			return new WP_Error( 'missing_bases', 'At least one Base is required for a Color', array( 'status' => 400 ) );
+		}
+
+		$result = $wpdb->update(
+			$table_name,
+			array(
+				'name'       => $name,
+				'color_code' => $color_code,
+				'hex_value'  => $hex_value,
+				'rgb_value'  => $rgb_value,
+				'family_id'  => $family_id,
+				'brand_id'   => $brand_id,
+			),
+			array( 'id' => $id ),
+			array( '%s', '%s', '%s', '%s', '%d', '%d' ),
+			array( '%d' )
+		);
+
+		if ( false === $result ) {
+			return new WP_Error( 'db_update_error', 'Failed to update color: ' . $wpdb->last_error, array( 'status' => 500 ) );
+		}
+
+		// Save the multiple Base assignments to the junction table (delete and re-insert)
+		$wpdb->delete( $color_bases_table, array( 'color_id' => $id ), array( '%d' ) );
+		foreach ( $base_ids as $base_id ) {
+			$wpdb->insert(
+				$color_bases_table,
+				array(
+					'color_id' => $id,
+					'base_id'  => intval( $base_id ),
+				),
+				array( '%d', '%d' )
+			);
+		}
+
+		return rest_ensure_response( array( 'success' => true ) );
+	}
+
+	public function delete_color( $request ) {
+		global $wpdb;
+		$id = $request->get_param( 'id' );
+		
+		$wpdb->delete( $wpdb->prefix . 'ps_color_bases', array( 'color_id' => $id ), array( '%d' ) );
+		$wpdb->delete( $wpdb->prefix . 'ps_colors', array( 'id' => $id ), array( '%d' ) );
+
+		return rest_ensure_response( array( 'success' => true ) );
+	}
+
 	// --- Families Handlers ---
 
 	public function get_families( $request ) {
@@ -206,6 +322,47 @@ class Paint_Store_API {
 		return rest_ensure_response( array( 'id' => $wpdb->insert_id ) );
 	}
 
+	public function update_family( $request ) {
+		global $wpdb;
+		$id = $request->get_param( 'id' );
+		$table_name = $wpdb->prefix . 'ps_color_families';
+
+		$name               = sanitize_text_field( $request->get_param( 'name' ) );
+		$slug               = sanitize_title( $name );
+		$hex_representative = sanitize_text_field( $request->get_param( 'hex_representative' ) );
+
+		if ( empty( $name ) ) {
+			return new WP_Error( 'missing_name', 'Family name is required', array( 'status' => 400 ) );
+		}
+
+		$result = $wpdb->update(
+			$table_name,
+			array(
+				'name'               => $name,
+				'slug'               => $slug,
+				'hex_representative' => $hex_representative,
+			),
+			array( 'id' => $id ),
+			array( '%s', '%s', '%s' ),
+			array( '%d' )
+		);
+
+		if ( false === $result ) {
+			return new WP_Error( 'db_update_error', 'Failed to update family: ' . $wpdb->last_error, array( 'status' => 500 ) );
+		}
+
+		return rest_ensure_response( array( 'success' => true ) );
+	}
+
+	public function delete_family( $request ) {
+		global $wpdb;
+		$id = $request->get_param( 'id' );
+		
+		$wpdb->delete( $wpdb->prefix . 'ps_color_families', array( 'id' => $id ), array( '%d' ) );
+
+		return rest_ensure_response( array( 'success' => true ) );
+	}
+
 	// --- Bases Handlers ---
 
 	public function get_bases( $request ) {
@@ -240,6 +397,43 @@ class Paint_Store_API {
 		return rest_ensure_response( array( 'id' => $wpdb->insert_id ) );
 	}
 
+	public function update_base( $request ) {
+		global $wpdb;
+		$id = $request->get_param( 'id' );
+		$table_name = $wpdb->prefix . 'ps_bases';
+
+		$name = sanitize_text_field( $request->get_param( 'name' ) );
+
+		if ( empty( $name ) ) {
+			return new WP_Error( 'missing_name', 'Base name is required', array( 'status' => 400 ) );
+		}
+
+		$result = $wpdb->update(
+			$table_name,
+			array(
+				'name' => $name,
+			),
+			array( 'id' => $id ),
+			array( '%s' ),
+			array( '%d' )
+		);
+
+		if ( false === $result ) {
+			return new WP_Error( 'db_update_error', 'Failed to update base: ' . $wpdb->last_error, array( 'status' => 500 ) );
+		}
+
+		return rest_ensure_response( array( 'success' => true ) );
+	}
+
+	public function delete_base( $request ) {
+		global $wpdb;
+		$id = $request->get_param( 'id' );
+		
+		$wpdb->delete( $wpdb->prefix . 'ps_bases', array( 'id' => $id ), array( '%d' ) );
+
+		return rest_ensure_response( array( 'success' => true ) );
+	}
+
 	// --- Brands Handlers ---
 
 	public function get_brands( $request ) {
@@ -272,5 +466,42 @@ class Paint_Store_API {
 		}
 
 		return rest_ensure_response( array( 'id' => $wpdb->insert_id ) );
+	}
+
+	public function update_brand( $request ) {
+		global $wpdb;
+		$id = $request->get_param( 'id' );
+		$table_name = $wpdb->prefix . 'ps_brands';
+
+		$name = sanitize_text_field( $request->get_param( 'name' ) );
+
+		if ( empty( $name ) ) {
+			return new WP_Error( 'missing_name', 'Brand name is required', array( 'status' => 400 ) );
+		}
+
+		$result = $wpdb->update(
+			$table_name,
+			array(
+				'name' => $name,
+			),
+			array( 'id' => $id ),
+			array( '%s' ),
+			array( '%d' )
+		);
+
+		if ( false === $result ) {
+			return new WP_Error( 'db_update_error', 'Failed to update brand: ' . $wpdb->last_error, array( 'status' => 500 ) );
+		}
+
+		return rest_ensure_response( array( 'success' => true ) );
+	}
+
+	public function delete_brand( $request ) {
+		global $wpdb;
+		$id = $request->get_param( 'id' );
+		
+		$wpdb->delete( $wpdb->prefix . 'ps_brands', array( 'id' => $id ), array( '%d' ) );
+
+		return rest_ensure_response( array( 'success' => true ) );
 	}
 }

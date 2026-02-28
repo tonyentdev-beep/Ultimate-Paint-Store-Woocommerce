@@ -5,30 +5,63 @@ import { Button, TextControl, PanelBody, PanelRow } from '@wordpress/components'
 const BasesManager = ({ bases, fetchBases }) => {
     const [newBaseName, setNewBaseName] = useState('');
     const [isSaving, setIsSaving] = useState(false);
+    const [editingId, setEditingId] = useState(null);
 
-    const handleCreateBase = async () => {
+    const handleSaveBase = async () => {
         if (!newBaseName) return;
         setIsSaving(true);
         try {
-            await apiFetch({
-                path: '/paint-store/v1/bases',
-                method: 'POST',
-                data: {
-                    name: newBaseName
-                },
-            });
+            if (editingId) {
+                await apiFetch({
+                    path: `/paint-store/v1/bases/${editingId}`,
+                    method: 'PUT',
+                    data: { name: newBaseName },
+                });
+            } else {
+                await apiFetch({
+                    path: '/paint-store/v1/bases',
+                    method: 'POST',
+                    data: { name: newBaseName },
+                });
+            }
             setNewBaseName('');
+            setEditingId(null);
             fetchBases(); // Refresh the list
         } catch (error) {
-            console.error('Error creating base:', error);
-            alert('Error creating base: ' + (error.message || JSON.stringify(error)));
+            console.error('Error saving base:', error);
+            alert('Error saving base: ' + (error.message || JSON.stringify(error)));
         }
         setIsSaving(false);
     };
 
+    const handleEdit = (base) => {
+        setEditingId(base.id);
+        setNewBaseName(base.name);
+    };
+
+    const handleCancelEdit = () => {
+        setEditingId(null);
+        setNewBaseName('');
+    };
+
+    const handleDelete = async (id) => {
+        if (!confirm('Are you sure you want to delete this base?')) return;
+        try {
+            await apiFetch({
+                path: `/paint-store/v1/bases/${id}`,
+                method: 'DELETE',
+            });
+            if (editingId === id) handleCancelEdit();
+            fetchBases();
+        } catch (error) {
+            console.error('Error deleting base:', error);
+            alert('Error deleting base: ' + (error.message || JSON.stringify(error)));
+        }
+    };
+
     return (
         <div className="bases-manager">
-            <PanelBody title="Add New Paint Base" initialOpen={true}>
+            <PanelBody title={editingId ? "Edit Paint Base" : "Add New Paint Base"} initialOpen={true}>
                 <PanelRow>
                     <TextControl
                         label="Base Name (e.g., Deep Base, Extra White)"
@@ -36,15 +69,20 @@ const BasesManager = ({ bases, fetchBases }) => {
                         onChange={(value) => setNewBaseName(value)}
                     />
                 </PanelRow>
-                <div style={{ padding: '10px 20px 20px' }}>
+                <div style={{ padding: '10px 20px 20px', display: 'flex', gap: '10px' }}>
                     <Button
                         variant="primary"
-                        onClick={handleCreateBase}
+                        onClick={handleSaveBase}
                         isBusy={isSaving}
                         disabled={!newBaseName || isSaving}
                     >
-                        Add Base
+                        {editingId ? 'Update Base' : 'Add Base'}
                     </Button>
+                    {editingId && (
+                        <Button variant="secondary" onClick={handleCancelEdit}>
+                            Cancel Edit
+                        </Button>
+                    )}
                 </div>
             </PanelBody>
 
@@ -55,16 +93,23 @@ const BasesManager = ({ bases, fetchBases }) => {
                         <tr>
                             <th>ID</th>
                             <th>Name</th>
+                            <th style={{ width: '150px' }}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {bases.length === 0 ? (
-                            <tr><td colSpan="2">No bases found. Add some above.</td></tr>
+                            <tr><td colSpan="3">No bases found. Add some above.</td></tr>
                         ) : (
                             bases.map(base => (
                                 <tr key={base.id}>
                                     <td>{base.id}</td>
                                     <td><strong>{base.name}</strong></td>
+                                    <td>
+                                        <div style={{ display: 'flex', gap: '10px' }}>
+                                            <Button isSmall variant="secondary" onClick={() => handleEdit(base)}>Edit</Button>
+                                            <Button isSmall isDestructive onClick={() => handleDelete(base.id)}>Delete</Button>
+                                        </div>
+                                    </td>
                                 </tr>
                             ))
                         )}

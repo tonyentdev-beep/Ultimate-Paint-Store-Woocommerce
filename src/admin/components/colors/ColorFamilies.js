@@ -6,32 +6,72 @@ const ColorFamilies = ({ families, fetchFamilies }) => {
     const [newFamilyName, setNewFamilyName] = useState('');
     const [newFamilyHex, setNewFamilyHex] = useState('');
     const [isSaving, setIsSaving] = useState(false);
+    const [editingId, setEditingId] = useState(null);
 
-    const handleCreateFamily = async () => {
+    const handleSaveFamily = async () => {
         if (!newFamilyName) return;
         setIsSaving(true);
         try {
-            await apiFetch({
-                path: '/paint-store/v1/families',
-                method: 'POST',
-                data: {
-                    name: newFamilyName,
-                    hex_representative: newFamilyHex
-                },
-            });
+            if (editingId) {
+                await apiFetch({
+                    path: `/paint-store/v1/families/${editingId}`,
+                    method: 'PUT',
+                    data: {
+                        name: newFamilyName,
+                        hex_representative: newFamilyHex
+                    },
+                });
+            } else {
+                await apiFetch({
+                    path: '/paint-store/v1/families',
+                    method: 'POST',
+                    data: {
+                        name: newFamilyName,
+                        hex_representative: newFamilyHex
+                    },
+                });
+            }
             setNewFamilyName('');
             setNewFamilyHex('');
+            setEditingId(null);
             fetchFamilies(); // Refresh the list
         } catch (error) {
-            console.error('Error creating family:', error);
-            alert('Error creating family: ' + (error.message || JSON.stringify(error)));
+            console.error('Error saving family:', error);
+            alert('Error saving family: ' + (error.message || JSON.stringify(error)));
         }
         setIsSaving(false);
     };
 
+    const handleEdit = (family) => {
+        setEditingId(family.id);
+        setNewFamilyName(family.name);
+        setNewFamilyHex(family.hex_representative);
+    };
+
+    const handleCancelEdit = () => {
+        setEditingId(null);
+        setNewFamilyName('');
+        setNewFamilyHex('');
+    };
+
+    const handleDelete = async (id) => {
+        if (!confirm('Are you sure you want to delete this family?')) return;
+        try {
+            await apiFetch({
+                path: `/paint-store/v1/families/${id}`,
+                method: 'DELETE',
+            });
+            if (editingId === id) handleCancelEdit();
+            fetchFamilies();
+        } catch (error) {
+            console.error('Error deleting family:', error);
+            alert('Error deleting family: ' + (error.message || JSON.stringify(error)));
+        }
+    };
+
     return (
         <div className="color-families-manager">
-            <PanelBody title="Add New Color Family" initialOpen={true}>
+            <PanelBody title={editingId ? "Edit Color Family" : "Add New Color Family"} initialOpen={true}>
                 <PanelRow>
                     <TextControl
                         label="Family Name (e.g., Blues)"
@@ -56,14 +96,21 @@ const ColorFamilies = ({ families, fetchFamilies }) => {
                         }}></div>
                     </div>
                 </PanelRow>
-                <Button
-                    variant="primary"
-                    onClick={handleCreateFamily}
-                    isBusy={isSaving}
-                    disabled={!newFamilyName || isSaving}
-                >
-                    Add Family
-                </Button>
+                <div style={{ padding: '10px 20px 20px', display: 'flex', gap: '10px' }}>
+                    <Button
+                        variant="primary"
+                        onClick={handleSaveFamily}
+                        isBusy={isSaving}
+                        disabled={!newFamilyName || isSaving}
+                    >
+                        {editingId ? 'Update Family' : 'Add Family'}
+                    </Button>
+                    {editingId && (
+                        <Button variant="secondary" onClick={handleCancelEdit}>
+                            Cancel Edit
+                        </Button>
+                    )}
+                </div>
             </PanelBody>
 
             <div style={{ marginTop: '30px' }}>
@@ -75,11 +122,12 @@ const ColorFamilies = ({ families, fetchFamilies }) => {
                             <th>Name</th>
                             <th>Slug</th>
                             <th>Color Hex</th>
+                            <th style={{ width: '150px' }}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {families.length === 0 ? (
-                            <tr><td colSpan="4">No families found.</td></tr>
+                            <tr><td colSpan="5">No families found.</td></tr>
                         ) : (
                             families.map(family => (
                                 <tr key={family.id}>
@@ -95,6 +143,12 @@ const ColorFamilies = ({ families, fetchFamilies }) => {
                                                 backgroundColor: family.hex_representative
                                             }}></span>
                                             {family.hex_representative}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div style={{ display: 'flex', gap: '10px' }}>
+                                            <Button isSmall variant="secondary" onClick={() => handleEdit(family)}>Edit</Button>
+                                            <Button isSmall isDestructive onClick={() => handleDelete(family.id)}>Delete</Button>
                                         </div>
                                     </td>
                                 </tr>
