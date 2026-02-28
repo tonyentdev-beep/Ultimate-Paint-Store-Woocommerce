@@ -21,6 +21,7 @@ const BrandsManager = ({ brands, fetchBrands }) => {
             fetchBrands(); // Refresh the list
         } catch (error) {
             console.error('Error creating brand:', error);
+            alert('Error creating brand: ' + (error.message || JSON.stringify(error)));
         }
         setIsSaving(false);
     };

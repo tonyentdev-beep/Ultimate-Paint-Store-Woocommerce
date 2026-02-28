@@ -21,6 +21,7 @@ const BasesManager = ({ bases, fetchBases }) => {
             fetchBases(); // Refresh the list
         } catch (error) {
             console.error('Error creating base:', error);
+            alert('Error creating base: ' + (error.message || JSON.stringify(error)));
         }
         setIsSaving(false);
     };

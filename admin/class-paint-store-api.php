@@ -134,7 +134,7 @@ class Paint_Store_API {
 			return new WP_Error( 'missing_bases', 'At least one Base is required for a Color', array( 'status' => 400 ) );
 		}
 
-		$wpdb->insert(
+		$result = $wpdb->insert(
 			$table_name,
 			array(
 				'name'       => $name,
@@ -146,6 +146,10 @@ class Paint_Store_API {
 			),
 			array( '%s', '%s', '%s', '%s', '%d', '%d' )
 		);
+
+		if ( false === $result ) {
+			return new WP_Error( 'db_insert_error', 'Failed to insert color: ' . $wpdb->last_error, array( 'status' => 500 ) );
+		}
 
 		$color_id = $wpdb->insert_id;
 
@@ -185,7 +189,7 @@ class Paint_Store_API {
 			return new WP_Error( 'missing_name', 'Family name is required', array( 'status' => 400 ) );
 		}
 
-		$wpdb->insert(
+		$result = $wpdb->insert(
 			$table_name,
 			array(
 				'name'               => $name,
@@ -194,6 +198,10 @@ class Paint_Store_API {
 			),
 			array( '%s', '%s', '%s' )
 		);
+
+		if ( false === $result ) {
+			return new WP_Error( 'db_insert_error', 'Failed to insert family: ' . $wpdb->last_error, array( 'status' => 500 ) );
+		}
 
 		return rest_ensure_response( array( 'id' => $wpdb->insert_id ) );
 	}
@@ -217,13 +225,17 @@ class Paint_Store_API {
 			return new WP_Error( 'missing_name', 'Base name is required', array( 'status' => 400 ) );
 		}
 
-		$wpdb->insert(
+		$result = $wpdb->insert(
 			$table_name,
 			array(
 				'name' => $name,
 			),
 			array( '%s' )
 		);
+
+		if ( false === $result ) {
+			return new WP_Error( 'db_insert_error', 'Failed to insert base: ' . $wpdb->last_error, array( 'status' => 500 ) );
+		}
 
 		return rest_ensure_response( array( 'id' => $wpdb->insert_id ) );
 	}
@@ -247,13 +259,17 @@ class Paint_Store_API {
 			return new WP_Error( 'missing_name', 'Brand name is required', array( 'status' => 400 ) );
 		}
 
-		$wpdb->insert(
+		$result = $wpdb->insert(
 			$table_name,
 			array(
 				'name' => $name,
 			),
 			array( '%s' )
 		);
+
+		if ( false === $result ) {
+			return new WP_Error( 'db_insert_error', 'Failed to insert brand: ' . $wpdb->last_error, array( 'status' => 500 ) );
+		}
 
 		return rest_ensure_response( array( 'id' => $wpdb->insert_id ) );
 	}

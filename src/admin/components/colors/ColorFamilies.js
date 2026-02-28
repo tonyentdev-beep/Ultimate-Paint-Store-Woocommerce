@@ -24,6 +24,7 @@ const ColorFamilies = ({ families, fetchFamilies }) => {
             fetchFamilies(); // Refresh the list
         } catch (error) {
             console.error('Error creating family:', error);
+            alert('Error creating family: ' + (error.message || JSON.stringify(error)));
         }
         setIsSaving(false);
     };

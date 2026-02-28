@@ -40,6 +40,7 @@ const ColorsManager = ({ colors, families, allBases, brands, fetchColors }) => {
             fetchColors(); // Refresh the list
         } catch (error) {
             console.error('Error creating color:', error);
+            alert('Error creating color: ' + (error.message || JSON.stringify(error)));
         }
         setIsSaving(false);
     };
