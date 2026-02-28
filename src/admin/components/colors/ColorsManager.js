@@ -1,12 +1,8 @@
-import { useState, useEffect } from '@wordpress/element';
+import { useState } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import { Button, TextControl, SelectControl, PanelBody, PanelRow, CheckboxControl } from '@wordpress/components';
 
-const ColorsManager = () => {
-    const [colors, setColors] = useState([]);
-    const [families, setFamilies] = useState([]);
-    const [allBases, setAllBases] = useState([]);
-    const [brands, setBrands] = useState([]);
+const ColorsManager = ({ colors, families, allBases, brands, fetchColors }) => {
     const [newColorName, setNewColorName] = useState('');
     const [newColorCode, setNewColorCode] = useState('');
     const [newColorHex, setNewColorHex] = useState('');
@@ -14,49 +10,6 @@ const ColorsManager = () => {
     const [newColorBrandId, setNewColorBrandId] = useState('');
     const [selectedBases, setSelectedBases] = useState([]);
     const [isSaving, setIsSaving] = useState(false);
-
-    useEffect(() => {
-        fetchFamilies();
-        fetchBases();
-        fetchBrands();
-        fetchColors();
-    }, []);
-
-    const fetchFamilies = async () => {
-        try {
-            const data = await apiFetch({ path: '/paint-store/v1/families' });
-            setFamilies(data);
-        } catch (error) {
-            console.error('Error fetching families:', error);
-        }
-    };
-
-    const fetchBases = async () => {
-        try {
-            const data = await apiFetch({ path: '/paint-store/v1/bases' });
-            setAllBases(data);
-        } catch (error) {
-            console.error('Error fetching bases:', error);
-        }
-    };
-
-    const fetchBrands = async () => {
-        try {
-            const data = await apiFetch({ path: '/paint-store/v1/brands' });
-            setBrands(data);
-        } catch (error) {
-            console.error('Error fetching brands:', error);
-        }
-    };
-
-    const fetchColors = async () => {
-        try {
-            const data = await apiFetch({ path: '/paint-store/v1/colors' });
-            setColors(data);
-        } catch (error) {
-            console.error('Error fetching colors:', error);
-        }
-    };
 
     const handleCreateColor = async () => {
         if (!newColorName || !newColorFamilyId || !newColorBrandId || selectedBases.length === 0) {

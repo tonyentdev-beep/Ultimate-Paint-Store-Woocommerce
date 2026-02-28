@@ -1,24 +1,10 @@
-import { useState, useEffect } from '@wordpress/element';
+import { useState } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import { Button, TextControl, PanelBody, PanelRow } from '@wordpress/components';
 
-const BasesManager = () => {
-    const [bases, setBases] = useState([]);
+const BasesManager = ({ bases, fetchBases }) => {
     const [newBaseName, setNewBaseName] = useState('');
     const [isSaving, setIsSaving] = useState(false);
-
-    useEffect(() => {
-        fetchBases();
-    }, []);
-
-    const fetchBases = async () => {
-        try {
-            const data = await apiFetch({ path: '/paint-store/v1/bases' });
-            setBases(data);
-        } catch (error) {
-            console.error('Error fetching bases:', error);
-        }
-    };
 
     const handleCreateBase = async () => {
         if (!newBaseName) return;

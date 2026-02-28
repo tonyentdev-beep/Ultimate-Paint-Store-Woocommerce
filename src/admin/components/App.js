@@ -1,4 +1,5 @@
-import { useState } from '@wordpress/element';
+import { useState, useEffect } from '@wordpress/element';
+import apiFetch from '@wordpress/api-fetch';
 import ColorFamilies from './colors/ColorFamilies';
 import ColorsManager from './colors/ColorsManager';
 import BrandsManager from './colors/BrandsManager';
@@ -6,6 +7,56 @@ import BasesManager from './products/BasesManager';
 
 const App = () => {
     const [activeTab, setActiveTab] = useState('colors');
+
+    // Shared State
+    const [brands, setBrands] = useState([]);
+    const [families, setFamilies] = useState([]);
+    const [bases, setBases] = useState([]);
+    const [colors, setColors] = useState([]);
+
+    // Initial Fetch All
+    useEffect(() => {
+        fetchBrands();
+        fetchFamilies();
+        fetchBases();
+        fetchColors();
+    }, []);
+
+    const fetchBrands = async () => {
+        try {
+            const data = await apiFetch({ path: '/paint-store/v1/brands' });
+            setBrands(data);
+        } catch (error) {
+            console.error('Error fetching brands:', error);
+        }
+    };
+
+    const fetchFamilies = async () => {
+        try {
+            const data = await apiFetch({ path: '/paint-store/v1/families' });
+            setFamilies(data);
+        } catch (error) {
+            console.error('Error fetching families:', error);
+        }
+    };
+
+    const fetchBases = async () => {
+        try {
+            const data = await apiFetch({ path: '/paint-store/v1/bases' });
+            setBases(data);
+        } catch (error) {
+            console.error('Error fetching bases:', error);
+        }
+    };
+
+    const fetchColors = async () => {
+        try {
+            const data = await apiFetch({ path: '/paint-store/v1/colors' });
+            setColors(data);
+        } catch (error) {
+            console.error('Error fetching colors:', error);
+        }
+    };
 
     return (
         <div className="paint-store-admin-wrap">
@@ -35,17 +86,23 @@ const App = () => {
             <div className="tab-content">
                 {activeTab === 'colors' && (
                     <div>
-                        <BrandsManager />
+                        <BrandsManager brands={brands} fetchBrands={fetchBrands} />
                         <hr style={{ margin: '40px 0' }} />
-                        <ColorFamilies />
+                        <ColorFamilies families={families} fetchFamilies={fetchFamilies} />
                         <hr style={{ margin: '40px 0' }} />
-                        <ColorsManager />
+                        <ColorsManager
+                            colors={colors}
+                            families={families}
+                            allBases={bases}
+                            brands={brands}
+                            fetchColors={fetchColors}
+                        />
                     </div>
                 )}
 
                 {activeTab === 'products' && (
                     <div>
-                        <BasesManager />
+                        <BasesManager bases={bases} fetchBases={fetchBases} />
                         <hr style={{ margin: '40px 0' }} />
                         <h2>Manage Products (Coming Soon)</h2>
                         <p>Product mapping interface will go here.</p>

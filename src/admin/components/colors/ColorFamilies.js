@@ -1,25 +1,11 @@
-import { useState, useEffect } from '@wordpress/element';
+import { useState } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import { Button, TextControl, PanelBody, PanelRow } from '@wordpress/components';
 
-const ColorFamilies = () => {
-    const [families, setFamilies] = useState([]);
+const ColorFamilies = ({ families, fetchFamilies }) => {
     const [newFamilyName, setNewFamilyName] = useState('');
     const [newFamilyHex, setNewFamilyHex] = useState('');
     const [isSaving, setIsSaving] = useState(false);
-
-    useEffect(() => {
-        fetchFamilies();
-    }, []);
-
-    const fetchFamilies = async () => {
-        try {
-            const data = await apiFetch({ path: '/paint-store/v1/families' });
-            setFamilies(data);
-        } catch (error) {
-            console.error('Error fetching families:', error);
-        }
-    };
 
     const handleCreateFamily = async () => {
         if (!newFamilyName) return;

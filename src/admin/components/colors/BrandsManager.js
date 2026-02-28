@@ -1,24 +1,10 @@
-import { useState, useEffect } from '@wordpress/element';
+import { useState } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import { Button, TextControl, PanelBody, PanelRow } from '@wordpress/components';
 
-const BrandsManager = () => {
-    const [brands, setBrands] = useState([]);
+const BrandsManager = ({ brands, fetchBrands }) => {
     const [newBrandName, setNewBrandName] = useState('');
     const [isSaving, setIsSaving] = useState(false);
-
-    useEffect(() => {
-        fetchBrands();
-    }, []);
-
-    const fetchBrands = async () => {
-        try {
-            const data = await apiFetch({ path: '/paint-store/v1/brands' });
-            setBrands(data);
-        } catch (error) {
-            console.error('Error fetching brands:', error);
-        }
-    };
 
     const handleCreateBrand = async () => {
         if (!newBrandName) return;
