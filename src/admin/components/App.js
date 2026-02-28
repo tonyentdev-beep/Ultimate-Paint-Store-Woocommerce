@@ -4,6 +4,11 @@ import ColorFamilies from './colors/ColorFamilies';
 import ColorsManager from './colors/ColorsManager';
 import BrandsManager from './colors/BrandsManager';
 import BasesManager from './products/BasesManager';
+import ProductFamiliesManager from './products/ProductFamiliesManager';
+import ProductCategoriesManager from './products/ProductCategoriesManager';
+import SizesManager from './products/SizesManager';
+import SheensManager from './products/SheensManager';
+import SurfaceTypesManager from './products/SurfaceTypesManager';
 
 const App = () => {
     const [activeTab, setActiveTab] = useState('colors');
@@ -17,6 +22,11 @@ const App = () => {
     const [families, setFamilies] = useState([]);
     const [bases, setBases] = useState([]);
     const [colors, setColors] = useState([]);
+    const [productFamilies, setProductFamilies] = useState([]);
+    const [productCategories, setProductCategories] = useState([]);
+    const [sizes, setSizes] = useState([]);
+    const [sheens, setSheens] = useState([]);
+    const [surfaceTypes, setSurfaceTypes] = useState([]);
 
     // Initial Fetch All
     useEffect(() => {
@@ -24,42 +34,48 @@ const App = () => {
         fetchFamilies();
         fetchBases();
         fetchColors();
+        fetchProductFamilies();
+        fetchProductCategories();
+        fetchSizes();
+        fetchSheens();
+        fetchSurfaceTypes();
     }, []);
 
     const fetchBrands = async () => {
-        try {
-            const data = await apiFetch({ path: '/paint-store/v1/brands' });
-            setBrands(data);
-        } catch (error) {
-            console.error('Error fetching brands:', error);
-        }
+        try { const data = await apiFetch({ path: '/paint-store/v1/brands' }); setBrands(data); }
+        catch (error) { console.error('Error fetching brands:', error); }
     };
-
     const fetchFamilies = async () => {
-        try {
-            const data = await apiFetch({ path: '/paint-store/v1/families' });
-            setFamilies(data);
-        } catch (error) {
-            console.error('Error fetching families:', error);
-        }
+        try { const data = await apiFetch({ path: '/paint-store/v1/families' }); setFamilies(data); }
+        catch (error) { console.error('Error fetching families:', error); }
     };
-
     const fetchBases = async () => {
-        try {
-            const data = await apiFetch({ path: '/paint-store/v1/bases' });
-            setBases(data);
-        } catch (error) {
-            console.error('Error fetching bases:', error);
-        }
+        try { const data = await apiFetch({ path: '/paint-store/v1/bases' }); setBases(data); }
+        catch (error) { console.error('Error fetching bases:', error); }
     };
-
     const fetchColors = async () => {
-        try {
-            const data = await apiFetch({ path: '/paint-store/v1/colors' });
-            setColors(data);
-        } catch (error) {
-            console.error('Error fetching colors:', error);
-        }
+        try { const data = await apiFetch({ path: '/paint-store/v1/colors' }); setColors(data); }
+        catch (error) { console.error('Error fetching colors:', error); }
+    };
+    const fetchProductFamilies = async () => {
+        try { const data = await apiFetch({ path: '/paint-store/v1/product-families' }); setProductFamilies(data); }
+        catch (error) { console.error('Error fetching product families:', error); }
+    };
+    const fetchProductCategories = async () => {
+        try { const data = await apiFetch({ path: '/paint-store/v1/product-categories' }); setProductCategories(data); }
+        catch (error) { console.error('Error fetching product categories:', error); }
+    };
+    const fetchSizes = async () => {
+        try { const data = await apiFetch({ path: '/paint-store/v1/sizes' }); setSizes(data); }
+        catch (error) { console.error('Error fetching sizes:', error); }
+    };
+    const fetchSheens = async () => {
+        try { const data = await apiFetch({ path: '/paint-store/v1/sheens' }); setSheens(data); }
+        catch (error) { console.error('Error fetching sheens:', error); }
+    };
+    const fetchSurfaceTypes = async () => {
+        try { const data = await apiFetch({ path: '/paint-store/v1/surface-types' }); setSurfaceTypes(data); }
+        catch (error) { console.error('Error fetching surface types:', error); }
     };
 
     const handleUpgradeDb = async () => {
@@ -74,6 +90,15 @@ const App = () => {
         }
         setIsUpgradingDb(false);
     };
+
+    const productSubTabs = [
+        { key: 'bases', label: 'Paint Bases' },
+        { key: 'product-families', label: 'Product Families' },
+        { key: 'product-categories', label: 'Product Categories' },
+        { key: 'sizes', label: 'Sizes' },
+        { key: 'sheens', label: 'Sheens' },
+        { key: 'surface-types', label: 'Surface Types' },
+    ];
 
     return (
         <div className="paint-store-admin-wrap">
@@ -105,29 +130,20 @@ const App = () => {
                     <div>
                         <ul className="subsubsub" style={{ marginBottom: '20px', fontSize: '14px' }}>
                             <li>
-                                <a
-                                    href="#"
-                                    className={activeColorSubTab === 'brands' ? 'current' : ''}
-                                    onClick={(e) => { e.preventDefault(); setActiveColorSubTab('brands'); }}
-                                >
+                                <a href="#" className={activeColorSubTab === 'brands' ? 'current' : ''}
+                                    onClick={(e) => { e.preventDefault(); setActiveColorSubTab('brands'); }}>
                                     Paint Brands
                                 </a> |
                             </li>
                             <li>
-                                <a
-                                    href="#"
-                                    className={activeColorSubTab === 'families' ? 'current' : ''}
-                                    onClick={(e) => { e.preventDefault(); setActiveColorSubTab('families'); }}
-                                >
+                                <a href="#" className={activeColorSubTab === 'families' ? 'current' : ''}
+                                    onClick={(e) => { e.preventDefault(); setActiveColorSubTab('families'); }}>
                                     Color Families
                                 </a> |
                             </li>
                             <li>
-                                <a
-                                    href="#"
-                                    className={activeColorSubTab === 'colors' ? 'current' : ''}
-                                    onClick={(e) => { e.preventDefault(); setActiveColorSubTab('colors'); }}
-                                >
+                                <a href="#" className={activeColorSubTab === 'colors' ? 'current' : ''}
+                                    onClick={(e) => { e.preventDefault(); setActiveColorSubTab('colors'); }}>
                                     Specific Colors
                                 </a>
                             </li>
@@ -155,35 +171,36 @@ const App = () => {
                 {activeTab === 'products' && (
                     <div>
                         <ul className="subsubsub" style={{ marginBottom: '20px', fontSize: '14px' }}>
-                            <li>
-                                <a
-                                    href="#"
-                                    className={activeProductSubTab === 'bases' ? 'current' : ''}
-                                    onClick={(e) => { e.preventDefault(); setActiveProductSubTab('bases'); }}
-                                >
-                                    Paint Bases
-                                </a> |
-                            </li>
-                            <li>
-                                <a
-                                    href="#"
-                                    className={activeProductSubTab === 'products' ? 'current' : ''}
-                                    onClick={(e) => { e.preventDefault(); setActiveProductSubTab('products'); }}
-                                >
-                                    SKUs / Products
-                                </a>
-                            </li>
+                            {productSubTabs.map((tab, idx) => (
+                                <li key={tab.key}>
+                                    <a href="#"
+                                        className={activeProductSubTab === tab.key ? 'current' : ''}
+                                        onClick={(e) => { e.preventDefault(); setActiveProductSubTab(tab.key); }}>
+                                        {tab.label}
+                                    </a>
+                                    {idx < productSubTabs.length - 1 ? ' | ' : ''}
+                                </li>
+                            ))}
                         </ul>
                         <div className="clear"></div>
 
                         {activeProductSubTab === 'bases' && (
                             <BasesManager bases={bases} fetchBases={fetchBases} />
                         )}
-                        {activeProductSubTab === 'products' && (
-                            <div style={{ marginTop: '30px' }}>
-                                <h2>Manage Products (Coming Soon)</h2>
-                                <p>Product mapping interface will go here.</p>
-                            </div>
+                        {activeProductSubTab === 'product-families' && (
+                            <ProductFamiliesManager productFamilies={productFamilies} brands={brands} fetchProductFamilies={fetchProductFamilies} />
+                        )}
+                        {activeProductSubTab === 'product-categories' && (
+                            <ProductCategoriesManager productCategories={productCategories} fetchProductCategories={fetchProductCategories} />
+                        )}
+                        {activeProductSubTab === 'sizes' && (
+                            <SizesManager sizes={sizes} fetchSizes={fetchSizes} />
+                        )}
+                        {activeProductSubTab === 'sheens' && (
+                            <SheensManager sheens={sheens} fetchSheens={fetchSheens} />
+                        )}
+                        {activeProductSubTab === 'surface-types' && (
+                            <SurfaceTypesManager surfaceTypes={surfaceTypes} fetchSurfaceTypes={fetchSurfaceTypes} />
                         )}
                     </div>
                 )}

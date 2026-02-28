@@ -116,6 +116,56 @@ class Paint_Store_API {
 			),
 		) );
 
+		// Product Families Endpoints
+		register_rest_route( $this->namespace, '/product-families', array(
+			array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'get_product_families' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+			array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'create_product_family' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+		) );
+		register_rest_route( $this->namespace, '/product-families/(?P<id>\\d+)', array(
+			array( 'methods' => WP_REST_Server::EDITABLE, 'callback' => array( $this, 'update_product_family' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+			array( 'methods' => WP_REST_Server::DELETABLE, 'callback' => array( $this, 'delete_product_family' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+		) );
+
+		// Product Categories Endpoints
+		register_rest_route( $this->namespace, '/product-categories', array(
+			array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'get_product_categories' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+			array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'create_product_category' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+		) );
+		register_rest_route( $this->namespace, '/product-categories/(?P<id>\\d+)', array(
+			array( 'methods' => WP_REST_Server::EDITABLE, 'callback' => array( $this, 'update_product_category' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+			array( 'methods' => WP_REST_Server::DELETABLE, 'callback' => array( $this, 'delete_product_category' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+		) );
+
+		// Sizes Endpoints
+		register_rest_route( $this->namespace, '/sizes', array(
+			array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'get_sizes' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+			array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'create_size' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+		) );
+		register_rest_route( $this->namespace, '/sizes/(?P<id>\\d+)', array(
+			array( 'methods' => WP_REST_Server::EDITABLE, 'callback' => array( $this, 'update_size' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+			array( 'methods' => WP_REST_Server::DELETABLE, 'callback' => array( $this, 'delete_size' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+		) );
+
+		// Sheens Endpoints
+		register_rest_route( $this->namespace, '/sheens', array(
+			array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'get_sheens' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+			array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'create_sheen' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+		) );
+		register_rest_route( $this->namespace, '/sheens/(?P<id>\\d+)', array(
+			array( 'methods' => WP_REST_Server::EDITABLE, 'callback' => array( $this, 'update_sheen' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+			array( 'methods' => WP_REST_Server::DELETABLE, 'callback' => array( $this, 'delete_sheen' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+		) );
+
+		// Surface Types Endpoints
+		register_rest_route( $this->namespace, '/surface-types', array(
+			array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'get_surface_types' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+			array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'create_surface_type' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+		) );
+		register_rest_route( $this->namespace, '/surface-types/(?P<id>\\d+)', array(
+			array( 'methods' => WP_REST_Server::EDITABLE, 'callback' => array( $this, 'update_surface_type' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+			array( 'methods' => WP_REST_Server::DELETABLE, 'callback' => array( $this, 'delete_surface_type' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+		) );
+
 		// Temporary DB Upgrade Endpoint
 		register_rest_route( $this->namespace, '/upgrade-db', array(
 			array(
@@ -502,6 +552,179 @@ class Paint_Store_API {
 		
 		$wpdb->delete( $wpdb->prefix . 'ps_brands', array( 'id' => $id ), array( '%d' ) );
 
+		return rest_ensure_response( array( 'success' => true ) );
+	}
+
+	// --- Product Families Handlers ---
+
+	public function get_product_families( $request ) {
+		global $wpdb;
+		$results = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}ps_product_families", ARRAY_A );
+		return rest_ensure_response( $results );
+	}
+
+	public function create_product_family( $request ) {
+		global $wpdb;
+		$name = sanitize_text_field( $request->get_param( 'name' ) );
+		$brand_id = intval( $request->get_param( 'brand_id' ) );
+		$description = sanitize_textarea_field( $request->get_param( 'description' ) );
+		if ( empty( $name ) ) return new WP_Error( 'missing_name', 'Name is required', array( 'status' => 400 ) );
+		$result = $wpdb->insert( $wpdb->prefix . 'ps_product_families', array( 'name' => $name, 'brand_id' => $brand_id, 'description' => $description ), array( '%s', '%d', '%s' ) );
+		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
+		return rest_ensure_response( array( 'id' => $wpdb->insert_id ) );
+	}
+
+	public function update_product_family( $request ) {
+		global $wpdb;
+		$id = $request->get_param( 'id' );
+		$name = sanitize_text_field( $request->get_param( 'name' ) );
+		$brand_id = intval( $request->get_param( 'brand_id' ) );
+		$description = sanitize_textarea_field( $request->get_param( 'description' ) );
+		if ( empty( $name ) ) return new WP_Error( 'missing_name', 'Name is required', array( 'status' => 400 ) );
+		$result = $wpdb->update( $wpdb->prefix . 'ps_product_families', array( 'name' => $name, 'brand_id' => $brand_id, 'description' => $description ), array( 'id' => $id ), array( '%s', '%d', '%s' ), array( '%d' ) );
+		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
+		return rest_ensure_response( array( 'success' => true ) );
+	}
+
+	public function delete_product_family( $request ) {
+		global $wpdb;
+		$wpdb->delete( $wpdb->prefix . 'ps_product_families', array( 'id' => $request->get_param( 'id' ) ), array( '%d' ) );
+		return rest_ensure_response( array( 'success' => true ) );
+	}
+
+	// --- Product Categories Handlers ---
+
+	public function get_product_categories( $request ) {
+		global $wpdb;
+		$results = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}ps_product_categories", ARRAY_A );
+		return rest_ensure_response( $results );
+	}
+
+	public function create_product_category( $request ) {
+		global $wpdb;
+		$name = sanitize_text_field( $request->get_param( 'name' ) );
+		$slug = sanitize_title( $name );
+		if ( empty( $name ) ) return new WP_Error( 'missing_name', 'Name is required', array( 'status' => 400 ) );
+		$result = $wpdb->insert( $wpdb->prefix . 'ps_product_categories', array( 'name' => $name, 'slug' => $slug ), array( '%s', '%s' ) );
+		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
+		return rest_ensure_response( array( 'id' => $wpdb->insert_id ) );
+	}
+
+	public function update_product_category( $request ) {
+		global $wpdb;
+		$id = $request->get_param( 'id' );
+		$name = sanitize_text_field( $request->get_param( 'name' ) );
+		$slug = sanitize_title( $name );
+		if ( empty( $name ) ) return new WP_Error( 'missing_name', 'Name is required', array( 'status' => 400 ) );
+		$result = $wpdb->update( $wpdb->prefix . 'ps_product_categories', array( 'name' => $name, 'slug' => $slug ), array( 'id' => $id ), array( '%s', '%s' ), array( '%d' ) );
+		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
+		return rest_ensure_response( array( 'success' => true ) );
+	}
+
+	public function delete_product_category( $request ) {
+		global $wpdb;
+		$wpdb->delete( $wpdb->prefix . 'ps_product_categories', array( 'id' => $request->get_param( 'id' ) ), array( '%d' ) );
+		return rest_ensure_response( array( 'success' => true ) );
+	}
+
+	// --- Sizes Handlers ---
+
+	public function get_sizes( $request ) {
+		global $wpdb;
+		$results = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}ps_sizes", ARRAY_A );
+		return rest_ensure_response( $results );
+	}
+
+	public function create_size( $request ) {
+		global $wpdb;
+		$name = sanitize_text_field( $request->get_param( 'name' ) );
+		$liters = floatval( $request->get_param( 'liters' ) );
+		if ( empty( $name ) ) return new WP_Error( 'missing_name', 'Name is required', array( 'status' => 400 ) );
+		$result = $wpdb->insert( $wpdb->prefix . 'ps_sizes', array( 'name' => $name, 'liters' => $liters ), array( '%s', '%f' ) );
+		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
+		return rest_ensure_response( array( 'id' => $wpdb->insert_id ) );
+	}
+
+	public function update_size( $request ) {
+		global $wpdb;
+		$id = $request->get_param( 'id' );
+		$name = sanitize_text_field( $request->get_param( 'name' ) );
+		$liters = floatval( $request->get_param( 'liters' ) );
+		if ( empty( $name ) ) return new WP_Error( 'missing_name', 'Name is required', array( 'status' => 400 ) );
+		$result = $wpdb->update( $wpdb->prefix . 'ps_sizes', array( 'name' => $name, 'liters' => $liters ), array( 'id' => $id ), array( '%s', '%f' ), array( '%d' ) );
+		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
+		return rest_ensure_response( array( 'success' => true ) );
+	}
+
+	public function delete_size( $request ) {
+		global $wpdb;
+		$wpdb->delete( $wpdb->prefix . 'ps_sizes', array( 'id' => $request->get_param( 'id' ) ), array( '%d' ) );
+		return rest_ensure_response( array( 'success' => true ) );
+	}
+
+	// --- Sheens Handlers ---
+
+	public function get_sheens( $request ) {
+		global $wpdb;
+		$results = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}ps_sheens", ARRAY_A );
+		return rest_ensure_response( $results );
+	}
+
+	public function create_sheen( $request ) {
+		global $wpdb;
+		$name = sanitize_text_field( $request->get_param( 'name' ) );
+		if ( empty( $name ) ) return new WP_Error( 'missing_name', 'Name is required', array( 'status' => 400 ) );
+		$result = $wpdb->insert( $wpdb->prefix . 'ps_sheens', array( 'name' => $name ), array( '%s' ) );
+		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
+		return rest_ensure_response( array( 'id' => $wpdb->insert_id ) );
+	}
+
+	public function update_sheen( $request ) {
+		global $wpdb;
+		$id = $request->get_param( 'id' );
+		$name = sanitize_text_field( $request->get_param( 'name' ) );
+		if ( empty( $name ) ) return new WP_Error( 'missing_name', 'Name is required', array( 'status' => 400 ) );
+		$result = $wpdb->update( $wpdb->prefix . 'ps_sheens', array( 'name' => $name ), array( 'id' => $id ), array( '%s' ), array( '%d' ) );
+		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
+		return rest_ensure_response( array( 'success' => true ) );
+	}
+
+	public function delete_sheen( $request ) {
+		global $wpdb;
+		$wpdb->delete( $wpdb->prefix . 'ps_sheens', array( 'id' => $request->get_param( 'id' ) ), array( '%d' ) );
+		return rest_ensure_response( array( 'success' => true ) );
+	}
+
+	// --- Surface Types Handlers ---
+
+	public function get_surface_types( $request ) {
+		global $wpdb;
+		$results = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}ps_surface_types", ARRAY_A );
+		return rest_ensure_response( $results );
+	}
+
+	public function create_surface_type( $request ) {
+		global $wpdb;
+		$name = sanitize_text_field( $request->get_param( 'name' ) );
+		if ( empty( $name ) ) return new WP_Error( 'missing_name', 'Name is required', array( 'status' => 400 ) );
+		$result = $wpdb->insert( $wpdb->prefix . 'ps_surface_types', array( 'name' => $name ), array( '%s' ) );
+		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
+		return rest_ensure_response( array( 'id' => $wpdb->insert_id ) );
+	}
+
+	public function update_surface_type( $request ) {
+		global $wpdb;
+		$id = $request->get_param( 'id' );
+		$name = sanitize_text_field( $request->get_param( 'name' ) );
+		if ( empty( $name ) ) return new WP_Error( 'missing_name', 'Name is required', array( 'status' => 400 ) );
+		$result = $wpdb->update( $wpdb->prefix . 'ps_surface_types', array( 'name' => $name ), array( 'id' => $id ), array( '%s' ), array( '%d' ) );
+		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
+		return rest_ensure_response( array( 'success' => true ) );
+	}
+
+	public function delete_surface_type( $request ) {
+		global $wpdb;
+		$wpdb->delete( $wpdb->prefix . 'ps_surface_types', array( 'id' => $request->get_param( 'id' ) ), array( '%d' ) );
 		return rest_ensure_response( array( 'success' => true ) );
 	}
 }

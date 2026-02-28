@@ -10,8 +10,8 @@ class Paint_Store_Activator {
 		// Array of tables to create
 		$tables = array();
 
-		// 1. Finishes
-		$table_name = $wpdb->prefix . 'ps_finishes';
+		// 1. Sheens (Finishes)
+		$table_name = $wpdb->prefix . 'ps_sheens';
 		$tables[] = "CREATE TABLE $table_name (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			name varchar(255) NOT NULL,
@@ -36,7 +36,7 @@ class Paint_Store_Activator {
 			PRIMARY KEY  (id)
 		) $charset_collate;";
 
-		// 3.5 Brands
+		// 4. Brands
 		$table_name = $wpdb->prefix . 'ps_brands';
 		$tables[] = "CREATE TABLE $table_name (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -44,7 +44,7 @@ class Paint_Store_Activator {
 			PRIMARY KEY  (id)
 		) $charset_collate;";
 
-		// 4. Colors
+		// 5. Colors
 		$table_name = $wpdb->prefix . 'ps_colors';
 		$tables[] = "CREATE TABLE $table_name (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -59,7 +59,7 @@ class Paint_Store_Activator {
 			KEY brand_id (brand_id)
 		) $charset_collate;";
 
-		// 5. Color Bases (Join Table)
+		// 6. Color Bases (Join Table)
 		$table_name = $wpdb->prefix . 'ps_color_bases';
 		$tables[] = "CREATE TABLE $table_name (
 			color_id bigint(20) unsigned NOT NULL,
@@ -67,32 +67,41 @@ class Paint_Store_Activator {
 			PRIMARY KEY  (color_id, base_id)
 		) $charset_collate;";
 
-		// 6. Product Families
+		// 7. Product Families (linked to Brand)
 		$table_name = $wpdb->prefix . 'ps_product_families';
 		$tables[] = "CREATE TABLE $table_name (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			name varchar(255) NOT NULL,
-			search_tags text,
+			brand_id bigint(20) unsigned DEFAULT 0 NOT NULL,
 			description text,
-			is_primer_recommended tinyint(1) DEFAULT 0 NOT NULL,
-			coverage_sq_ft_per_gallon int(11) DEFAULT 0 NOT NULL,
+			PRIMARY KEY  (id),
+			KEY brand_id (brand_id)
+		) $charset_collate;";
+
+		// 8. Product Categories
+		$table_name = $wpdb->prefix . 'ps_product_categories';
+		$tables[] = "CREATE TABLE $table_name (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			name varchar(255) NOT NULL,
+			slug varchar(255) NOT NULL,
 			PRIMARY KEY  (id)
 		) $charset_collate;";
 
-		// 7. Surfaces
-		$table_name = $wpdb->prefix . 'ps_surfaces';
+		// 9. Sizes
+		$table_name = $wpdb->prefix . 'ps_sizes';
+		$tables[] = "CREATE TABLE $table_name (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			name varchar(255) NOT NULL,
+			liters decimal(10,2) DEFAULT 0.00 NOT NULL,
+			PRIMARY KEY  (id)
+		) $charset_collate;";
+
+		// 10. Surface Types
+		$table_name = $wpdb->prefix . 'ps_surface_types';
 		$tables[] = "CREATE TABLE $table_name (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			name varchar(255) NOT NULL,
 			PRIMARY KEY  (id)
-		) $charset_collate;";
-
-		// 8. Family Surfaces (Join Table)
-		$table_name = $wpdb->prefix . 'ps_family_surfaces';
-		$tables[] = "CREATE TABLE $table_name (
-			family_id bigint(20) unsigned NOT NULL,
-			surface_id bigint(20) unsigned NOT NULL,
-			PRIMARY KEY  (family_id, surface_id)
 		) $charset_collate;";
 
 		// 9. Products (The physical SKUs tied to WooCommerce)
