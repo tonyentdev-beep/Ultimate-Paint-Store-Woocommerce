@@ -1,6 +1,7 @@
 import { useState } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
-import { Button, TextControl, TextareaControl, SelectControl, PanelBody, PanelRow } from '@wordpress/components';
+import { Button, TextControl, SelectControl, PanelBody, PanelRow } from '@wordpress/components';
+import WPEditorField from '../shared/WPEditorField';
 
 const ProductFamiliesManager = ({ productFamilies, brands, fetchProductFamilies }) => {
     const [name, setName] = useState('');
@@ -63,7 +64,12 @@ const ProductFamiliesManager = ({ productFamilies, brands, fetchProductFamilies 
                     </div>
                 </PanelRow>
                 <PanelRow>
-                    <TextareaControl label="Description (optional)" value={description} onChange={setDescription} />
+                    <WPEditorField
+                        id="ps-product-family-desc"
+                        label="Description (optional)"
+                        value={description}
+                        onChange={setDescription}
+                    />
                 </PanelRow>
                 <div style={{ padding: '10px 20px 20px', display: 'flex', gap: '10px' }}>
                     <Button variant="primary" onClick={handleSave} isBusy={isSaving} disabled={!name || !brandId || isSaving}>
@@ -84,7 +90,7 @@ const ProductFamiliesManager = ({ productFamilies, brands, fetchProductFamilies 
                                 <td>{item.id}</td>
                                 <td><strong>{item.name}</strong></td>
                                 <td>{getBrandName(item.brand_id)}</td>
-                                <td>{item.description || '-'}</td>
+                                <td><div dangerouslySetInnerHTML={{ __html: item.description || '-' }} /></td>
                                 <td>
                                     <div style={{ display: 'flex', gap: '10px' }}>
                                         <Button isSmall variant="secondary" onClick={() => handleEdit(item)}>Edit</Button>
