@@ -54,6 +54,20 @@ class Paint_Store_API {
 			),
 		) );
 
+		// Brands Endpoints
+		register_rest_route( $this->namespace, '/brands', array(
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_brands' ),
+				'permission_callback' => array( $this, 'permissions_check' ),
+			),
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'create_brand' ),
+				'permission_callback' => array( $this, 'permissions_check' ),
+			),
+		) );
+
 		// Temporary DB Upgrade Endpoint
 		register_rest_route( $this->namespace, '/upgrade-db', array(
 			array(
@@ -107,6 +121,7 @@ class Paint_Store_API {
 		$hex_value   = sanitize_text_field( $request->get_param( 'hex_value' ) );
 		$rgb_value   = sanitize_text_field( $request->get_param( 'rgb_value' ) );
 		$family_id   = intval( $request->get_param( 'family_id' ) );
+		$brand_id    = intval( $request->get_param( 'brand_id' ) );
 		
 		// The frontend will send an array of selected base IDs
 		$base_ids    = $request->get_param( 'base_ids' );
@@ -127,8 +142,9 @@ class Paint_Store_API {
 				'hex_value'  => $hex_value,
 				'rgb_value'  => $rgb_value,
 				'family_id'  => $family_id,
+				'brand_id'   => $brand_id,
 			),
-			array( '%s', '%s', '%s', '%s', '%d' )
+			array( '%s', '%s', '%s', '%s', '%d', '%d' )
 		);
 
 		$color_id = $wpdb->insert_id;
@@ -199,6 +215,36 @@ class Paint_Store_API {
 
 		if ( empty( $name ) ) {
 			return new WP_Error( 'missing_name', 'Base name is required', array( 'status' => 400 ) );
+		}
+
+		$wpdb->insert(
+			$table_name,
+			array(
+				'name' => $name,
+			),
+			array( '%s' )
+		);
+
+		return rest_ensure_response( array( 'id' => $wpdb->insert_id ) );
+	}
+
+	// --- Brands Handlers ---
+
+	public function get_brands( $request ) {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ps_brands';
+		$results = $wpdb->get_results( "SELECT * FROM $table_name", ARRAY_A );
+		return rest_ensure_response( $results );
+	}
+
+	public function create_brand( $request ) {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ps_brands';
+
+		$name = sanitize_text_field( $request->get_param( 'name' ) );
+
+		if ( empty( $name ) ) {
+			return new WP_Error( 'missing_name', 'Brand name is required', array( 'status' => 400 ) );
 		}
 
 		$wpdb->insert(

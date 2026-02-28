@@ -36,6 +36,14 @@ class Paint_Store_Activator {
 			PRIMARY KEY  (id)
 		) $charset_collate;";
 
+		// 3.5 Brands
+		$table_name = $wpdb->prefix . 'ps_brands';
+		$tables[] = "CREATE TABLE $table_name (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			name varchar(255) NOT NULL,
+			PRIMARY KEY  (id)
+		) $charset_collate;";
+
 		// 4. Colors
 		$table_name = $wpdb->prefix . 'ps_colors';
 		$tables[] = "CREATE TABLE $table_name (
@@ -45,8 +53,10 @@ class Paint_Store_Activator {
 			hex_value varchar(10) DEFAULT '' NOT NULL,
 			rgb_value varchar(50) DEFAULT '' NOT NULL,
 			family_id bigint(20) unsigned DEFAULT 0 NOT NULL,
+			brand_id bigint(20) unsigned DEFAULT 0 NOT NULL,
 			PRIMARY KEY  (id),
-			KEY family_id (family_id)
+			KEY family_id (family_id),
+			KEY brand_id (brand_id)
 		) $charset_collate;";
 
 		// 5. Color Bases (Join Table)

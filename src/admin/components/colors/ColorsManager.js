@@ -6,16 +6,19 @@ const ColorsManager = () => {
     const [colors, setColors] = useState([]);
     const [families, setFamilies] = useState([]);
     const [allBases, setAllBases] = useState([]);
+    const [brands, setBrands] = useState([]);
     const [newColorName, setNewColorName] = useState('');
     const [newColorCode, setNewColorCode] = useState('');
     const [newColorHex, setNewColorHex] = useState('');
     const [newColorFamilyId, setNewColorFamilyId] = useState('');
+    const [newColorBrandId, setNewColorBrandId] = useState('');
     const [selectedBases, setSelectedBases] = useState([]);
     const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
         fetchFamilies();
         fetchBases();
+        fetchBrands();
         fetchColors();
     }, []);
 
@@ -37,6 +40,15 @@ const ColorsManager = () => {
         }
     };
 
+    const fetchBrands = async () => {
+        try {
+            const data = await apiFetch({ path: '/paint-store/v1/brands' });
+            setBrands(data);
+        } catch (error) {
+            console.error('Error fetching brands:', error);
+        }
+    };
+
     const fetchColors = async () => {
         try {
             const data = await apiFetch({ path: '/paint-store/v1/colors' });
@@ -47,8 +59,8 @@ const ColorsManager = () => {
     };
 
     const handleCreateColor = async () => {
-        if (!newColorName || !newColorFamilyId || selectedBases.length === 0) {
-            alert("Name, Family, and at least one Base are required.");
+        if (!newColorName || !newColorFamilyId || !newColorBrandId || selectedBases.length === 0) {
+            alert("Name, Family, Brand, and at least one Base are required.");
             return;
         }
         setIsSaving(true);
@@ -62,6 +74,7 @@ const ColorsManager = () => {
                     hex_value: newColorHex,
                     rgb_value: '', // Auto-calculate later if needed
                     family_id: newColorFamilyId,
+                    brand_id: newColorBrandId,
                     base_ids: selectedBases
                 },
             });
@@ -69,6 +82,7 @@ const ColorsManager = () => {
             setNewColorCode('');
             setNewColorHex('');
             setNewColorFamilyId('');
+            setNewColorBrandId('');
             setSelectedBases([]);
             fetchColors(); // Refresh the list
         } catch (error) {
@@ -90,6 +104,11 @@ const ColorsManager = () => {
         ...families.map(family => ({ label: family.name, value: family.id }))
     ];
 
+    const brandOptions = [
+        { label: 'Select a Brand...', value: '' },
+        ...brands.map(brand => ({ label: brand.name, value: brand.id }))
+    ];
+
     const getBaseNames = (baseIds) => {
         if (!baseIds || baseIds.length === 0) return 'None';
         return baseIds
@@ -97,22 +116,27 @@ const ColorsManager = () => {
             .join(', ');
     };
 
+    const getBrandName = (brandId) => {
+        if (!brandId) return '-';
+        return brands.find(b => parseInt(b.id) === parseInt(brandId))?.name || brandId;
+    };
+
     return (
         <div className="colors-manager" style={{ marginTop: '30px' }}>
             <PanelBody title="Add New Specific Color" initialOpen={true}>
                 <PanelRow>
-                    <TextControl
-                        label="Color Name (e.g., Naval Blue)"
-                        value={newColorName}
-                        onChange={(value) => setNewColorName(value)}
-                    />
-                </PanelRow>
-                <PanelRow>
-                    <TextControl
-                        label="Color Code (e.g., SW 6593)"
-                        value={newColorCode}
-                        onChange={(value) => setNewColorCode(value)}
-                    />
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', width: '100%' }}>
+                        <TextControl
+                            label="Color Name (e.g., Naval Blue)"
+                            value={newColorName}
+                            onChange={(value) => setNewColorName(value)}
+                        />
+                        <TextControl
+                            label="Color Code (e.g., SW 6593)"
+                            value={newColorCode}
+                            onChange={(value) => setNewColorCode(value)}
+                        />
+                    </div>
                 </PanelRow>
                 <PanelRow>
                     <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: '15px' }}>
@@ -132,19 +156,27 @@ const ColorsManager = () => {
                     </div>
                 </PanelRow>
                 <PanelRow>
-                    <SelectControl
-                        label="Assign to Family"
-                        value={newColorFamilyId}
-                        options={familyOptions}
-                        onChange={(value) => setNewColorFamilyId(value)}
-                    />
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', width: '100%' }}>
+                        <SelectControl
+                            label="Assign to Family"
+                            value={newColorFamilyId}
+                            options={familyOptions}
+                            onChange={(value) => setNewColorFamilyId(value)}
+                        />
+                        <SelectControl
+                            label="Assign to Brand"
+                            value={newColorBrandId}
+                            options={brandOptions}
+                            onChange={(value) => setNewColorBrandId(value)}
+                        />
+                    </div>
                 </PanelRow>
                 <div style={{ marginTop: '15px', padding: '15px 20px' }}>
                     <p style={{ fontWeight: 600, marginBottom: '10px' }}>Compatible Bases (Required)</p>
                     {allBases.length === 0 ? (
                         <p style={{ color: 'red', fontStyle: 'italic' }}>Please create Paint Bases in the Products & Bases tab first.</p>
                     ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px' }}>
                             {allBases.map((base) => (
                                 <CheckboxControl
                                     key={base.id}
@@ -162,7 +194,7 @@ const ColorsManager = () => {
                         variant="primary"
                         onClick={handleCreateColor}
                         isBusy={isSaving}
-                        disabled={!newColorName || !newColorFamilyId || selectedBases.length === 0 || isSaving}
+                        disabled={!newColorName || !newColorFamilyId || !newColorBrandId || selectedBases.length === 0 || isSaving}
                     >
                         Add Color
                     </Button>
@@ -177,7 +209,7 @@ const ColorsManager = () => {
                             <th>ID</th>
                             <th>Code</th>
                             <th>Name</th>
-                            <th>Family ID</th>
+                            <th>Brand</th>
                             <th>Color Hex</th>
                             <th>Compatible Bases</th>
                         </tr>
@@ -191,7 +223,7 @@ const ColorsManager = () => {
                                     <td>{color.id}</td>
                                     <td><strong>{color.color_code || '-'}</strong></td>
                                     <td><strong>{color.name}</strong></td>
-                                    <td>{color.family_id}</td>
+                                    <td>{getBrandName(color.brand_id)}</td>
                                     <td>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                             <span className="color-swatch-box" style={{

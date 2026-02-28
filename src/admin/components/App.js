@@ -1,6 +1,7 @@
 import { useState } from '@wordpress/element';
 import ColorFamilies from './colors/ColorFamilies';
 import ColorsManager from './colors/ColorsManager';
+import BrandsManager from './colors/BrandsManager';
 import BasesManager from './products/BasesManager';
 
 const App = () => {
@@ -34,6 +35,8 @@ const App = () => {
             <div className="tab-content">
                 {activeTab === 'colors' && (
                     <div>
+                        <BrandsManager />
+                        <hr style={{ margin: '40px 0' }} />
                         <ColorFamilies />
                         <hr style={{ margin: '40px 0' }} />
                         <ColorsManager />
