@@ -84,8 +84,8 @@ class Paint_Store_API {
 
 	public function upgrade_db_schema( $request ) {
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-paint-store-activator.php';
-		Paint_Store_Activator::activate();
-		return rest_ensure_response( array( 'success' => true, 'message' => 'Database schema updated' ) );
+		$results = Paint_Store_Activator::activate();
+		return rest_ensure_response( array( 'success' => true, 'message' => 'Database schema updated', 'dbdelta' => $results ) );
 	}
 
 	// --- Colors Handlers ---

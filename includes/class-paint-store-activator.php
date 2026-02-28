@@ -136,9 +136,12 @@ class Paint_Store_Activator {
 
 		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 
+		$dbdelta_results = array();
 		foreach ( $tables as $sql ) {
-			dbDelta( $sql );
+			$res = dbDelta( $sql );
+			$dbdelta_results = array_merge($dbdelta_results, $res);
 		}
+		return $dbdelta_results;
 	}
 
 }

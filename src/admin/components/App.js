@@ -7,6 +7,8 @@ import BasesManager from './products/BasesManager';
 
 const App = () => {
     const [activeTab, setActiveTab] = useState('colors');
+    const [dbUpgradeResult, setDbUpgradeResult] = useState('');
+    const [isUpgradingDb, setIsUpgradingDb] = useState(false);
 
     // Shared State
     const [brands, setBrands] = useState([]);
@@ -56,6 +58,19 @@ const App = () => {
         } catch (error) {
             console.error('Error fetching colors:', error);
         }
+    };
+
+    const handleUpgradeDb = async () => {
+        setIsUpgradingDb(true);
+        setDbUpgradeResult('Running database upgrade...');
+        try {
+            const result = await apiFetch({ path: '/paint-store/v1/upgrade-db' });
+            setDbUpgradeResult(JSON.stringify(result, null, 2));
+        } catch (error) {
+            console.error('Error upgrading DB:', error);
+            setDbUpgradeResult('Error: ' + (error.message || JSON.stringify(error)));
+        }
+        setIsUpgradingDb(false);
     };
 
     return (
@@ -113,6 +128,21 @@ const App = () => {
                     <div>
                         <h2>Store Settings</h2>
                         <p>General store settings.</p>
+                        <hr style={{ margin: '40px 0' }} />
+                        <h3>Advanced Tools</h3>
+                        <p>If you recently updated the plugin, you may need to initialize or upgrade the database tables.</p>
+                        <button
+                            className="button button-primary"
+                            onClick={handleUpgradeDb}
+                            disabled={isUpgradingDb}
+                        >
+                            {isUpgradingDb ? 'Upgrading...' : 'Initialize / Upgrade Database'}
+                        </button>
+                        {dbUpgradeResult && (
+                            <pre style={{ marginTop: '20px', padding: '15px', background: '#f0f0f1', border: '1px solid #ccc', overflow: 'auto', maxHeight: '400px' }}>
+                                {dbUpgradeResult}
+                            </pre>
+                        )}
                     </div>
                 )}
             </div>
