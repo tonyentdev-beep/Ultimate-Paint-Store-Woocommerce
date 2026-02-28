@@ -560,6 +560,14 @@ class Paint_Store_API {
 	public function get_product_families( $request ) {
 		global $wpdb;
 		$results = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}ps_product_families", ARRAY_A );
+		// Resolve image URLs
+		foreach ( $results as &$row ) {
+			$row['image_url'] = '';
+			if ( ! empty( $row['image_id'] ) ) {
+				$url = wp_get_attachment_url( intval( $row['image_id'] ) );
+				if ( $url ) $row['image_url'] = $url;
+			}
+		}
 		return rest_ensure_response( $results );
 	}
 
@@ -567,9 +575,10 @@ class Paint_Store_API {
 		global $wpdb;
 		$name = sanitize_text_field( $request->get_param( 'name' ) );
 		$brand_id = intval( $request->get_param( 'brand_id' ) );
-		$description = sanitize_textarea_field( $request->get_param( 'description' ) );
+		$description = wp_kses_post( $request->get_param( 'description' ) );
+		$image_id = intval( $request->get_param( 'image_id' ) );
 		if ( empty( $name ) ) return new WP_Error( 'missing_name', 'Name is required', array( 'status' => 400 ) );
-		$result = $wpdb->insert( $wpdb->prefix . 'ps_product_families', array( 'name' => $name, 'brand_id' => $brand_id, 'description' => $description ), array( '%s', '%d', '%s' ) );
+		$result = $wpdb->insert( $wpdb->prefix . 'ps_product_families', array( 'name' => $name, 'brand_id' => $brand_id, 'description' => $description, 'image_id' => $image_id ), array( '%s', '%d', '%s', '%d' ) );
 		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
 		return rest_ensure_response( array( 'id' => $wpdb->insert_id ) );
 	}
@@ -579,9 +588,10 @@ class Paint_Store_API {
 		$id = $request->get_param( 'id' );
 		$name = sanitize_text_field( $request->get_param( 'name' ) );
 		$brand_id = intval( $request->get_param( 'brand_id' ) );
-		$description = sanitize_textarea_field( $request->get_param( 'description' ) );
+		$description = wp_kses_post( $request->get_param( 'description' ) );
+		$image_id = intval( $request->get_param( 'image_id' ) );
 		if ( empty( $name ) ) return new WP_Error( 'missing_name', 'Name is required', array( 'status' => 400 ) );
-		$result = $wpdb->update( $wpdb->prefix . 'ps_product_families', array( 'name' => $name, 'brand_id' => $brand_id, 'description' => $description ), array( 'id' => $id ), array( '%s', '%d', '%s' ), array( '%d' ) );
+		$result = $wpdb->update( $wpdb->prefix . 'ps_product_families', array( 'name' => $name, 'brand_id' => $brand_id, 'description' => $description, 'image_id' => $image_id ), array( 'id' => $id ), array( '%s', '%d', '%s', '%d' ), array( '%d' ) );
 		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
 		return rest_ensure_response( array( 'success' => true ) );
 	}

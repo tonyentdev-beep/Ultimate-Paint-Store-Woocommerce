@@ -74,6 +74,7 @@ class Paint_Store_Activator {
 			name varchar(255) NOT NULL,
 			brand_id bigint(20) unsigned DEFAULT 0 NOT NULL,
 			description text,
+			image_id bigint(20) unsigned DEFAULT 0 NOT NULL,
 			PRIMARY KEY  (id),
 			KEY brand_id (brand_id)
 		) $charset_collate;";

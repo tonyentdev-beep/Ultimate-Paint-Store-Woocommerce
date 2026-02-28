@@ -24,6 +24,7 @@ class Paint_Store_Admin {
 			$assets = require( $asset_file );
 			wp_enqueue_script( $this->plugin_name . '-admin', plugin_dir_url( dirname( __FILE__ ) ) . 'build/admin/index.js', $assets['dependencies'], $assets['version'], true );
 			wp_enqueue_editor();
+			wp_enqueue_media();
 		}
 	}
 
