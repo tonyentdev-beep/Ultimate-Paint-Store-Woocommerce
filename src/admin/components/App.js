@@ -7,6 +7,8 @@ import BasesManager from './products/BasesManager';
 
 const App = () => {
     const [activeTab, setActiveTab] = useState('colors');
+    const [activeColorSubTab, setActiveColorSubTab] = useState('brands');
+    const [activeProductSubTab, setActiveProductSubTab] = useState('bases');
     const [dbUpgradeResult, setDbUpgradeResult] = useState('');
     const [isUpgradingDb, setIsUpgradingDb] = useState(false);
 
@@ -101,26 +103,88 @@ const App = () => {
             <div className="tab-content">
                 {activeTab === 'colors' && (
                     <div>
-                        <BrandsManager brands={brands} fetchBrands={fetchBrands} />
-                        <hr style={{ margin: '40px 0' }} />
-                        <ColorFamilies families={families} fetchFamilies={fetchFamilies} />
-                        <hr style={{ margin: '40px 0' }} />
-                        <ColorsManager
-                            colors={colors}
-                            families={families}
-                            allBases={bases}
-                            brands={brands}
-                            fetchColors={fetchColors}
-                        />
+                        <ul className="subsubsub" style={{ marginBottom: '20px', fontSize: '14px' }}>
+                            <li>
+                                <a
+                                    href="#"
+                                    className={activeColorSubTab === 'brands' ? 'current' : ''}
+                                    onClick={(e) => { e.preventDefault(); setActiveColorSubTab('brands'); }}
+                                >
+                                    Paint Brands
+                                </a> |
+                            </li>
+                            <li>
+                                <a
+                                    href="#"
+                                    className={activeColorSubTab === 'families' ? 'current' : ''}
+                                    onClick={(e) => { e.preventDefault(); setActiveColorSubTab('families'); }}
+                                >
+                                    Color Families
+                                </a> |
+                            </li>
+                            <li>
+                                <a
+                                    href="#"
+                                    className={activeColorSubTab === 'colors' ? 'current' : ''}
+                                    onClick={(e) => { e.preventDefault(); setActiveColorSubTab('colors'); }}
+                                >
+                                    Specific Colors
+                                </a>
+                            </li>
+                        </ul>
+                        <div className="clear"></div>
+
+                        {activeColorSubTab === 'brands' && (
+                            <BrandsManager brands={brands} fetchBrands={fetchBrands} />
+                        )}
+                        {activeColorSubTab === 'families' && (
+                            <ColorFamilies families={families} fetchFamilies={fetchFamilies} />
+                        )}
+                        {activeColorSubTab === 'colors' && (
+                            <ColorsManager
+                                colors={colors}
+                                families={families}
+                                allBases={bases}
+                                brands={brands}
+                                fetchColors={fetchColors}
+                            />
+                        )}
                     </div>
                 )}
 
                 {activeTab === 'products' && (
                     <div>
-                        <BasesManager bases={bases} fetchBases={fetchBases} />
-                        <hr style={{ margin: '40px 0' }} />
-                        <h2>Manage Products (Coming Soon)</h2>
-                        <p>Product mapping interface will go here.</p>
+                        <ul className="subsubsub" style={{ marginBottom: '20px', fontSize: '14px' }}>
+                            <li>
+                                <a
+                                    href="#"
+                                    className={activeProductSubTab === 'bases' ? 'current' : ''}
+                                    onClick={(e) => { e.preventDefault(); setActiveProductSubTab('bases'); }}
+                                >
+                                    Paint Bases
+                                </a> |
+                            </li>
+                            <li>
+                                <a
+                                    href="#"
+                                    className={activeProductSubTab === 'products' ? 'current' : ''}
+                                    onClick={(e) => { e.preventDefault(); setActiveProductSubTab('products'); }}
+                                >
+                                    SKUs / Products
+                                </a>
+                            </li>
+                        </ul>
+                        <div className="clear"></div>
+
+                        {activeProductSubTab === 'bases' && (
+                            <BasesManager bases={bases} fetchBases={fetchBases} />
+                        )}
+                        {activeProductSubTab === 'products' && (
+                            <div style={{ marginTop: '30px' }}>
+                                <h2>Manage Products (Coming Soon)</h2>
+                                <p>Product mapping interface will go here.</p>
+                            </div>
+                        )}
                     </div>
                 )}
 
