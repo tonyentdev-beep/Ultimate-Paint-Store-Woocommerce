@@ -1489,10 +1489,26 @@ class Paint_Store_API {
 			}
 		}
 
+		$ps_products = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}ps_products WHERE family_id = %d", $family_id ), ARRAY_A );
+
+		// Cast the product fields to integers where appropriate to help the frontend
+		foreach( $ps_products as &$prod ) {
+			$prod['id']         = intval( $prod['id'] );
+			$prod['family_id']  = intval( $prod['family_id'] );
+			$prod['size_id']    = intval( $prod['size_id'] );
+			$prod['sheen_id']   = intval( $prod['sheen_id'] );
+			$prod['base_id']    = intval( $prod['base_id'] );
+			$prod['surface_id'] = intval( $prod['surface_id'] );
+			$prod['price']      = floatval( $prod['price'] );
+			$prod['stock_quantity'] = intval( $prod['stock_quantity'] );
+			$prod['woo_product_id'] = intval( $prod['woo_product_id'] );
+		}
+
 		$response = array(
 			'family'     => $family,
 			'variations' => $variations,
-			'attributes' => $attributes
+			'attributes' => $attributes,
+			'ps_products' => $ps_products
 		);
 
 		return rest_ensure_response( $response );
@@ -1514,6 +1530,14 @@ class Paint_Store_API {
 		}
 		
 		$colors = $wpdb->get_results( $query, ARRAY_A );
+		
+		// Map the base_ids to each Color
+		foreach ( $colors as &$color ) {
+			$color_id = intval( $color['id'] );
+			$base_ids = $wpdb->get_col( $wpdb->prepare( "SELECT base_id FROM {$wpdb->prefix}ps_color_bases WHERE color_id = %d", $color_id ) );
+			$color['base_ids'] = array_map( 'intval', $base_ids );
+		}
+
 		return rest_ensure_response( $colors );
 	}
 
