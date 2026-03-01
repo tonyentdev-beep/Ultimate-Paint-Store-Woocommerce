@@ -244,6 +244,42 @@ class Paint_Store_API {
 				'permission_callback' => array( $this, 'permissions_check' ),
 			),
 		) );
+
+		// ==========================================
+		// PUBLIC ENDPOINTS (Frontend React App)
+		// ==========================================
+
+		register_rest_route( $this->namespace, '/public/product-families/(?P<id>\\d+)', array(
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'public_get_product_family' ),
+				'permission_callback' => '__return_true',
+			),
+		) );
+
+		register_rest_route( $this->namespace, '/public/color-families', array(
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'public_get_color_families' ),
+				'permission_callback' => '__return_true',
+			),
+		) );
+
+		register_rest_route( $this->namespace, '/public/colors', array(
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'public_get_colors' ),
+				'permission_callback' => '__return_true',
+			),
+		) );
+
+		register_rest_route( $this->namespace, '/public/add-to-cart', array(
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'public_add_to_cart' ),
+				'permission_callback' => '__return_true',
+			),
+		) );
 	}
 
 	public function permissions_check( $request ) {
@@ -1268,4 +1304,116 @@ class Paint_Store_API {
 		
 		return rest_ensure_response( array( 'success' => true, 'synced' => $synced ) );
 	}
+
+	// ==========================================
+	// PUBLIC HANDLERS (Frontend React App)
+	// ==========================================
+
+	public function public_get_product_family( $request ) {
+		global $wpdb;
+		$family_id = intval( $request->get_param( 'id' ) );
+		
+		$family = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}ps_product_families WHERE id = %d", $family_id ), ARRAY_A );
+		if ( ! $family ) return new WP_Error( 'not_found', 'Product family not found.', array( 'status' => 404 ) );
+
+		if ( $family['image_id'] ) {
+			$family['image_url'] = wp_get_attachment_url( $family['image_id'] );
+		}
+
+		$variations = array();
+		$attributes = array( 'sizes' => array(), 'sheens' => array() );
+
+		if ( class_exists( 'WooCommerce' ) && ! empty( $family['wc_product_id'] ) ) {
+			$product = wc_get_product( $family['wc_product_id'] );
+			if ( $product && $product->is_type( 'variable' ) ) {
+				$available_variations = $product->get_available_variations();
+				foreach ( $available_variations as $var ) {
+					$variations[] = array(
+						'id'         => $var['variation_id'],
+						'attributes' => $var['attributes'],
+						'price'      => $var['display_price'],
+						'price_html' => $var['price_html']
+					);
+				}
+
+				$sizes = wc_get_product_terms( $family['wc_product_id'], 'pa_paint_size', array( 'fields' => 'all' ) );
+				if ( ! is_wp_error( $sizes ) ) {
+					foreach ( $sizes as $term ) {
+						$attributes['sizes'][] = array( 'slug' => $term->slug, 'name' => $term->name );
+					}
+				}
+
+				$sheens = wc_get_product_terms( $family['wc_product_id'], 'pa_paint_sheen', array( 'fields' => 'all' ) );
+				if ( ! is_wp_error( $sheens ) ) {
+					foreach ( $sheens as $term ) {
+						$attributes['sheens'][] = array( 'slug' => $term->slug, 'name' => $term->name );
+					}
+				}
+			}
+		}
+
+		$response = array(
+			'family'     => $family,
+			'variations' => $variations,
+			'attributes' => $attributes
+		);
+
+		return rest_ensure_response( $response );
+	}
+
+	public function public_get_color_families( $request ) {
+		global $wpdb;
+		$results = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}ps_color_families", ARRAY_A );
+		return rest_ensure_response( $results );
+	}
+
+	public function public_get_colors( $request ) {
+		global $wpdb;
+		$family_id = intval( $request->get_param( 'family_id' ) );
+		
+		$query = "SELECT * FROM {$wpdb->prefix}ps_colors";
+		if ( $family_id > 0 ) {
+			$query .= $wpdb->prepare( " WHERE family_id = %d", $family_id );
+		}
+		
+		$colors = $wpdb->get_results( $query, ARRAY_A );
+		return rest_ensure_response( $colors );
+	}
+
+	public function public_add_to_cart( $request ) {
+		if ( ! class_exists( 'WooCommerce' ) ) {
+			return new WP_Error( 'woo_missing', 'WooCommerce is not active.', array( 'status' => 400 ) );
+		}
+
+		$product_id   = intval( $request->get_param( 'product_id' ) );
+		$variation_id = intval( $request->get_param( 'variation_id' ) );
+		$quantity     = intval( $request->get_param( 'quantity' ) ) ?: 1;
+		$color_hex    = sanitize_text_field( $request->get_param( 'color_hex' ) );
+		$color_name   = sanitize_text_field( $request->get_param( 'color_name' ) );
+
+		if ( ! $product_id || ! $variation_id ) {
+			return new WP_Error( 'missing_data', 'Product ID and Variation ID are required.', array( 'status' => 400 ) );
+		}
+
+		$cart_item_data = array(
+			'paint_custom_color' => array(
+				'name' => $color_name,
+				'hex'  => $color_hex
+			)
+		);
+
+		// WooCommerce requires the specific attributes used for this variation to be passed in to the add_to_cart function
+		$variation = wc_get_product( $variation_id );
+		$variation_attributes = $variation ? $variation->get_variation_attributes() : array();
+
+		// Add it to the cart
+		$cart_item_key = WC()->cart->add_to_cart( $product_id, $quantity, $variation_id, $variation_attributes, $cart_item_data );
+		
+		if ( $cart_item_key ) {
+			return rest_ensure_response( array( 'success' => true, 'cart_item_key' => $cart_item_key ) );
+		}
+
+		return new WP_Error( 'add_to_cart_failed', 'Failed to add item to cart.', array( 'status' => 500 ) );
+	}
+
 }
