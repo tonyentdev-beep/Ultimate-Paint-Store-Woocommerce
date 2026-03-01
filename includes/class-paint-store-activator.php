@@ -74,7 +74,9 @@ class Paint_Store_Activator {
 		$tables[] = "CREATE TABLE $table_name (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			name varchar(255) NOT NULL,
-			PRIMARY KEY  (id)
+			wc_attribute_id bigint(20) unsigned DEFAULT 0 NOT NULL,
+			PRIMARY KEY  (id),
+			KEY wc_attribute_id (wc_attribute_id)
 		) $charset_collate;";
 
 		// 7b. Product Families (linked to Product Brand)
@@ -97,7 +99,9 @@ class Paint_Store_Activator {
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			name varchar(255) NOT NULL,
 			slug varchar(255) NOT NULL,
-			PRIMARY KEY  (id)
+			wc_category_id bigint(20) unsigned DEFAULT 0 NOT NULL,
+			PRIMARY KEY  (id),
+			KEY wc_category_id (wc_category_id)
 		) $charset_collate;";
 
 		// 9. Sizes
@@ -116,7 +120,9 @@ class Paint_Store_Activator {
 		$tables[] = "CREATE TABLE $table_name (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			name varchar(255) NOT NULL,
-			PRIMARY KEY  (id)
+			wc_attribute_id bigint(20) unsigned DEFAULT 0 NOT NULL,
+			PRIMARY KEY  (id),
+			KEY wc_attribute_id (wc_attribute_id)
 		) $charset_collate;";
 
 		// 11. Scene Images (for Color Visualizer)

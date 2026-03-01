@@ -138,6 +138,9 @@ class Paint_Store_API {
 			array( 'methods' => WP_REST_Server::EDITABLE, 'callback' => array( $this, 'update_product_brand' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
 			array( 'methods' => WP_REST_Server::DELETABLE, 'callback' => array( $this, 'delete_product_brand' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
 		) );
+		register_rest_route( $this->namespace, '/product-brands/sync', array(
+			array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'sync_product_brands_to_woo' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+		) );
 
 		// Product Categories Endpoints
 		register_rest_route( $this->namespace, '/product-categories', array(
@@ -147,6 +150,9 @@ class Paint_Store_API {
 		register_rest_route( $this->namespace, '/product-categories/(?P<id>\\d+)', array(
 			array( 'methods' => WP_REST_Server::EDITABLE, 'callback' => array( $this, 'update_product_category' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
 			array( 'methods' => WP_REST_Server::DELETABLE, 'callback' => array( $this, 'delete_product_category' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+		) );
+		register_rest_route( $this->namespace, '/product-categories/sync', array(
+			array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'sync_product_categories_to_woo' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
 		) );
 
 		// Sizes Endpoints
@@ -183,6 +189,9 @@ class Paint_Store_API {
 		register_rest_route( $this->namespace, '/surface-types/(?P<id>\\d+)', array(
 			array( 'methods' => WP_REST_Server::EDITABLE, 'callback' => array( $this, 'update_surface_type' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
 			array( 'methods' => WP_REST_Server::DELETABLE, 'callback' => array( $this, 'delete_surface_type' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+		) );
+		register_rest_route( $this->namespace, '/surface-types/sync', array(
+			array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'sync_surface_types_to_woo' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
 		) );
 
 		// Scene Images Endpoints
@@ -816,6 +825,27 @@ class Paint_Store_API {
 		return rest_ensure_response( array( 'success' => true ) );
 	}
 
+	public function sync_product_categories_to_woo( $request ) {
+		if ( ! class_exists( 'WooCommerce' ) ) return new WP_Error( 'woo_missing', 'WooCommerce is not active.', array( 'status' => 400 ) );
+		global $wpdb;
+
+		$categories = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}ps_product_categories" );
+		$synced = 0;
+
+		foreach ( $categories as $category ) {
+			$term = term_exists( $category->name, 'product_cat' );
+			if ( ! $term ) {
+				$term = wp_insert_term( $category->name, 'product_cat', array( 'slug' => $category->slug ) );
+			}
+			if ( ! is_wp_error( $term ) && isset( $term['term_id'] ) ) {
+				$wpdb->update( $wpdb->prefix . 'ps_product_categories', array( 'wc_category_id' => $term['term_id'] ), array( 'id' => $category->id ) );
+				$synced++;
+			}
+		}
+		
+		return rest_ensure_response( array( 'success' => true, 'synced' => $synced ) );
+	}
+
 	// --- Sizes Handlers ---
 
 	public function get_sizes( $request ) {
@@ -979,6 +1009,37 @@ class Paint_Store_API {
 		global $wpdb;
 		$wpdb->delete( $wpdb->prefix . 'ps_surface_types', array( 'id' => $request->get_param( 'id' ) ), array( '%d' ) );
 		return rest_ensure_response( array( 'success' => true ) );
+	}
+
+	public function sync_surface_types_to_woo( $request ) {
+		if ( ! class_exists( 'WooCommerce' ) ) return new WP_Error( 'woo_missing', 'WooCommerce is not active.', array( 'status' => 400 ) );
+		global $wpdb;
+
+		$slug = 'paint_surface';
+		$taxonomy = 'pa_' . $slug;
+		$attribute_id = wc_attribute_taxonomy_id_by_name( 'Paint Surface' );
+
+		if ( ! $attribute_id ) {
+			$attribute_id = wc_create_attribute( array( 'name' => 'Paint Surface', 'slug' => $slug, 'type' => 'select' ) );
+			if ( is_wp_error( $attribute_id ) ) return $attribute_id;
+			register_taxonomy( $taxonomy, array( 'product' ) );
+		}
+
+		$surfaces = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}ps_surface_types" );
+		$synced = 0;
+
+		foreach ( $surfaces as $surface ) {
+			$term = term_exists( $surface->name, $taxonomy );
+			if ( ! $term ) {
+				$term = wp_insert_term( $surface->name, $taxonomy );
+			}
+			if ( ! is_wp_error( $term ) && isset( $term['term_id'] ) ) {
+				$wpdb->update( $wpdb->prefix . 'ps_surface_types', array( 'wc_attribute_id' => $term['term_id'] ), array( 'id' => $surface->id ) );
+				$synced++;
+			}
+		}
+		
+		return rest_ensure_response( array( 'success' => true, 'synced' => $synced ) );
 	}
 
 	// --- Scene Images Handlers ---
