@@ -31,7 +31,7 @@ function paint_store_theme_styles() {
 	wp_enqueue_style( 'paint-store-theme', get_stylesheet_uri(), array(), '1.0.0' );
 	
 	// Google Fonts
-	wp_enqueue_style( 'paint-store-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap', array(), null );
+	wp_enqueue_style( 'paint-store-fonts', 'https://fonts.googleapis.com/css2?family=Anton&family=DM+Sans:wght@400;500;600;700&display=swap', array(), null );
 }
 add_action( 'wp_enqueue_scripts', 'paint_store_theme_styles' );
 
