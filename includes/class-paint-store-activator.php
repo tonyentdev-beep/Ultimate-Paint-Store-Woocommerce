@@ -85,15 +85,31 @@ class Paint_Store_Activator {
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			name varchar(255) NOT NULL,
 			brand_id bigint(20) unsigned DEFAULT 0 NOT NULL,
-			category_id bigint(20) unsigned DEFAULT 0 NOT NULL,
 			description text,
 			short_description text,
 			image_id bigint(20) unsigned DEFAULT 0 NOT NULL,
 			wc_product_id bigint(20) unsigned DEFAULT 0 NOT NULL,
 			PRIMARY KEY  (id),
 			KEY brand_id (brand_id),
-			KEY category_id (category_id),
 			KEY wc_product_id (wc_product_id)
+		) $charset_collate;";
+
+		// 7c. Family ↔ Categories (many-to-many)
+		$table_name = $wpdb->prefix . 'ps_family_categories';
+		$tables[] = "CREATE TABLE $table_name (
+			family_id bigint(20) unsigned NOT NULL,
+			category_id bigint(20) unsigned NOT NULL,
+			PRIMARY KEY  (family_id, category_id),
+			KEY category_id (category_id)
+		) $charset_collate;";
+
+		// 7d. Family ↔ Surface Types (many-to-many)
+		$table_name = $wpdb->prefix . 'ps_family_surface_types';
+		$tables[] = "CREATE TABLE $table_name (
+			family_id bigint(20) unsigned NOT NULL,
+			surface_type_id bigint(20) unsigned NOT NULL,
+			PRIMARY KEY  (family_id, surface_type_id),
+			KEY surface_type_id (surface_type_id)
 		) $charset_collate;";
 
 		// 8. Product Categories

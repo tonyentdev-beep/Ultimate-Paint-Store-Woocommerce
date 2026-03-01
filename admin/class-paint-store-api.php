@@ -683,6 +683,14 @@ class Paint_Store_API {
 				$url = wp_get_attachment_url( intval( $row['image_id'] ) );
 				if ( $url ) $row['image_url'] = $url;
 			}
+			// Fetch associated category IDs
+			$row['category_ids'] = array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
+				"SELECT category_id FROM {$wpdb->prefix}ps_family_categories WHERE family_id = %d", $row['id']
+			) ) );
+			// Fetch associated surface type IDs
+			$row['surface_type_ids'] = array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
+				"SELECT surface_type_id FROM {$wpdb->prefix}ps_family_surface_types WHERE family_id = %d", $row['id']
+			) ) );
 		}
 		return rest_ensure_response( $results );
 	}
@@ -691,17 +699,19 @@ class Paint_Store_API {
 		global $wpdb;
 		$name = sanitize_text_field( $request->get_param( 'name' ) );
 		$brand_id = intval( $request->get_param( 'brand_id' ) );
-		$category_id = intval( $request->get_param( 'category_id' ) );
 		$description = wp_kses_post( $request->get_param( 'description' ) );
 		$short_description = wp_kses_post( $request->get_param( 'short_description' ) );
 		$image_id = intval( $request->get_param( 'image_id' ) );
 		
 		if ( empty( $name ) ) return new WP_Error( 'missing_name', 'Name is required', array( 'status' => 400 ) );
 		
-		$result = $wpdb->insert( $wpdb->prefix . 'ps_product_families', array( 'name' => $name, 'brand_id' => $brand_id, 'category_id' => $category_id, 'description' => $description, 'short_description' => $short_description, 'image_id' => $image_id ), array( '%s', '%d', '%d', '%s', '%s', '%d' ) );
+		$result = $wpdb->insert( $wpdb->prefix . 'ps_product_families', array( 'name' => $name, 'brand_id' => $brand_id, 'description' => $description, 'short_description' => $short_description, 'image_id' => $image_id ), array( '%s', '%d', '%s', '%s', '%d' ) );
 		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
 		
-		return rest_ensure_response( array( 'id' => $wpdb->insert_id ) );
+		$family_id = $wpdb->insert_id;
+		$this->sync_family_relations( $family_id, $request );
+		
+		return rest_ensure_response( array( 'id' => $family_id ) );
 	}
 
 	public function update_product_family( $request ) {
@@ -709,17 +719,40 @@ class Paint_Store_API {
 		$id = intval( $request->get_param( 'id' ) );
 		$name = sanitize_text_field( $request->get_param( 'name' ) );
 		$brand_id = intval( $request->get_param( 'brand_id' ) );
-		$category_id = intval( $request->get_param( 'category_id' ) );
 		$description = wp_kses_post( $request->get_param( 'description' ) );
 		$short_description = wp_kses_post( $request->get_param( 'short_description' ) );
 		$image_id = intval( $request->get_param( 'image_id' ) );
 		
 		if ( empty( $name ) ) return new WP_Error( 'missing_name', 'Name is required', array( 'status' => 400 ) );
 		
-		$result = $wpdb->update( $wpdb->prefix . 'ps_product_families', array( 'name' => $name, 'brand_id' => $brand_id, 'category_id' => $category_id, 'description' => $description, 'short_description' => $short_description, 'image_id' => $image_id ), array( 'id' => $id ), array( '%s', '%d', '%d', '%s', '%s', '%d' ), array( '%d' ) );
+		$result = $wpdb->update( $wpdb->prefix . 'ps_product_families', array( 'name' => $name, 'brand_id' => $brand_id, 'description' => $description, 'short_description' => $short_description, 'image_id' => $image_id ), array( 'id' => $id ), array( '%s', '%d', '%s', '%s', '%d' ), array( '%d' ) );
 		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
 		
+		$this->sync_family_relations( $id, $request );
+		
 		return rest_ensure_response( array( 'success' => true ) );
+	}
+
+	private function sync_family_relations( $family_id, $request ) {
+		global $wpdb;
+		
+		// Sync categories
+		$category_ids = $request->get_param( 'category_ids' );
+		if ( is_array( $category_ids ) ) {
+			$wpdb->delete( $wpdb->prefix . 'ps_family_categories', array( 'family_id' => $family_id ), array( '%d' ) );
+			foreach ( $category_ids as $cid ) {
+				$wpdb->insert( $wpdb->prefix . 'ps_family_categories', array( 'family_id' => $family_id, 'category_id' => intval( $cid ) ), array( '%d', '%d' ) );
+			}
+		}
+		
+		// Sync surface types
+		$surface_type_ids = $request->get_param( 'surface_type_ids' );
+		if ( is_array( $surface_type_ids ) ) {
+			$wpdb->delete( $wpdb->prefix . 'ps_family_surface_types', array( 'family_id' => $family_id ), array( '%d' ) );
+			foreach ( $surface_type_ids as $sid ) {
+				$wpdb->insert( $wpdb->prefix . 'ps_family_surface_types', array( 'family_id' => $family_id, 'surface_type_id' => intval( $sid ) ), array( '%d', '%d' ) );
+			}
+		}
 	}
 
 	public function delete_product_family( $request ) {

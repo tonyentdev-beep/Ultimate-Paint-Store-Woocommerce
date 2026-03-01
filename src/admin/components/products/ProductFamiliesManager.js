@@ -1,12 +1,13 @@
 import { useState } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
-import { Button, TextControl, SelectControl, PanelBody, PanelRow } from '@wordpress/components';
+import { Button, TextControl, SelectControl, CheckboxControl, PanelBody, PanelRow } from '@wordpress/components';
 import WPEditorField from '../shared/WPEditorField';
 
 const ProductFamiliesManager = ({ productFamilies, productBrands, productCategories, surfaceTypes, fetchProductFamilies }) => {
     const [name, setName] = useState('');
     const [brandId, setBrandId] = useState('');
-    const [categoryId, setCategoryId] = useState('');
+    const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
+    const [selectedSurfaceTypeIds, setSelectedSurfaceTypeIds] = useState([]);
     const [description, setDescription] = useState('');
     const [shortDescription, setShortDescription] = useState('');
     const [imageId, setImageId] = useState(0);
@@ -20,19 +21,33 @@ const ProductFamiliesManager = ({ productFamilies, productBrands, productCategor
         ...productBrands.map(b => ({ label: b.name, value: b.id }))
     ];
 
-    const categoryOptions = [
-        { label: 'Select a Category...', value: '' },
-        ...productCategories.map(c => ({ label: c.name, value: c.id }))
-    ];
-
     const getBrandName = (bid) => {
         if (!bid) return '-';
         return productBrands.find(b => parseInt(b.id) === parseInt(bid))?.name || bid;
     };
 
-    const getCategoryName = (cid) => {
-        if (!cid) return '-';
-        return productCategories.find(c => parseInt(c.id) === parseInt(cid))?.name || '-';
+    const getCategoryNames = (ids) => {
+        if (!ids || ids.length === 0) return '-';
+        return ids.map(id => productCategories.find(c => parseInt(c.id) === parseInt(id))?.name).filter(Boolean).join(', ');
+    };
+
+    const getSurfaceTypeNames = (ids) => {
+        if (!ids || ids.length === 0) return '-';
+        return ids.map(id => surfaceTypes.find(s => parseInt(s.id) === parseInt(id))?.name).filter(Boolean).join(', ');
+    };
+
+    const toggleCategoryId = (id) => {
+        const numId = parseInt(id);
+        setSelectedCategoryIds(prev =>
+            prev.includes(numId) ? prev.filter(x => x !== numId) : [...prev, numId]
+        );
+    };
+
+    const toggleSurfaceTypeId = (id) => {
+        const numId = parseInt(id);
+        setSelectedSurfaceTypeIds(prev =>
+            prev.includes(numId) ? prev.filter(x => x !== numId) : [...prev, numId]
+        );
     };
 
     const openMediaUploader = () => {
@@ -62,7 +77,8 @@ const ProductFamiliesManager = ({ productFamilies, productBrands, productCategor
             const data = {
                 name,
                 brand_id: brandId,
-                category_id: categoryId,
+                category_ids: selectedCategoryIds,
+                surface_type_ids: selectedSurfaceTypeIds,
                 description,
                 short_description: shortDescription,
                 image_id: imageId
@@ -72,7 +88,7 @@ const ProductFamiliesManager = ({ productFamilies, productBrands, productCategor
             } else {
                 await apiFetch({ path: '/paint-store/v1/product-families', method: 'POST', data });
             }
-            setName(''); setBrandId(''); setCategoryId(''); setDescription(''); setShortDescription(''); setImageId(0); setImageUrl(''); setEditingId(null);
+            resetForm();
             fetchProductFamilies();
         } catch (error) {
             console.error('Error saving product family:', error);
@@ -81,20 +97,25 @@ const ProductFamiliesManager = ({ productFamilies, productBrands, productCategor
         setIsSaving(false);
     };
 
+    const resetForm = () => {
+        setName(''); setBrandId(''); setSelectedCategoryIds([]); setSelectedSurfaceTypeIds([]);
+        setDescription(''); setShortDescription(''); setImageId(0); setImageUrl(''); setEditingId(null);
+    };
+
     const handleEdit = (item) => {
         setEditingId(item.id);
         setName(item.name);
         setBrandId(item.brand_id == 0 ? '' : item.brand_id);
-        setCategoryId(item.category_id == 0 ? '' : item.category_id);
+        setSelectedCategoryIds(item.category_ids || []);
+        setSelectedSurfaceTypeIds(item.surface_type_ids || []);
         setDescription(item.description || '');
         setShortDescription(item.short_description || '');
         setImageId(item.image_id ? parseInt(item.image_id) : 0);
         setImageUrl(item.image_url || '');
     };
-    const handleCancelEdit = () => {
-        setEditingId(null); setName(''); setBrandId(''); setCategoryId(''); setDescription(''); setShortDescription('');
-        setImageId(0); setImageUrl('');
-    };
+
+    const handleCancelEdit = () => resetForm();
+
     const handleDelete = async (id) => {
         if (!confirm('Are you sure you want to delete this product family?')) return;
         try {
@@ -121,10 +142,45 @@ const ProductFamiliesManager = ({ productFamilies, productBrands, productCategor
         <div className="product-families-manager">
             <PanelBody title={editingId ? "Edit Product Family" : "Add New Product Family"} initialOpen={true}>
                 <PanelRow>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', width: '100%' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', width: '100%' }}>
                         <TextControl label="Family Name (e.g., Supreme Edge Interior)" value={name} onChange={setName} />
                         <SelectControl label="Brand" value={brandId} options={brandOptions} onChange={setBrandId} />
-                        <SelectControl label="Category" value={categoryId} options={categoryOptions} onChange={setCategoryId} />
+                    </div>
+                </PanelRow>
+                <PanelRow>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', width: '100%' }}>
+                        <div>
+                            <label style={{ display: 'block', fontWeight: 600, marginBottom: '8px' }}>Categories</label>
+                            <div style={{ border: '1px solid #ddd', borderRadius: '4px', padding: '10px', maxHeight: '150px', overflowY: 'auto', background: '#fafafa' }}>
+                                {productCategories.length === 0 ? (
+                                    <span style={{ color: '#999', fontSize: '13px' }}>No categories created yet.</span>
+                                ) : productCategories.map(cat => (
+                                    <CheckboxControl
+                                        key={cat.id}
+                                        label={cat.name}
+                                        checked={selectedCategoryIds.includes(parseInt(cat.id))}
+                                        onChange={() => toggleCategoryId(cat.id)}
+                                        __nextHasNoMarginBottom
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', fontWeight: 600, marginBottom: '8px' }}>Surface Types</label>
+                            <div style={{ border: '1px solid #ddd', borderRadius: '4px', padding: '10px', maxHeight: '150px', overflowY: 'auto', background: '#fafafa' }}>
+                                {surfaceTypes.length === 0 ? (
+                                    <span style={{ color: '#999', fontSize: '13px' }}>No surface types created yet.</span>
+                                ) : surfaceTypes.map(st => (
+                                    <CheckboxControl
+                                        key={st.id}
+                                        label={st.name}
+                                        checked={selectedSurfaceTypeIds.includes(parseInt(st.id))}
+                                        onChange={() => toggleSurfaceTypeId(st.id)}
+                                        __nextHasNoMarginBottom
+                                    />
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 </PanelRow>
                 <PanelRow>
@@ -205,10 +261,10 @@ const ProductFamiliesManager = ({ productFamilies, productBrands, productCategor
                 </div>
             </div>
             <table className="wp-list-table widefat fixed striped" style={{ marginTop: '10px' }}>
-                <thead><tr><th style={{ width: '40px' }}>ID</th><th style={{ width: '50px' }}>Image</th><th>Name</th><th>Brand</th><th>Category</th><th>WooCommerce</th><th style={{ width: '180px' }}>Actions</th></tr></thead>
+                <thead><tr><th style={{ width: '40px' }}>ID</th><th style={{ width: '50px' }}>Image</th><th>Name</th><th>Brand</th><th>Categories</th><th>Surface Types</th><th>WooCommerce</th><th style={{ width: '180px' }}>Actions</th></tr></thead>
                 <tbody>
                     {productFamilies.length === 0 ? (
-                        <tr><td colSpan="7">No product families found.</td></tr>
+                        <tr><td colSpan="8">No product families found.</td></tr>
                     ) : productFamilies.map(item => (
                         <tr key={item.id}>
                             <td>{item.id}</td>
@@ -221,7 +277,8 @@ const ProductFamiliesManager = ({ productFamilies, productBrands, productCategor
                             </td>
                             <td><strong>{item.name}</strong></td>
                             <td>{getBrandName(item.brand_id)}</td>
-                            <td>{getCategoryName(item.category_id)}</td>
+                            <td style={{ fontSize: '12px' }}>{getCategoryNames(item.category_ids)}</td>
+                            <td style={{ fontSize: '12px' }}>{getSurfaceTypeNames(item.surface_type_ids)}</td>
                             <td>
                                 {parseInt(item.wc_product_id) > 0 ? (
                                     <a href={`/wp-admin/post.php?post=${item.wc_product_id}&action=edit`} target="_blank" rel="noreferrer" style={{ color: '#3c763d', fontSize: '12px', textDecoration: 'none', fontWeight: 'bold' }}>
