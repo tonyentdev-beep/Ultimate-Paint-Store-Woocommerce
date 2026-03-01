@@ -1,0 +1,522 @@
+/*
+Theme Name:       Paint Store Theme
+Theme URI:        https://example.com/paint-store
+Author:           Paint Store Dev
+Author URI:       https://example.com
+Description:      A custom WooCommerce theme for the Paint Store plugin. Features Valspar-inspired PLP pages with sidebar filters, horizontal product cards, and branded styling.
+Version:          1.0.0
+Requires at least: 6.0
+Requires PHP:     7.4
+License:          GPL v2 or later
+License URI:      https://www.gnu.org/licenses/gpl-2.0.html
+Text Domain:      paint-store-theme
+Tags:             woocommerce, e-commerce, paint, full-width-template
+
+This theme is designed to work alongside the Paint Store Core plugin.
+*/
+
+/* ======================================
+   GLOBAL RESET & BASE STYLES
+   ====================================== */
+
+:root {
+	--ps-navy: #002b49;
+	--ps-navy-light: #003d6b;
+	--ps-blue: #5b9bd5;
+	--ps-blue-hover: #4a8ac4;
+	--ps-green: #4a8c3f;
+	--ps-text: #333;
+	--ps-text-light: #555;
+	--ps-text-muted: #999;
+	--ps-border: #e0e0e0;
+	--ps-bg-light: #f5f5f5;
+	--ps-white: #fff;
+	--ps-radius: 8px;
+	--ps-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+	font-family: var(--ps-font);
+	color: var(--ps-text);
+	background: var(--ps-white);
+	line-height: 1.6;
+	-webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--ps-navy); text-decoration: none; transition: color 0.2s; }
+a:hover { color: var(--ps-blue); }
+
+img { max-width: 100%; height: auto; }
+
+.site-container {
+	max-width: 1280px;
+	margin: 0 auto;
+	padding: 0 20px;
+}
+
+/* ======================================
+   HEADER
+   ====================================== */
+
+.site-header {
+	background: var(--ps-navy);
+	padding: 0;
+	position: sticky;
+	top: 0;
+	z-index: 1000;
+}
+
+.header-inner {
+	max-width: 1280px;
+	margin: 0 auto;
+	padding: 0 20px;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	height: 70px;
+}
+
+.site-logo a {
+	color: var(--ps-white);
+	font-size: 22px;
+	font-weight: 800;
+	letter-spacing: 1px;
+	text-transform: uppercase;
+}
+
+.site-nav ul {
+	list-style: none;
+	display: flex;
+	gap: 30px;
+	margin: 0;
+	padding: 0;
+}
+
+.site-nav a {
+	color: rgba(255,255,255,0.85);
+	font-size: 14px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	padding: 8px 0;
+	border-bottom: 2px solid transparent;
+	transition: all 0.2s;
+}
+
+.site-nav a:hover,
+.site-nav .current-menu-item a {
+	color: var(--ps-white);
+	border-bottom-color: var(--ps-blue);
+}
+
+/* ======================================
+   FOOTER
+   ====================================== */
+
+.site-footer {
+	background: var(--ps-navy);
+	color: rgba(255,255,255,0.7);
+	padding: 40px 20px;
+	margin-top: 60px;
+	text-align: center;
+	font-size: 14px;
+}
+
+.site-footer a {
+	color: rgba(255,255,255,0.9);
+}
+
+/* ======================================
+   HERO BANNER
+   ====================================== */
+
+.ps-hero-banner {
+	background: linear-gradient(135deg, var(--ps-navy) 0%, var(--ps-navy-light) 100%);
+	padding: 55px 40px;
+	text-align: center;
+}
+
+.ps-hero-title {
+	color: var(--ps-white);
+	font-size: 36px;
+	font-weight: 800;
+	letter-spacing: 4px;
+	margin: 0;
+	text-transform: uppercase;
+}
+
+/* ======================================
+   PLP LAYOUT (Sidebar + Content)
+   ====================================== */
+
+.ps-plp-wrapper {
+	display: flex;
+	gap: 30px;
+	max-width: 1280px;
+	margin: 30px auto;
+	padding: 0 20px;
+	align-items: flex-start;
+}
+
+/* ======= SIDEBAR ======= */
+
+.ps-plp-sidebar {
+	width: 260px;
+	min-width: 260px;
+	background: var(--ps-bg-light);
+	border-radius: var(--ps-radius);
+	padding: 20px;
+	position: sticky;
+	top: 90px;
+}
+
+.ps-sidebar-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 16px;
+	padding-bottom: 12px;
+	border-bottom: 2px solid #ddd;
+}
+
+.ps-sidebar-title {
+	font-size: 18px;
+	font-weight: 700;
+	color: var(--ps-navy);
+}
+
+.ps-clear-all {
+	font-size: 13px;
+	color: var(--ps-blue);
+	font-weight: 600;
+	text-decoration: underline;
+}
+
+/* Accordion Filters */
+
+.ps-filter-accordion {
+	border-bottom: 1px solid #ddd;
+}
+
+.ps-accordion-header {
+	width: 100%;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 14px 0;
+	background: none;
+	border: none;
+	cursor: pointer;
+	font-size: 14px;
+	font-weight: 700;
+	color: var(--ps-navy);
+	text-align: left;
+	font-family: var(--ps-font);
+}
+
+.ps-accordion-header:hover { color: var(--ps-blue); }
+
+.ps-accordion-icon::after {
+	content: "−";
+	font-size: 20px;
+	font-weight: 300;
+	color: var(--ps-navy);
+	display: inline-block;
+	width: 24px;
+	height: 24px;
+	line-height: 22px;
+	text-align: center;
+	border: 1px solid var(--ps-navy);
+	border-radius: 50%;
+}
+
+.ps-filter-accordion:not(.ps-open) .ps-accordion-icon::after {
+	content: "+";
+}
+
+.ps-accordion-body {
+	max-height: 0;
+	overflow: hidden;
+	transition: max-height 0.3s ease, padding 0.3s ease;
+}
+
+.ps-open .ps-accordion-body {
+	max-height: 500px;
+	padding-bottom: 14px;
+}
+
+/* Checkboxes */
+
+.ps-checkbox-label {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 7px 0;
+	cursor: pointer;
+	font-size: 14px;
+	color: var(--ps-text);
+}
+
+.ps-checkbox-label:hover { color: var(--ps-navy); }
+
+.ps-checkbox {
+	width: 18px;
+	height: 18px;
+	accent-color: var(--ps-navy);
+	cursor: pointer;
+	border-radius: 3px;
+}
+
+/* ======= PRODUCT LIST ======= */
+
+.ps-plp-content {
+	flex: 1;
+	min-width: 0;
+}
+
+/* ======================================
+   PRODUCT CARD (Horizontal / List View)
+   ====================================== */
+
+.ps-product-card {
+	display: flex;
+	gap: 35px;
+	padding: 40px 0;
+	border-bottom: 1px solid var(--ps-border);
+	align-items: flex-start;
+}
+
+.ps-product-card:first-child {
+	padding-top: 10px;
+}
+
+.ps-card-image-col {
+	width: 250px;
+	min-width: 250px;
+	text-align: center;
+}
+
+.ps-card-image-col a { display: block; }
+
+.ps-card-image-col img {
+	width: 100%;
+	max-width: 230px;
+	height: auto;
+	border-radius: 4px;
+	object-fit: contain;
+	transition: transform 0.3s ease;
+}
+
+.ps-card-image-col:hover img {
+	transform: scale(1.03);
+}
+
+.ps-card-content-col {
+	flex: 1;
+	min-width: 0;
+}
+
+.ps-card-title {
+	margin: 0 0 10px;
+	font-size: 22px;
+	font-weight: 700;
+	line-height: 1.3;
+}
+
+.ps-card-title a { color: var(--ps-navy); }
+.ps-card-title a:hover { color: var(--ps-blue); }
+
+/* Star Rating */
+
+.ps-card-rating {
+	display: flex;
+	align-items: center;
+	gap: 3px;
+	margin-bottom: 16px;
+}
+
+.ps-star { font-size: 20px; line-height: 1; }
+.ps-star-full { color: var(--ps-green); }
+.ps-star-half { color: var(--ps-green); opacity: 0.5; }
+.ps-star-empty { color: #ccc; }
+
+.ps-rating-num {
+	font-size: 15px;
+	color: var(--ps-text-light);
+	margin-left: 8px;
+	font-weight: 600;
+}
+
+.ps-no-rating {
+	font-size: 13px;
+	color: var(--ps-text-muted);
+	font-style: italic;
+}
+
+/* Feature Bullets */
+
+.ps-card-features {
+	margin: 0 0 16px;
+	padding: 0 0 0 22px;
+	list-style: disc;
+}
+
+.ps-card-features li {
+	font-size: 15px;
+	color: #444;
+	line-height: 1.8;
+}
+
+/* Sheens */
+
+.ps-card-sheens {
+	margin-bottom: 20px;
+	font-size: 15px;
+	color: var(--ps-text);
+}
+
+.ps-card-sheens strong {
+	display: block;
+	color: var(--ps-navy);
+	margin-bottom: 2px;
+	font-size: 14px;
+}
+
+/* Card Buttons */
+
+.ps-card-buttons {
+	display: flex;
+	gap: 14px;
+}
+
+.ps-card-btn {
+	display: inline-block;
+	padding: 13px 32px;
+	border-radius: 25px;
+	font-size: 14px;
+	font-weight: 700;
+	text-decoration: none;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	transition: all 0.2s ease;
+	text-align: center;
+	min-width: 160px;
+}
+
+.ps-btn-view {
+	background: var(--ps-blue);
+	color: var(--ps-white);
+	border: 2px solid var(--ps-blue);
+}
+
+.ps-btn-view:hover {
+	background: var(--ps-blue-hover);
+	border-color: var(--ps-blue-hover);
+	color: var(--ps-white);
+}
+
+.ps-btn-buy {
+	background: var(--ps-navy);
+	color: var(--ps-white);
+	border: 2px solid var(--ps-navy);
+}
+
+.ps-btn-buy:hover {
+	background: #001d33;
+	border-color: #001d33;
+	color: var(--ps-white);
+}
+
+/* ======================================
+   HIDE DEFAULT WOOCOMMERCE ELEMENTS
+   ====================================== */
+
+.woocommerce ul.products li.product .price,
+.woocommerce ul.products li.product a.button,
+.woocommerce ul.products li.product a.add_to_cart_button,
+.woocommerce .woocommerce-ordering,
+.woocommerce .woocommerce-result-count,
+.woocommerce-products-header,
+.woocommerce ul.products li.product > a:not(.ps-card-btn),
+.woocommerce ul.products li.product .woocommerce-loop-product__title,
+.woocommerce ul.products li.product .star-rating {
+	display: none !important;
+}
+
+.woocommerce ul.products {
+	display: flex !important;
+	flex-direction: column !important;
+	gap: 0 !important;
+}
+
+.woocommerce ul.products li.product {
+	width: 100% !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	float: none !important;
+	border: none !important;
+	background: transparent !important;
+	box-shadow: none !important;
+}
+
+.woocommerce ul.products li.product:hover {
+	transform: none !important;
+}
+
+/* ======================================
+   WOO SINGLE PRODUCT (let plugin handle)
+   ====================================== */
+
+.single-product .site-container {
+	max-width: 1100px;
+}
+
+/* ======================================
+   RESPONSIVE
+   ====================================== */
+
+@media (max-width: 768px) {
+	.ps-plp-wrapper {
+		flex-direction: column;
+	}
+	.ps-plp-sidebar {
+		width: 100%;
+		min-width: unset;
+		position: static;
+	}
+	.ps-product-card {
+		flex-direction: column;
+		gap: 20px;
+	}
+	.ps-card-image-col {
+		width: 100%;
+		min-width: unset;
+	}
+	.ps-hero-banner {
+		padding: 30px 20px;
+	}
+	.ps-hero-title {
+		font-size: 24px;
+		letter-spacing: 2px;
+	}
+	.ps-card-buttons {
+		flex-direction: column;
+	}
+	.ps-card-btn {
+		min-width: unset;
+		width: 100%;
+	}
+	.header-inner {
+		flex-direction: column;
+		height: auto;
+		padding: 15px 20px;
+		gap: 10px;
+	}
+	.site-nav ul {
+		gap: 15px;
+		flex-wrap: wrap;
+		justify-content: center;
+	}
+}
