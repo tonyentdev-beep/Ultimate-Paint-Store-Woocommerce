@@ -23,6 +23,14 @@ const ProductsManager = ({
     const [isSaving, setIsSaving] = useState(false);
     const [editingId, setEditingId] = useState(null);
 
+    // Filters
+    const [filterFamilyId, setFilterFamilyId] = useState('');
+    const [filterBaseId, setFilterBaseId] = useState('');
+    const [filterSizeId, setFilterSizeId] = useState('');
+    const [filterSheenId, setFilterSheenId] = useState('');
+    const [filterSurfaceId, setFilterSurfaceId] = useState('');
+    const [filterSku, setFilterSku] = useState('');
+
     const familyOptions = [
         { label: 'Select Product Family...', value: '' },
         ...productFamilies.map(f => ({ label: f.name, value: f.id.toString() }))
@@ -57,6 +65,16 @@ const ProductsManager = ({
     };
     const getSheenName = (id) => sheens.find(s => parseInt(s.id) === parseInt(id))?.name || '-';
     const getSurfaceName = (id) => surfaceTypes.find(s => parseInt(s.id) === parseInt(id))?.name || '-';
+
+    const filteredProducts = products.filter(p => {
+        if (filterFamilyId && p.family_id.toString() !== filterFamilyId) return false;
+        if (filterBaseId && p.base_id.toString() !== filterBaseId) return false;
+        if (filterSizeId && p.size_id.toString() !== filterSizeId) return false;
+        if (filterSheenId && p.sheen_id.toString() !== filterSheenId) return false;
+        if (filterSurfaceId && p.surface_id.toString() !== filterSurfaceId) return false;
+        if (filterSku && !p.sku.toLowerCase().includes(filterSku.toLowerCase())) return false;
+        return true;
+    });
 
     const handleSave = async () => {
         if (!familyId || !baseId || !sizeId || !sheenId || !surfaceId) {
@@ -159,11 +177,29 @@ const ProductsManager = ({
                 </div>
             </PanelBody>
 
-            <div style={{ marginTop: '30px' }}>
+            <div style={{ marginTop: '30px', marginBottom: '15px' }}>
                 <h3 style={{ margin: 0 }}>Physical Products Inventory (SKUs)</h3>
                 <p style={{ color: '#666', fontSize: '13px', margin: '5px 0 10px' }}>
                     These explicitly map existing Paint Bases in the real world to specific container Sizes and Sheens.
                 </p>
+            </div>
+
+            <div style={{ padding: '15px', background: '#f9f9f9', border: '1px solid #ddd', borderRadius: '4px' }}>
+                <h4 style={{ margin: '0 0 10px 0' }}>Filter Inventory</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px' }}>
+                    <SelectControl label="Family" value={filterFamilyId} options={[{ label: 'All Families', value: '' }, ...familyOptions.slice(1)]} onChange={setFilterFamilyId} />
+                    <SelectControl label="Base" value={filterBaseId} options={[{ label: 'All Bases', value: '' }, ...baseOptions.slice(1)]} onChange={setFilterBaseId} />
+                    <SelectControl label="Size" value={filterSizeId} options={[{ label: 'All Sizes', value: '' }, ...sizeOptions.slice(1)]} onChange={setFilterSizeId} />
+                    <SelectControl label="Sheen" value={filterSheenId} options={[{ label: 'All Sheens', value: '' }, ...sheenOptions.slice(1)]} onChange={setFilterSheenId} />
+                    <SelectControl label="Surface" value={filterSurfaceId} options={[{ label: 'All Surfaces', value: '' }, ...surfaceOptions.slice(1)]} onChange={setFilterSurfaceId} />
+                    <TextControl label="SKU" value={filterSku} onChange={setFilterSku} placeholder="Search SKU..." />
+                </div>
+                <div style={{ marginTop: '10px' }}>
+                    <Button variant="link" onClick={() => {
+                        setFilterFamilyId(''); setFilterBaseId(''); setFilterSizeId('');
+                        setFilterSheenId(''); setFilterSurfaceId(''); setFilterSku('');
+                    }}>Clear Filters</Button>
+                </div>
             </div>
 
             <table className="wp-list-table widefat fixed striped" style={{ marginTop: '10px' }}>
@@ -183,9 +219,9 @@ const ProductsManager = ({
                     </tr>
                 </thead>
                 <tbody>
-                    {products.length === 0 ? (
-                        <tr><td colSpan="11">No physical products found.</td></tr>
-                    ) : products.map(item => (
+                    {filteredProducts.length === 0 ? (
+                        <tr><td colSpan="11">No physical products found/matched.</td></tr>
+                    ) : filteredProducts.map(item => (
                         <tr key={item.id}>
                             <td>{item.id}</td>
                             <td><strong>{getFamilyName(item.family_id)}</strong></td>
