@@ -64,6 +64,10 @@ class Paint_Store_Core {
 		// Single Product Override
 		$this->loader->add_action( 'wp', $plugin_woo, 'override_single_product_summary' );
 
+		// PLP Card Customization
+		$this->loader->add_action( 'wp', $plugin_woo, 'customize_product_loop' );
+		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_woo, 'enqueue_plp_styles' );
+
 		// Cart and Checkout Custom Meta
 		$this->loader->add_filter( 'woocommerce_get_item_data', $plugin_woo, 'get_item_data', 10, 2 );
 		$this->loader->add_action( 'woocommerce_checkout_create_order_line_item', $plugin_woo, 'checkout_create_order_line_item', 10, 4 );
