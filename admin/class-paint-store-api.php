@@ -185,6 +185,29 @@ class Paint_Store_API {
 			),
 		) );
 
+		// Dashboard Stats Endpoint
+		register_rest_route( $this->namespace, '/dashboard-stats', array(
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_dashboard_stats' ),
+				'permission_callback' => array( $this, 'permissions_check' ),
+			),
+		) );
+
+		// Plugin Settings Endpoint
+		register_rest_route( $this->namespace, '/settings', array(
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_settings' ),
+				'permission_callback' => array( $this, 'permissions_check' ),
+			),
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'save_settings' ),
+				'permission_callback' => array( $this, 'permissions_check' ),
+			),
+		) );
+
 		// Temporary DB Upgrade Endpoint
 		register_rest_route( $this->namespace, '/upgrade-db', array(
 			array(
@@ -859,5 +882,63 @@ class Paint_Store_API {
 			'errors'   => $errors,
 			'total'    => count( $colors ),
 		) );
+	}
+
+	// --- Dashboard Stats Handler ---
+
+	public function get_dashboard_stats( $request ) {
+		global $wpdb;
+		$prefix = $wpdb->prefix . 'ps_';
+
+		$tables = array(
+			'brands'             => 'brands',
+			'color_families'     => 'color_families',
+			'colors'             => 'colors',
+			'bases'              => 'bases',
+			'product_families'   => 'product_families',
+			'product_categories' => 'product_categories',
+			'sizes'              => 'sizes',
+			'sheens'             => 'sheens',
+			'surface_types'      => 'surface_types',
+			'scene_images'       => 'scene_images',
+		);
+
+		$stats = array();
+		foreach ( $tables as $key => $table ) {
+			$full_table = $prefix . $table;
+			$count = $wpdb->get_var( "SELECT COUNT(*) FROM $full_table" );
+			$stats[ $key ] = $count !== null ? intval( $count ) : 0;
+		}
+
+		return rest_ensure_response( $stats );
+	}
+
+	// --- Settings Handlers ---
+
+	public function get_settings( $request ) {
+		$defaults = array(
+			'store_name'       => '',
+			'currency'         => 'USD',
+			'measurement_unit' => 'gallons',
+			'store_phone'      => '',
+			'store_email'      => '',
+			'store_address'    => '',
+		);
+		$settings = get_option( 'paint_store_settings', $defaults );
+		$settings = wp_parse_args( $settings, $defaults );
+		return rest_ensure_response( $settings );
+	}
+
+	public function save_settings( $request ) {
+		$settings = array(
+			'store_name'       => sanitize_text_field( $request->get_param( 'store_name' ) ),
+			'currency'         => sanitize_text_field( $request->get_param( 'currency' ) ),
+			'measurement_unit' => sanitize_text_field( $request->get_param( 'measurement_unit' ) ),
+			'store_phone'      => sanitize_text_field( $request->get_param( 'store_phone' ) ),
+			'store_email'      => sanitize_email( $request->get_param( 'store_email' ) ),
+			'store_address'    => sanitize_textarea_field( $request->get_param( 'store_address' ) ),
+		);
+		update_option( 'paint_store_settings', $settings );
+		return rest_ensure_response( array( 'success' => true, 'settings' => $settings ) );
 	}
 }

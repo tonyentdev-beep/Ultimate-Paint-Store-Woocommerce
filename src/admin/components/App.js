@@ -11,13 +11,13 @@ import SizesManager from './products/SizesManager';
 import SheensManager from './products/SheensManager';
 import SurfaceTypesManager from './products/SurfaceTypesManager';
 import SceneImagesManager from './products/SceneImagesManager';
+import Dashboard from './Dashboard';
+import Settings from './Settings';
 
 const App = () => {
-    const [activeTab, setActiveTab] = useState('colors');
+    const [activeTab, setActiveTab] = useState('dashboard');
     const [activeColorSubTab, setActiveColorSubTab] = useState('brands');
     const [activeProductSubTab, setActiveProductSubTab] = useState('bases');
-    const [dbUpgradeResult, setDbUpgradeResult] = useState('');
-    const [isUpgradingDb, setIsUpgradingDb] = useState(false);
 
     // Shared State
     const [brands, setBrands] = useState([]);
@@ -86,18 +86,6 @@ const App = () => {
         catch (error) { console.error('Error fetching scene images:', error); }
     };
 
-    const handleUpgradeDb = async () => {
-        setIsUpgradingDb(true);
-        setDbUpgradeResult('Running database upgrade...');
-        try {
-            const result = await apiFetch({ path: '/paint-store/v1/upgrade-db' });
-            setDbUpgradeResult(JSON.stringify(result, null, 2));
-        } catch (error) {
-            console.error('Error upgrading DB:', error);
-            setDbUpgradeResult('Error: ' + (error.message || JSON.stringify(error)));
-        }
-        setIsUpgradingDb(false);
-    };
 
     const productSubTabs = [
         { key: 'bases', label: 'Paint Bases' },
@@ -114,6 +102,12 @@ const App = () => {
             <h1>Paint Store Management</h1>
 
             <div className="nav-tab-wrapper" style={{ marginBottom: '20px' }}>
+                <button
+                    className={`nav-tab ${activeTab === 'dashboard' ? 'nav-tab-active' : ''}`}
+                    onClick={() => setActiveTab('dashboard')}
+                >
+                    Dashboard
+                </button>
                 <button
                     className={`nav-tab ${activeTab === 'colors' ? 'nav-tab-active' : ''}`}
                     onClick={() => setActiveTab('colors')}
@@ -135,6 +129,10 @@ const App = () => {
             </div>
 
             <div className="tab-content">
+                {activeTab === 'dashboard' && (
+                    <Dashboard />
+                )}
+
                 {activeTab === 'colors' && (
                     <div>
                         <ul className="subsubsub" style={{ marginBottom: '20px', fontSize: '14px' }}>
@@ -232,25 +230,7 @@ const App = () => {
                 )}
 
                 {activeTab === 'settings' && (
-                    <div>
-                        <h2>Store Settings</h2>
-                        <p>General store settings.</p>
-                        <hr style={{ margin: '40px 0' }} />
-                        <h3>Advanced Tools</h3>
-                        <p>If you recently updated the plugin, you may need to initialize or upgrade the database tables.</p>
-                        <button
-                            className="button button-primary"
-                            onClick={handleUpgradeDb}
-                            disabled={isUpgradingDb}
-                        >
-                            {isUpgradingDb ? 'Upgrading...' : 'Initialize / Upgrade Database'}
-                        </button>
-                        {dbUpgradeResult && (
-                            <pre style={{ marginTop: '20px', padding: '15px', background: '#f0f0f1', border: '1px solid #ccc', overflow: 'auto', maxHeight: '400px' }}>
-                                {dbUpgradeResult}
-                            </pre>
-                        )}
-                    </div>
+                    <Settings />
                 )}
             </div>
         </div>
