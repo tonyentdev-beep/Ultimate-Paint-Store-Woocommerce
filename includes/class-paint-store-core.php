@@ -58,12 +58,39 @@ class Paint_Store_Core {
 	private function define_woocommerce_hooks() {
 		$plugin_woo = new Paint_Store_WooCommerce( $this->get_plugin_name(), $this->get_version() );
 
+		// Register the product_brand taxonomy
+		$this->loader->add_action( 'init', $this, 'register_brand_taxonomy' );
+
 		// Single Product Override
 		$this->loader->add_action( 'wp', $plugin_woo, 'override_single_product_summary' );
 
 		// Cart and Checkout Custom Meta
 		$this->loader->add_filter( 'woocommerce_get_item_data', $plugin_woo, 'get_item_data', 10, 2 );
 		$this->loader->add_action( 'woocommerce_checkout_create_order_line_item', $plugin_woo, 'checkout_create_order_line_item', 10, 4 );
+	}
+
+	public function register_brand_taxonomy() {
+		$labels = array(
+			'name'              => 'Brands',
+			'singular_name'     => 'Brand',
+			'search_items'      => 'Search Brands',
+			'all_items'         => 'All Brands',
+			'edit_item'         => 'Edit Brand',
+			'update_item'       => 'Update Brand',
+			'add_new_item'      => 'Add New Brand',
+			'new_item_name'     => 'New Brand Name',
+			'menu_name'         => 'Brands',
+		);
+
+		register_taxonomy( 'product_brand', array( 'product' ), array(
+			'hierarchical'      => false,
+			'labels'            => $labels,
+			'show_ui'           => true,
+			'show_admin_column' => true,
+			'show_in_rest'      => true,
+			'query_var'         => true,
+			'rewrite'           => array( 'slug' => 'brand' ),
+		) );
 	}
 
 	public function run() {

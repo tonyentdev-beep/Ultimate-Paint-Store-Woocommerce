@@ -936,6 +936,42 @@ class Paint_Store_API {
 		// Update family with the Woo ID
 		$wpdb->update( $wpdb->prefix . 'ps_product_families', array( 'wc_product_id' => $product_id ), array( 'id' => $family_id ) );
 
+		// 4b. Assign WooCommerce Categories from the family's linked categories
+		$linked_category_ids = $wpdb->get_col( $wpdb->prepare(
+			"SELECT fc.category_id FROM {$wpdb->prefix}ps_family_categories fc WHERE fc.family_id = %d", $family_id
+		) );
+		if ( ! empty( $linked_category_ids ) ) {
+			$wc_cat_ids = array();
+			foreach ( $linked_category_ids as $ps_cat_id ) {
+				$wc_cat_id = $wpdb->get_var( $wpdb->prepare(
+					"SELECT wc_category_id FROM {$wpdb->prefix}ps_product_categories WHERE id = %d AND wc_category_id > 0", $ps_cat_id
+				) );
+				if ( $wc_cat_id ) $wc_cat_ids[] = intval( $wc_cat_id );
+			}
+			if ( ! empty( $wc_cat_ids ) ) {
+				wp_set_object_terms( $product_id, $wc_cat_ids, 'product_cat' );
+			}
+		}
+
+		// 4c. Assign Brand taxonomy term from the family's brand
+		if ( $family->brand_id ) {
+			$brand = $wpdb->get_row( $wpdb->prepare(
+				"SELECT name, slug FROM {$wpdb->prefix}ps_product_brands WHERE id = %d", $family->brand_id
+			) );
+			if ( $brand ) {
+				$brand_slug = ! empty( $brand->slug ) ? $brand->slug : sanitize_title( $brand->name );
+				// Create or get the term in the product_brand taxonomy
+				$term = term_exists( $brand_slug, 'product_brand' );
+				if ( ! $term ) {
+					$term = wp_insert_term( $brand->name, 'product_brand', array( 'slug' => $brand_slug ) );
+				}
+				if ( ! is_wp_error( $term ) ) {
+					$term_id = is_array( $term ) ? $term['term_id'] : $term;
+					wp_set_object_terms( $product_id, intval( $term_id ), 'product_brand' );
+				}
+			}
+		}
+
 		// 5. Generate / Update WooCommerce Variations mapping to explicitly defined ps_products
 		$synced_variations = 0;
 		foreach ( $physical_products as $ps_product ) {
@@ -1437,7 +1473,8 @@ class Paint_Store_API {
 		global $wpdb;
 		$name = sanitize_text_field( $request->get_param( 'name' ) );
 		if ( empty( $name ) ) return new WP_Error( 'missing_name', 'Name is required', array( 'status' => 400 ) );
-		$result = $wpdb->insert( $wpdb->prefix . 'ps_product_brands', array( 'name' => $name ), array( '%s' ) );
+		$slug = sanitize_title( $name );
+		$result = $wpdb->insert( $wpdb->prefix . 'ps_product_brands', array( 'name' => $name, 'slug' => $slug ), array( '%s', '%s' ) );
 		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
 		return rest_ensure_response( array( 'id' => $wpdb->insert_id ) );
 	}
@@ -1447,7 +1484,8 @@ class Paint_Store_API {
 		$id = $request->get_param( 'id' );
 		$name = sanitize_text_field( $request->get_param( 'name' ) );
 		if ( empty( $name ) ) return new WP_Error( 'missing_name', 'Name is required', array( 'status' => 400 ) );
-		$result = $wpdb->update( $wpdb->prefix . 'ps_product_brands', array( 'name' => $name ), array( 'id' => $id ), array( '%s' ), array( '%d' ) );
+		$slug = sanitize_title( $name );
+		$result = $wpdb->update( $wpdb->prefix . 'ps_product_brands', array( 'name' => $name, 'slug' => $slug ), array( 'id' => $id ), array( '%s', '%s' ), array( '%d' ) );
 		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
 		return rest_ensure_response( array( 'success' => true ) );
 	}

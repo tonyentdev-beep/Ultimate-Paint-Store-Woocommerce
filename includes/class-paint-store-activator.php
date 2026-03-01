@@ -74,6 +74,7 @@ class Paint_Store_Activator {
 		$tables[] = "CREATE TABLE $table_name (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			name varchar(255) NOT NULL,
+			slug varchar(255) DEFAULT '' NOT NULL,
 			wc_attribute_id bigint(20) unsigned DEFAULT 0 NOT NULL,
 			PRIMARY KEY  (id),
 			KEY wc_attribute_id (wc_attribute_id)
