@@ -15,7 +15,9 @@ class Paint_Store_Activator {
 		$tables[] = "CREATE TABLE $table_name (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			name varchar(255) NOT NULL,
-			PRIMARY KEY  (id)
+			wc_attribute_id bigint(20) unsigned DEFAULT 0 NOT NULL,
+			PRIMARY KEY  (id),
+			KEY wc_attribute_id (wc_attribute_id)
 		) $charset_collate;";
 
 		// 2. Bases
@@ -83,8 +85,10 @@ class Paint_Store_Activator {
 			brand_id bigint(20) unsigned DEFAULT 0 NOT NULL,
 			description text,
 			image_id bigint(20) unsigned DEFAULT 0 NOT NULL,
+			wc_product_id bigint(20) unsigned DEFAULT 0 NOT NULL,
 			PRIMARY KEY  (id),
-			KEY brand_id (brand_id)
+			KEY brand_id (brand_id),
+			KEY wc_product_id (wc_product_id)
 		) $charset_collate;";
 
 		// 8. Product Categories
@@ -102,7 +106,9 @@ class Paint_Store_Activator {
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			name varchar(255) NOT NULL,
 			liters decimal(10,2) DEFAULT 0.00 NOT NULL,
-			PRIMARY KEY  (id)
+			wc_attribute_id bigint(20) unsigned DEFAULT 0 NOT NULL,
+			PRIMARY KEY  (id),
+			KEY wc_attribute_id (wc_attribute_id)
 		) $charset_collate;";
 
 		// 10. Surface Types

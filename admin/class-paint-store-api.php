@@ -155,6 +155,9 @@ class Paint_Store_API {
 			array( 'methods' => WP_REST_Server::EDITABLE, 'callback' => array( $this, 'update_size' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
 			array( 'methods' => WP_REST_Server::DELETABLE, 'callback' => array( $this, 'delete_size' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
 		) );
+		register_rest_route( $this->namespace, '/sizes/sync', array(
+			array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'sync_sizes_to_woo' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+		) );
 
 		// Sheens Endpoints
 		register_rest_route( $this->namespace, '/sheens', array(
@@ -164,6 +167,9 @@ class Paint_Store_API {
 		register_rest_route( $this->namespace, '/sheens/(?P<id>\\d+)', array(
 			array( 'methods' => WP_REST_Server::EDITABLE, 'callback' => array( $this, 'update_sheen' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
 			array( 'methods' => WP_REST_Server::DELETABLE, 'callback' => array( $this, 'delete_sheen' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+		) );
+		register_rest_route( $this->namespace, '/sheens/sync', array(
+			array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'sync_sheens_to_woo' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
 		) );
 
 		// Surface Types Endpoints
@@ -724,6 +730,39 @@ class Paint_Store_API {
 		return rest_ensure_response( array( 'success' => true ) );
 	}
 
+	public function sync_sizes_to_woo( $request ) {
+		if ( ! class_exists( 'WooCommerce' ) ) return new WP_Error( 'woo_missing', 'WooCommerce is not active.', array( 'status' => 400 ) );
+		global $wpdb;
+
+		// 1. Create the Global Attribute if it doesn't exist
+		$slug = 'paint_size';
+		$taxonomy = 'pa_' . $slug;
+		$attribute_id = wc_attribute_taxonomy_id_by_name( 'Paint Size' );
+
+		if ( ! $attribute_id ) {
+			$attribute_id = wc_create_attribute( array( 'name' => 'Paint Size', 'slug' => $slug, 'type' => 'select' ) );
+			if ( is_wp_error( $attribute_id ) ) return $attribute_id;
+			register_taxonomy( $taxonomy, array( 'product' ) ); // Register it temporarily for this request
+		}
+
+		// 2. Sync all local sizes to terms
+		$sizes = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}ps_sizes" );
+		$synced = 0;
+
+		foreach ( $sizes as $size ) {
+			$term = term_exists( $size->name, $taxonomy );
+			if ( ! $term ) {
+				$term = wp_insert_term( $size->name, $taxonomy );
+			}
+			if ( ! is_wp_error( $term ) && isset( $term['term_id'] ) ) {
+				$wpdb->update( $wpdb->prefix . 'ps_sizes', array( 'wc_attribute_id' => $term['term_id'] ), array( 'id' => $size->id ) );
+				$synced++;
+			}
+		}
+		
+		return rest_ensure_response( array( 'success' => true, 'synced' => $synced ) );
+	}
+
 	// --- Sheens Handlers ---
 
 	public function get_sheens( $request ) {
@@ -755,6 +794,37 @@ class Paint_Store_API {
 		global $wpdb;
 		$wpdb->delete( $wpdb->prefix . 'ps_sheens', array( 'id' => $request->get_param( 'id' ) ), array( '%d' ) );
 		return rest_ensure_response( array( 'success' => true ) );
+	}
+
+	public function sync_sheens_to_woo( $request ) {
+		if ( ! class_exists( 'WooCommerce' ) ) return new WP_Error( 'woo_missing', 'WooCommerce is not active.', array( 'status' => 400 ) );
+		global $wpdb;
+
+		$slug = 'paint_sheen';
+		$taxonomy = 'pa_' . $slug;
+		$attribute_id = wc_attribute_taxonomy_id_by_name( 'Paint Sheen' );
+
+		if ( ! $attribute_id ) {
+			$attribute_id = wc_create_attribute( array( 'name' => 'Paint Sheen', 'slug' => $slug, 'type' => 'select' ) );
+			if ( is_wp_error( $attribute_id ) ) return $attribute_id;
+			register_taxonomy( $taxonomy, array( 'product' ) );
+		}
+
+		$sheens = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}ps_sheens" );
+		$synced = 0;
+
+		foreach ( $sheens as $sheen ) {
+			$term = term_exists( $sheen->name, $taxonomy );
+			if ( ! $term ) {
+				$term = wp_insert_term( $sheen->name, $taxonomy );
+			}
+			if ( ! is_wp_error( $term ) && isset( $term['term_id'] ) ) {
+				$wpdb->update( $wpdb->prefix . 'ps_sheens', array( 'wc_attribute_id' => $term['term_id'] ), array( 'id' => $sheen->id ) );
+				$synced++;
+			}
+		}
+		
+		return rest_ensure_response( array( 'success' => true, 'synced' => $synced ) );
 	}
 
 	// --- Surface Types Handlers ---
