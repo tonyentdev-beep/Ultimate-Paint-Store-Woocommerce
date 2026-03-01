@@ -1500,26 +1500,26 @@ class Paint_Store_API {
 		if ( ! class_exists( 'WooCommerce' ) ) return new WP_Error( 'woo_missing', 'WooCommerce is not active.', array( 'status' => 400 ) );
 		global $wpdb;
 
-		$slug = 'paint_brand';
-		$taxonomy = 'pa_' . $slug;
-		$attribute_id = wc_attribute_taxonomy_id_by_name( 'Paint Brand' );
-
-		if ( ! $attribute_id ) {
-			$attribute_id = wc_create_attribute( array( 'name' => 'Paint Brand', 'slug' => $slug, 'type' => 'select' ) );
-			if ( is_wp_error( $attribute_id ) ) return $attribute_id;
-			register_taxonomy( $taxonomy, array( 'product' ) );
-		}
+		$taxonomy = 'product_brand';
 
 		$brands = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}ps_product_brands" );
 		$synced = 0;
 
 		foreach ( $brands as $brand ) {
-			$term = term_exists( $brand->name, $taxonomy );
-			if ( ! $term ) {
-				$term = wp_insert_term( $brand->name, $taxonomy );
+			$brand_slug = ! empty( $brand->slug ) ? $brand->slug : sanitize_title( $brand->name );
+			
+			// Update slug in DB if missing
+			if ( empty( $brand->slug ) ) {
+				$wpdb->update( $wpdb->prefix . 'ps_product_brands', array( 'slug' => $brand_slug ), array( 'id' => $brand->id ) );
 			}
-			if ( ! is_wp_error( $term ) && isset( $term['term_id'] ) ) {
-				$wpdb->update( $wpdb->prefix . 'ps_product_brands', array( 'wc_attribute_id' => $term['term_id'] ), array( 'id' => $brand->id ) );
+
+			$term = term_exists( $brand_slug, $taxonomy );
+			if ( ! $term ) {
+				$term = wp_insert_term( $brand->name, $taxonomy, array( 'slug' => $brand_slug ) );
+			}
+			if ( ! is_wp_error( $term ) ) {
+				$term_id = is_array( $term ) ? $term['term_id'] : $term;
+				$wpdb->update( $wpdb->prefix . 'ps_product_brands', array( 'wc_attribute_id' => $term_id ), array( 'id' => $brand->id ) );
 				$synced++;
 			}
 		}
