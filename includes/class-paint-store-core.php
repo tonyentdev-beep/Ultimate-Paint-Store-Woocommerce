@@ -68,6 +68,9 @@ class Paint_Store_Core {
 		$this->loader->add_action( 'wp', $plugin_woo, 'customize_product_loop' );
 		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_woo, 'enqueue_plp_styles' );
 
+		// PLP Filter Query
+		$this->loader->add_action( 'pre_get_posts', $plugin_woo, 'filter_plp_query' );
+
 		// Cart and Checkout Custom Meta
 		$this->loader->add_filter( 'woocommerce_get_item_data', $plugin_woo, 'get_item_data', 10, 2 );
 		$this->loader->add_action( 'woocommerce_checkout_create_order_line_item', $plugin_woo, 'checkout_create_order_line_item', 10, 4 );

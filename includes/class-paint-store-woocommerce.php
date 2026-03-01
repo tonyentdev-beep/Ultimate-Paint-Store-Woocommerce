@@ -54,6 +54,13 @@ class Paint_Store_WooCommerce {
 		remove_action( 'woocommerce_after_shop_loop_item', 'woocommerce_template_loop_add_to_cart', 10 );
 		// Remove rating (we add our own)
 		remove_action( 'woocommerce_after_shop_loop_item_title', 'woocommerce_template_loop_rating', 5 );
+		// Remove sorting dropdown
+		remove_action( 'woocommerce_before_shop_loop', 'woocommerce_catalog_ordering', 30 );
+		// Remove result count
+		remove_action( 'woocommerce_before_shop_loop', 'woocommerce_result_count', 20 );
+
+		// Add our filter bar above the product loop
+		add_action( 'woocommerce_before_shop_loop', array( $this, 'render_filter_bar' ), 15 );
 
 		// Add star rating after title
 		add_action( 'woocommerce_after_shop_loop_item_title', array( $this, 'loop_product_rating' ), 5 );
@@ -61,6 +68,179 @@ class Paint_Store_WooCommerce {
 		add_action( 'woocommerce_after_shop_loop_item_title', array( $this, 'loop_short_description' ), 15 );
 		// Add custom buttons (View Details + Buy Now)
 		add_action( 'woocommerce_after_shop_loop_item', array( $this, 'loop_custom_buttons' ), 10 );
+	}
+
+	/**
+	 * Filter products via pre_get_posts based on query params
+	 */
+	public function filter_plp_query( $query ) {
+		if ( is_admin() || ! $query->is_main_query() ) return;
+		if ( ! ( is_shop() || is_product_category() || is_product_taxonomy() ) ) return;
+
+		// Filter by product category
+		$filter_cat = isset( $_GET['ps_category'] ) ? sanitize_text_field( $_GET['ps_category'] ) : '';
+		if ( ! empty( $filter_cat ) ) {
+			$tax_query = $query->get( 'tax_query', array() );
+			$tax_query[] = array(
+				'taxonomy' => 'product_cat',
+				'field'    => 'slug',
+				'terms'    => $filter_cat,
+			);
+			$query->set( 'tax_query', $tax_query );
+		}
+
+		// Filter by sheen attribute
+		$filter_sheen = isset( $_GET['ps_sheen'] ) ? sanitize_text_field( $_GET['ps_sheen'] ) : '';
+		if ( ! empty( $filter_sheen ) ) {
+			$tax_query = $query->get( 'tax_query', array() );
+			$tax_query[] = array(
+				'taxonomy' => 'pa_paint_sheen',
+				'field'    => 'slug',
+				'terms'    => $filter_sheen,
+			);
+			$query->set( 'tax_query', $tax_query );
+		}
+
+		// Remove sorting - force default
+		$query->set( 'orderby', 'title' );
+		$query->set( 'order', 'ASC' );
+	}
+
+	/**
+	 * Render the filter bar above the product grid.
+	 * Only shows categories/sheens that are actually used by products in the current context.
+	 */
+	public function render_filter_bar() {
+		$current_url = remove_query_arg( array( 'ps_category', 'ps_sheen' ) );
+		$active_cat = isset( $_GET['ps_category'] ) ? sanitize_text_field( $_GET['ps_category'] ) : '';
+		$active_sheen = isset( $_GET['ps_sheen'] ) ? sanitize_text_field( $_GET['ps_sheen'] ) : '';
+
+		// Get product IDs visible in the current context (before our filters)
+		$context_product_ids = $this->get_context_product_ids();
+
+		// Get relevant categories (only those assigned to products in current context)
+		$relevant_cats = $this->get_relevant_terms( $context_product_ids, 'product_cat' );
+		// Get relevant sheens
+		$relevant_sheens = $this->get_relevant_terms( $context_product_ids, 'pa_paint_sheen' );
+
+		echo '<div class="ps-filter-bar">';
+		
+		// Category filter
+		if ( ! empty( $relevant_cats ) ) {
+			echo '<div class="ps-filter-group">';
+			echo '<label class="ps-filter-label">Category</label>';
+			echo '<select class="ps-filter-select" onchange="psApplyFilter(\'ps_category\', this.value)">';
+			echo '<option value="">All Categories</option>';
+			foreach ( $relevant_cats as $cat ) {
+				$selected = ( $active_cat === $cat->slug ) ? ' selected' : '';
+				echo '<option value="' . esc_attr( $cat->slug ) . '"' . $selected . '>' . esc_html( $cat->name ) . ' (' . $cat->count . ')</option>';
+			}
+			echo '</select>';
+			echo '</div>';
+		}
+
+		// Sheen filter
+		if ( ! empty( $relevant_sheens ) ) {
+			echo '<div class="ps-filter-group">';
+			echo '<label class="ps-filter-label">Sheen</label>';
+			echo '<select class="ps-filter-select" onchange="psApplyFilter(\'ps_sheen\', this.value)">';
+			echo '<option value="">All Sheens</option>';
+			foreach ( $relevant_sheens as $sheen ) {
+				$selected = ( $active_sheen === $sheen->slug ) ? ' selected' : '';
+				echo '<option value="' . esc_attr( $sheen->slug ) . '"' . $selected . '>' . esc_html( $sheen->name ) . '</option>';
+			}
+			echo '</select>';
+			echo '</div>';
+		}
+
+		// Clear filters button
+		if ( $active_cat || $active_sheen ) {
+			echo '<div class="ps-filter-group">';
+			echo '<a href="' . esc_url( $current_url ) . '" class="ps-btn ps-btn-clear">Clear Filters</a>';
+			echo '</div>';
+		}
+
+		echo '</div>';
+
+		// JavaScript for filter application
+		echo '<script>
+		function psApplyFilter(param, value) {
+			var url = new URL(window.location.href);
+			if (value) {
+				url.searchParams.set(param, value);
+			} else {
+				url.searchParams.delete(param);
+			}
+			window.location.href = url.toString();
+		}
+		</script>';
+	}
+
+	/**
+	 * Get product IDs in the current context (brand/category/shop page) WITHOUT our custom filters
+	 */
+	private function get_context_product_ids() {
+		$args = array(
+			'post_type'      => 'product',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+			'post_status'    => 'publish',
+		);
+
+		// If on a category archive, limit to that category
+		if ( is_product_category() ) {
+			$current_cat = get_queried_object();
+			if ( $current_cat ) {
+				$args['tax_query'] = array(
+					array(
+						'taxonomy' => 'product_cat',
+						'field'    => 'term_id',
+						'terms'    => $current_cat->term_id,
+					),
+				);
+			}
+		}
+
+		// If on a brand archive
+		if ( is_tax( 'product_brand' ) ) {
+			$current_brand = get_queried_object();
+			if ( $current_brand ) {
+				$args['tax_query'] = array(
+					array(
+						'taxonomy' => 'product_brand',
+						'field'    => 'term_id',
+						'terms'    => $current_brand->term_id,
+					),
+				);
+			}
+		}
+
+		$query = new WP_Query( $args );
+		return $query->posts;
+	}
+
+	/**
+	 * Get taxonomy terms that are actually assigned to the given product IDs
+	 */
+	private function get_relevant_terms( $product_ids, $taxonomy ) {
+		if ( empty( $product_ids ) ) return array();
+
+		$terms = wp_get_object_terms( $product_ids, $taxonomy, array(
+			'orderby' => 'name',
+			'order'   => 'ASC',
+		) );
+
+		if ( is_wp_error( $terms ) ) return array();
+
+		// Deduplicate and count
+		$unique = array();
+		foreach ( $terms as $term ) {
+			if ( ! isset( $unique[ $term->term_id ] ) ) {
+				$unique[ $term->term_id ] = $term;
+			}
+		}
+
+		return array_values( $unique );
 	}
 
 	/**
@@ -217,8 +397,68 @@ class Paint_Store_WooCommerce {
 		.woocommerce ul.products li.product .woocommerce-Price-amount,
 		.woocommerce ul.products li.product a.button,
 		.woocommerce ul.products li.product a.add_to_cart_button,
-		.woocommerce ul.products li.product .add_to_cart_button {
+		.woocommerce ul.products li.product .add_to_cart_button,
+		.woocommerce .woocommerce-ordering,
+		.woocommerce .woocommerce-result-count {
 			display: none !important;
+		}
+
+		/* Filter Bar Styles */
+		.ps-filter-bar {
+			display: flex;
+			align-items: flex-end;
+			gap: 16px;
+			flex-wrap: wrap;
+			padding: 20px 24px;
+			background: #f8f9fa;
+			border: 1px solid #e8e8e8;
+			border-radius: 10px;
+			margin-bottom: 24px;
+		}
+		.ps-filter-group {
+			display: flex;
+			flex-direction: column;
+			gap: 4px;
+		}
+		.ps-filter-label {
+			font-size: 12px;
+			font-weight: 600;
+			color: #555;
+			text-transform: uppercase;
+			letter-spacing: 0.5px;
+		}
+		.ps-filter-select {
+			padding: 8px 32px 8px 12px;
+			border: 1px solid #ddd;
+			border-radius: 6px;
+			font-size: 14px;
+			background: #fff;
+			color: #333;
+			cursor: pointer;
+			min-width: 180px;
+			appearance: auto;
+		}
+		.ps-filter-select:focus {
+			border-color: #2c6e49;
+			outline: none;
+			box-shadow: 0 0 0 2px rgba(44,110,73,0.15);
+		}
+		.ps-btn-clear {
+			background: #fff;
+			color: #d9534f;
+			border: 1px solid #d9534f;
+			padding: 8px 16px;
+			border-radius: 6px;
+			font-size: 13px;
+			font-weight: 600;
+			text-decoration: none;
+			transition: all 0.2s ease;
+			cursor: pointer;
+			white-space: nowrap;
+		}
+		.ps-btn-clear:hover {
+			background: #d9534f;
+			color: #fff;
 		}
 		';
 	}
