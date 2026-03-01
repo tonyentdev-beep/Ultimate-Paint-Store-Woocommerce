@@ -739,6 +739,7 @@ class Paint_Store_API {
 			$row['base_id']    = intval( $row['base_id'] );
 			$row['surface_id'] = intval( $row['surface_id'] );
 			$row['price']      = floatval( $row['price'] );
+			$row['stock_quantity'] = intval( $row['stock_quantity'] );
 		}
 		return rest_ensure_response( $results );
 	}
@@ -752,6 +753,7 @@ class Paint_Store_API {
 		$surface_id = intval( $request->get_param( 'surface_id' ) );
 		$sku        = sanitize_text_field( $request->get_param( 'sku' ) );
 		$price      = floatval( $request->get_param( 'price' ) );
+		$stock_quantity = intval( $request->get_param( 'stock_quantity' ) );
 		
 		if ( ! $family_id ) return new WP_Error( 'missing_family', 'Product Family is required', array( 'status' => 400 ) );
 		
@@ -764,9 +766,10 @@ class Paint_Store_API {
 				'base_id'    => $base_id,
 				'surface_id' => $surface_id,
 				'sku'        => $sku,
-				'price'      => $price
+				'price'      => $price,
+				'stock_quantity' => $stock_quantity
 			), 
-			array( '%d', '%d', '%d', '%d', '%d', '%s', '%f' ) 
+			array( '%d', '%d', '%d', '%d', '%d', '%s', '%f', '%d' ) 
 		);
 		
 		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
@@ -784,6 +787,7 @@ class Paint_Store_API {
 		$surface_id = intval( $request->get_param( 'surface_id' ) );
 		$sku        = sanitize_text_field( $request->get_param( 'sku' ) );
 		$price      = floatval( $request->get_param( 'price' ) );
+		$stock_quantity = intval( $request->get_param( 'stock_quantity' ) );
 		
 		if ( ! $family_id ) return new WP_Error( 'missing_family', 'Product Family is required', array( 'status' => 400 ) );
 		
@@ -796,10 +800,11 @@ class Paint_Store_API {
 				'base_id'    => $base_id,
 				'surface_id' => $surface_id,
 				'sku'        => $sku,
-				'price'      => $price
+				'price'      => $price,
+				'stock_quantity' => $stock_quantity
 			), 
 			array( 'id' => $id ), 
-			array( '%d', '%d', '%d', '%d', '%d', '%s', '%f' ), 
+			array( '%d', '%d', '%d', '%d', '%d', '%s', '%f', '%d' ), 
 			array( '%d' ) 
 		);
 		

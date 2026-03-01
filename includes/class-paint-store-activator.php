@@ -145,6 +145,7 @@ class Paint_Store_Activator {
 			surface_id bigint(20) unsigned NOT NULL,
 			sku varchar(100) DEFAULT '' NOT NULL,
 			price decimal(10,2) DEFAULT 0.00 NOT NULL,
+			stock_quantity int(11) DEFAULT 0 NOT NULL,
 			woo_product_id bigint(20) unsigned DEFAULT 0 NOT NULL,
 			PRIMARY KEY  (id),
 			KEY family_id (family_id),

@@ -18,6 +18,7 @@ const ProductsManager = ({
     const [surfaceId, setSurfaceId] = useState('');
     const [sku, setSku] = useState('');
     const [price, setPrice] = useState('0.00');
+    const [stockQuantity, setStockQuantity] = useState('0');
 
     const [isSaving, setIsSaving] = useState(false);
     const [editingId, setEditingId] = useState(null);
@@ -68,7 +69,8 @@ const ProductsManager = ({
                 sheen_id: sheenId,
                 surface_id: surfaceId,
                 sku: sku,
-                price: parseFloat(price) || 0.00
+                price: parseFloat(price) || 0.00,
+                stock_quantity: parseInt(stockQuantity, 10) || 0
             };
 
             if (editingId) {
@@ -95,6 +97,7 @@ const ProductsManager = ({
         setSurfaceId(item.surface_id.toString());
         setSku(item.sku);
         setPrice(item.price.toString());
+        setStockQuantity((item.stock_quantity || 0).toString());
     };
 
     const handleCancelEdit = () => {
@@ -106,6 +109,7 @@ const ProductsManager = ({
         setSurfaceId('');
         setSku('');
         setPrice('0.00');
+        setStockQuantity('0');
     };
 
     const handleDelete = async (id) => {
@@ -136,9 +140,10 @@ const ProductsManager = ({
                     </div>
                 </PanelRow>
                 <PanelRow>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', width: '100%', marginTop: '15px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', width: '100%', marginTop: '15px' }}>
                         <TextControl label="SKU (Stock Keeping Unit)" value={sku} onChange={setSku} />
                         <TextControl type="number" step="0.01" label="Base Price ($)" value={price} onChange={setPrice} />
+                        <TextControl type="number" step="1" label="Stock Quantity" value={stockQuantity} onChange={setStockQuantity} />
                     </div>
                 </PanelRow>
 
@@ -168,12 +173,13 @@ const ProductsManager = ({
                         <th>Surface</th>
                         <th>SKU</th>
                         <th>Price</th>
+                        <th>Stock</th>
                         <th style={{ width: '120px' }}>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {products.length === 0 ? (
-                        <tr><td colSpan="9">No physical products found.</td></tr>
+                        <tr><td colSpan="10">No physical products found.</td></tr>
                     ) : products.map(item => (
                         <tr key={item.id}>
                             <td>{item.id}</td>
@@ -184,6 +190,7 @@ const ProductsManager = ({
                             <td>{getSurfaceName(item.surface_id)}</td>
                             <td><code>{item.sku || '-'}</code></td>
                             <td>${parseFloat(item.price).toFixed(2)}</td>
+                            <td>{item.stock_quantity}</td>
                             <td>
                                 <div style={{ display: 'flex', gap: '8px' }}>
                                     <Button isSmall variant="secondary" onClick={() => handleEdit(item)}>Edit</Button>
