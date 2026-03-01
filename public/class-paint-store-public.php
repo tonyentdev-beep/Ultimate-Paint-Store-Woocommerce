@@ -11,11 +11,39 @@ class Paint_Store_Public {
 	}
 
 	public function enqueue_styles() {
-		// wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/paint-store-public.css', array(), $this->version, 'all' );
+		wp_enqueue_style( $this->plugin_name . '-frontend', plugin_dir_url( dirname( __FILE__ ) ) . 'build/frontend/index.css', array(), $this->version, 'all' );
 	}
 
 	public function enqueue_scripts() {
-		// wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/paint-store-public.js', array( 'jquery' ), $this->version, false );
+		$asset_file = plugin_dir_path( dirname( __FILE__ ) ) . 'build/frontend/index.asset.php';
+		if ( file_exists( $asset_file ) ) {
+			$assets = include $asset_file;
+			wp_enqueue_script(
+				$this->plugin_name . '-frontend',
+				plugin_dir_url( dirname( __FILE__ ) ) . 'build/frontend/index.js',
+				$assets['dependencies'],
+				$assets['version'],
+				true
+			);
+		}
+	}
+
+	public function render_builder_shortcode( $atts ) {
+		$atts = shortcode_atts( array(
+			'family_id' => 0,
+		), $atts, 'paint_store_builder' );
+
+		// Enqueue scripts specifically when this shortcode is used if we want, 
+		// but they are already enqueued globally via WP enqueue scripts hook above.
+		// For performance in the future we could conditionalize enqueue_scripts on has_shortcode.
+
+		ob_start();
+		?>
+		<div id="paint-store-builder-root" data-family-id="<?php echo esc_attr( $atts['family_id'] ); ?>">
+			<p>Loading Product Builder...</p>
+		</div>
+		<?php
+		return ob_get_clean();
 	}
 
 }

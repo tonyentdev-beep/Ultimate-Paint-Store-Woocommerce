@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "wp-scripts start src/admin/index.js --output-path=build/admin",
-    "build": "wp-scripts build src/admin/index.js --output-path=build/admin"
+    "start": "wp-scripts start",
+    "build": "wp-scripts build"
   },
   "keywords": [],
   "author": "",
