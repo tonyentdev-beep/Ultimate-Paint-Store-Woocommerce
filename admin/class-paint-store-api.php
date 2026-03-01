@@ -176,6 +176,15 @@ class Paint_Store_API {
 			array( 'methods' => WP_REST_Server::DELETABLE, 'callback' => array( $this, 'delete_scene_image' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
 		) );
 
+		// Bulk Import Colors Endpoint
+		register_rest_route( $this->namespace, '/colors/bulk-import', array(
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'bulk_import_colors' ),
+				'permission_callback' => array( $this, 'permissions_check' ),
+			),
+		) );
+
 		// Temporary DB Upgrade Endpoint
 		register_rest_route( $this->namespace, '/upgrade-db', array(
 			array(
@@ -789,5 +798,66 @@ class Paint_Store_API {
 		global $wpdb;
 		$wpdb->delete( $wpdb->prefix . 'ps_scene_images', array( 'id' => $request->get_param( 'id' ) ), array( '%d' ) );
 		return rest_ensure_response( array( 'success' => true ) );
+	}
+
+	// --- Bulk Import Colors Handler ---
+
+	public function bulk_import_colors( $request ) {
+		global $wpdb;
+		$colors = $request->get_param( 'colors' );
+		if ( ! is_array( $colors ) || empty( $colors ) ) {
+			return new WP_Error( 'missing_colors', 'No colors provided', array( 'status' => 400 ) );
+		}
+
+		$colors_table = $wpdb->prefix . 'ps_colors';
+		$color_bases_table = $wpdb->prefix . 'ps_color_bases';
+		$imported = 0;
+		$errors = array();
+
+		foreach ( $colors as $idx => $color ) {
+			$name = sanitize_text_field( isset( $color['name'] ) ? $color['name'] : '' );
+			if ( empty( $name ) ) {
+				$errors[] = 'Row ' . ($idx + 1) . ': Name is required';
+				continue;
+			}
+
+			$data = array(
+				'name'       => $name,
+				'color_code' => sanitize_text_field( isset( $color['color_code'] ) ? $color['color_code'] : '' ),
+				'hex_value'  => sanitize_text_field( isset( $color['hex_value'] ) ? $color['hex_value'] : '' ),
+				'rgb_value'  => sanitize_text_field( isset( $color['rgb_value'] ) ? $color['rgb_value'] : '' ),
+				'family_id'  => intval( isset( $color['family_id'] ) ? $color['family_id'] : 0 ),
+				'brand_id'   => intval( isset( $color['brand_id'] ) ? $color['brand_id'] : 0 ),
+			);
+
+			$result = $wpdb->insert( $colors_table, $data, array( '%s', '%s', '%s', '%s', '%d', '%d' ) );
+
+			if ( false === $result ) {
+				$errors[] = 'Row ' . ($idx + 1) . ': ' . $wpdb->last_error;
+				continue;
+			}
+
+			$color_id = $wpdb->insert_id;
+
+			// Insert base associations
+			if ( ! empty( $color['base_ids'] ) && is_array( $color['base_ids'] ) ) {
+				foreach ( $color['base_ids'] as $base_id ) {
+					$wpdb->insert(
+						$color_bases_table,
+						array( 'color_id' => $color_id, 'base_id' => intval( $base_id ) ),
+						array( '%d', '%d' )
+					);
+				}
+			}
+
+			$imported++;
+		}
+
+		return rest_ensure_response( array(
+			'success'  => true,
+			'imported' => $imported,
+			'errors'   => $errors,
+			'total'    => count( $colors ),
+		) );
 	}
 }

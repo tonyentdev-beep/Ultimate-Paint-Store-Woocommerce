@@ -3,6 +3,7 @@ import apiFetch from '@wordpress/api-fetch';
 import ColorFamilies from './colors/ColorFamilies';
 import ColorsManager from './colors/ColorsManager';
 import BrandsManager from './colors/BrandsManager';
+import ColorImporter from './colors/ColorImporter';
 import BasesManager from './products/BasesManager';
 import ProductFamiliesManager from './products/ProductFamiliesManager';
 import ProductCategoriesManager from './products/ProductCategoriesManager';
@@ -153,6 +154,12 @@ const App = () => {
                                 <a href="#" className={activeColorSubTab === 'colors' ? 'current' : ''}
                                     onClick={(e) => { e.preventDefault(); setActiveColorSubTab('colors'); }}>
                                     Specific Colors
+                                </a> |
+                            </li>
+                            <li>
+                                <a href="#" className={activeColorSubTab === 'import' ? 'current' : ''}
+                                    onClick={(e) => { e.preventDefault(); setActiveColorSubTab('import'); }}>
+                                    📥 Import Colors
                                 </a>
                             </li>
                         </ul>
@@ -170,6 +177,14 @@ const App = () => {
                                 families={families}
                                 allBases={bases}
                                 brands={brands}
+                                fetchColors={fetchColors}
+                            />
+                        )}
+                        {activeColorSubTab === 'import' && (
+                            <ColorImporter
+                                brands={brands}
+                                families={families}
+                                allBases={bases}
                                 fetchColors={fetchColors}
                             />
                         )}
