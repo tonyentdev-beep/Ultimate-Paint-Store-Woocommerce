@@ -313,7 +313,7 @@ class Paint_Store_WooCommerce {
 
 	public function enqueue_plp_styles() {
 		if ( ! ( is_shop() || is_product_category() || is_product_taxonomy() ) ) return;
-		wp_add_inline_style( 'woocommerce-general', $this->get_plp_css() );
+		echo '<style type="text/css">' . $this->get_plp_css() . '</style>';
 	}
 
 	private function get_plp_css() {

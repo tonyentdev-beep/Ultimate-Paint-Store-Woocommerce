@@ -66,7 +66,7 @@ class Paint_Store_Core {
 
 		// PLP Card Customization
 		$this->loader->add_action( 'wp', $plugin_woo, 'customize_product_loop' );
-		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_woo, 'enqueue_plp_styles' );
+		$this->loader->add_action( 'wp_head', $plugin_woo, 'enqueue_plp_styles' );
 
 		// PLP Filter Query
 		$this->loader->add_action( 'pre_get_posts', $plugin_woo, 'filter_plp_query' );
