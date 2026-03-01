@@ -12,6 +12,7 @@ import SheensManager from './products/SheensManager';
 import SurfaceTypesManager from './products/SurfaceTypesManager';
 import SceneImagesManager from './products/SceneImagesManager';
 import ProductBrandsManager from './products/ProductBrandsManager';
+import ProductsManager from './products/ProductsManager';
 import Dashboard from './Dashboard';
 import Settings from './Settings';
 
@@ -32,6 +33,7 @@ const App = () => {
     const [surfaceTypes, setSurfaceTypes] = useState([]);
     const [sceneImages, setSceneImages] = useState([]);
     const [productBrands, setProductBrands] = useState([]);
+    const [products, setProducts] = useState([]);
 
     // Initial Fetch All
     useEffect(() => {
@@ -46,6 +48,7 @@ const App = () => {
         fetchSurfaceTypes();
         fetchSceneImages();
         fetchProductBrands();
+        fetchProducts();
     }, []);
 
     const fetchBrands = async () => {
@@ -92,12 +95,17 @@ const App = () => {
         try { const data = await apiFetch({ path: '/paint-store/v1/product-brands' }); setProductBrands(data); }
         catch (error) { console.error('Error fetching product brands:', error); }
     };
+    const fetchProducts = async () => {
+        try { const data = await apiFetch({ path: '/paint-store/v1/products' }); setProducts(data); }
+        catch (error) { console.error('Error fetching physical products:', error); }
+    };
 
 
     const productSubTabs = [
         { key: 'product-brands', label: 'Product Brands' },
-        { key: 'bases', label: 'Paint Bases' },
         { key: 'product-families', label: 'Product Families' },
+        { key: 'products', label: 'Physical Products (SKUs)' },
+        { key: 'bases', label: 'Paint Bases' },
         { key: 'product-categories', label: 'Product Categories' },
         { key: 'sizes', label: 'Sizes' },
         { key: 'sheens', label: 'Sheens' },
@@ -223,10 +231,18 @@ const App = () => {
                             <ProductFamiliesManager
                                 productFamilies={productFamilies}
                                 productBrands={productBrands}
+                                fetchProductFamilies={fetchProductFamilies}
+                            />
+                        )}
+                        {activeProductSubTab === 'products' && (
+                            <ProductsManager
+                                products={products}
+                                productFamilies={productFamilies}
+                                bases={bases}
                                 sizes={sizes}
                                 sheens={sheens}
                                 surfaceTypes={surfaceTypes}
-                                fetchProductFamilies={fetchProductFamilies}
+                                fetchProducts={fetchProducts}
                             />
                         )}
                         {activeProductSubTab === 'product-categories' && (

@@ -134,42 +134,18 @@ class Paint_Store_Activator {
 			PRIMARY KEY  (id)
 		) $charset_collate;";
 
-		// 12. Product Family Sizes (Join Table)
-		$table_name = $wpdb->prefix . 'ps_product_family_sizes';
-		$tables[] = "CREATE TABLE $table_name (
-			family_id bigint(20) unsigned NOT NULL,
-			size_id bigint(20) unsigned NOT NULL,
-			PRIMARY KEY  (family_id, size_id)
-		) $charset_collate;";
-
-		// 13. Product Family Sheens (Join Table)
-		$table_name = $wpdb->prefix . 'ps_product_family_sheens';
-		$tables[] = "CREATE TABLE $table_name (
-			family_id bigint(20) unsigned NOT NULL,
-			sheen_id bigint(20) unsigned NOT NULL,
-			PRIMARY KEY  (family_id, sheen_id)
-		) $charset_collate;";
-
-		// 14. Product Family Surfaces (Join Table)
-		$table_name = $wpdb->prefix . 'ps_product_family_surfaces';
-		$tables[] = "CREATE TABLE $table_name (
-			family_id bigint(20) unsigned NOT NULL,
-			surface_id bigint(20) unsigned NOT NULL,
-			PRIMARY KEY  (family_id, surface_id)
-		) $charset_collate;";
-
-		// 15. Products (The physical SKUs tied to WooCommerce)
+		// 12. Products (The physical SKUs tied to WooCommerce)
 		$table_name = $wpdb->prefix . 'ps_products';
 		$tables[] = "CREATE TABLE $table_name (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			family_id bigint(20) unsigned NOT NULL,
-			woo_product_id bigint(20) unsigned NOT NULL,
-			type varchar(50) DEFAULT 'isCoating' NOT NULL,
-			is_mixable tinyint(1) DEFAULT 0 NOT NULL,
-			finish_id bigint(20) unsigned DEFAULT 0 NOT NULL,
-			base_id bigint(20) unsigned DEFAULT 0 NOT NULL,
-			size_gallons decimal(5,2) DEFAULT 0.00 NOT NULL,
-			size_liters decimal(5,2) DEFAULT 0.00 NOT NULL,
+			size_id bigint(20) unsigned NOT NULL,
+			sheen_id bigint(20) unsigned NOT NULL,
+			base_id bigint(20) unsigned NOT NULL,
+			surface_id bigint(20) unsigned NOT NULL,
+			sku varchar(100) DEFAULT '' NOT NULL,
+			price decimal(10,2) DEFAULT 0.00 NOT NULL,
+			woo_product_id bigint(20) unsigned DEFAULT 0 NOT NULL,
 			PRIMARY KEY  (id),
 			KEY family_id (family_id),
 			KEY woo_product_id (woo_product_id)

@@ -129,6 +129,16 @@ class Paint_Store_API {
 			array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'sync_product_family_to_woo' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
 		) );
 
+		// Products (Physical SKUs) Endpoints
+		register_rest_route( $this->namespace, '/products', array(
+			array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'get_products' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+			array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'create_product' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+		) );
+		register_rest_route( $this->namespace, '/products/(?P<id>\\d+)', array(
+			array( 'methods' => WP_REST_Server::EDITABLE, 'callback' => array( $this, 'update_product' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+			array( 'methods' => WP_REST_Server::DELETABLE, 'callback' => array( $this, 'delete_product' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+		) );
+
 		// Product Brands Endpoints
 		register_rest_route( $this->namespace, '/product-brands', array(
 			array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'get_product_brands' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
@@ -673,12 +683,6 @@ class Paint_Store_API {
 				$url = wp_get_attachment_url( intval( $row['image_id'] ) );
 				if ( $url ) $row['image_url'] = $url;
 			}
-			
-			// Fetch related feature IDs
-			$family_id = intval( $row['id'] );
-			$row['size_ids']    = array_map('intval', $wpdb->get_col( "SELECT size_id FROM {$wpdb->prefix}ps_product_family_sizes WHERE family_id = $family_id" ));
-			$row['sheen_ids']   = array_map('intval', $wpdb->get_col( "SELECT sheen_id FROM {$wpdb->prefix}ps_product_family_sheens WHERE family_id = $family_id" ));
-			$row['surface_ids'] = array_map('intval', $wpdb->get_col( "SELECT surface_id FROM {$wpdb->prefix}ps_product_family_surfaces WHERE family_id = $family_id" ));
 		}
 		return rest_ensure_response( $results );
 	}
@@ -695,10 +699,7 @@ class Paint_Store_API {
 		$result = $wpdb->insert( $wpdb->prefix . 'ps_product_families', array( 'name' => $name, 'brand_id' => $brand_id, 'description' => $description, 'image_id' => $image_id ), array( '%s', '%d', '%s', '%d' ) );
 		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
 		
-		$family_id = $wpdb->insert_id;
-		$this->save_product_family_relations( $family_id, $request );
-		
-		return rest_ensure_response( array( 'id' => $family_id ) );
+		return rest_ensure_response( array( 'id' => $wpdb->insert_id ) );
 	}
 
 	public function update_product_family( $request ) {
@@ -714,50 +715,103 @@ class Paint_Store_API {
 		$result = $wpdb->update( $wpdb->prefix . 'ps_product_families', array( 'name' => $name, 'brand_id' => $brand_id, 'description' => $description, 'image_id' => $image_id ), array( 'id' => $id ), array( '%s', '%d', '%s', '%d' ), array( '%d' ) );
 		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
 		
-		$this->save_product_family_relations( $id, $request );
-		
 		return rest_ensure_response( array( 'success' => true ) );
-	}
-
-	private function save_product_family_relations( $family_id, $request ) {
-		global $wpdb;
-		
-		// Sizes
-		$wpdb->delete( $wpdb->prefix . 'ps_product_family_sizes', array( 'family_id' => $family_id ) );
-		$size_ids = $request->get_param( 'size_ids' );
-		if ( is_array( $size_ids ) ) {
-			foreach ( $size_ids as $size_id ) {
-				$wpdb->insert( $wpdb->prefix . 'ps_product_family_sizes', array( 'family_id' => $family_id, 'size_id' => intval( $size_id ) ) );
-			}
-		}
-
-		// Sheens
-		$wpdb->delete( $wpdb->prefix . 'ps_product_family_sheens', array( 'family_id' => $family_id ) );
-		$sheen_ids = $request->get_param( 'sheen_ids' );
-		if ( is_array( $sheen_ids ) ) {
-			foreach ( $sheen_ids as $sheen_id ) {
-				$wpdb->insert( $wpdb->prefix . 'ps_product_family_sheens', array( 'family_id' => $family_id, 'sheen_id' => intval( $sheen_id ) ) );
-			}
-		}
-
-		// Surfaces
-		$wpdb->delete( $wpdb->prefix . 'ps_product_family_surfaces', array( 'family_id' => $family_id ) );
-		$surface_ids = $request->get_param( 'surface_ids' );
-		if ( is_array( $surface_ids ) ) {
-			foreach ( $surface_ids as $surface_id ) {
-				$wpdb->insert( $wpdb->prefix . 'ps_product_family_surfaces', array( 'family_id' => $family_id, 'surface_id' => intval( $surface_id ) ) );
-			}
-		}
 	}
 
 	public function delete_product_family( $request ) {
 		global $wpdb;
 		$id = intval( $request->get_param( 'id' ) );
 		$wpdb->delete( $wpdb->prefix . 'ps_product_families', array( 'id' => $id ), array( '%d' ) );
-		// Cleanup relations
-		$wpdb->delete( $wpdb->prefix . 'ps_product_family_sizes', array( 'family_id' => $id ) );
-		$wpdb->delete( $wpdb->prefix . 'ps_product_family_sheens', array( 'family_id' => $id ) );
-		$wpdb->delete( $wpdb->prefix . 'ps_product_family_surfaces', array( 'family_id' => $id ) );
+		return rest_ensure_response( array( 'success' => true ) );
+	}
+
+	// --- Products (Physical SKUs) Handlers ---
+
+	public function get_products( $request ) {
+		global $wpdb;
+		$results = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}ps_products", ARRAY_A );
+		// Ensure IDs are cast to integers for the frontend
+		foreach( $results as &$row ) {
+			$row['id']         = intval( $row['id'] );
+			$row['family_id']  = intval( $row['family_id'] );
+			$row['size_id']    = intval( $row['size_id'] );
+			$row['sheen_id']   = intval( $row['sheen_id'] );
+			$row['base_id']    = intval( $row['base_id'] );
+			$row['surface_id'] = intval( $row['surface_id'] );
+			$row['price']      = floatval( $row['price'] );
+		}
+		return rest_ensure_response( $results );
+	}
+
+	public function create_product( $request ) {
+		global $wpdb;
+		$family_id  = intval( $request->get_param( 'family_id' ) );
+		$size_id    = intval( $request->get_param( 'size_id' ) );
+		$sheen_id   = intval( $request->get_param( 'sheen_id' ) );
+		$base_id    = intval( $request->get_param( 'base_id' ) );
+		$surface_id = intval( $request->get_param( 'surface_id' ) );
+		$sku        = sanitize_text_field( $request->get_param( 'sku' ) );
+		$price      = floatval( $request->get_param( 'price' ) );
+		
+		if ( ! $family_id ) return new WP_Error( 'missing_family', 'Product Family is required', array( 'status' => 400 ) );
+		
+		$result = $wpdb->insert( 
+			$wpdb->prefix . 'ps_products', 
+			array( 
+				'family_id'  => $family_id, 
+				'size_id'    => $size_id, 
+				'sheen_id'   => $sheen_id, 
+				'base_id'    => $base_id,
+				'surface_id' => $surface_id,
+				'sku'        => $sku,
+				'price'      => $price
+			), 
+			array( '%d', '%d', '%d', '%d', '%d', '%s', '%f' ) 
+		);
+		
+		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
+		
+		return rest_ensure_response( array( 'id' => $wpdb->insert_id ) );
+	}
+
+	public function update_product( $request ) {
+		global $wpdb;
+		$id         = intval( $request->get_param( 'id' ) );
+		$family_id  = intval( $request->get_param( 'family_id' ) );
+		$size_id    = intval( $request->get_param( 'size_id' ) );
+		$sheen_id   = intval( $request->get_param( 'sheen_id' ) );
+		$base_id    = intval( $request->get_param( 'base_id' ) );
+		$surface_id = intval( $request->get_param( 'surface_id' ) );
+		$sku        = sanitize_text_field( $request->get_param( 'sku' ) );
+		$price      = floatval( $request->get_param( 'price' ) );
+		
+		if ( ! $family_id ) return new WP_Error( 'missing_family', 'Product Family is required', array( 'status' => 400 ) );
+		
+		$result = $wpdb->update( 
+			$wpdb->prefix . 'ps_products', 
+			array( 
+				'family_id'  => $family_id, 
+				'size_id'    => $size_id, 
+				'sheen_id'   => $sheen_id, 
+				'base_id'    => $base_id,
+				'surface_id' => $surface_id,
+				'sku'        => $sku,
+				'price'      => $price
+			), 
+			array( 'id' => $id ), 
+			array( '%d', '%d', '%d', '%d', '%d', '%s', '%f' ), 
+			array( '%d' ) 
+		);
+		
+		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
+		
+		return rest_ensure_response( array( 'success' => true ) );
+	}
+
+	public function delete_product( $request ) {
+		global $wpdb;
+		$id = intval( $request->get_param( 'id' ) );
+		$wpdb->delete( $wpdb->prefix . 'ps_products', array( 'id' => $id ), array( '%d' ) );
 		return rest_ensure_response( array( 'success' => true ) );
 	}
 
