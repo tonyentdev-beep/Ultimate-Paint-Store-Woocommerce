@@ -7,6 +7,7 @@ const ProductFamiliesManager = ({ productFamilies, productBrands, fetchProductFa
     const [name, setName] = useState('');
     const [brandId, setBrandId] = useState('');
     const [description, setDescription] = useState('');
+    const [shortDescription, setShortDescription] = useState('');
     const [imageId, setImageId] = useState(0);
     const [imageUrl, setImageUrl] = useState('');
     const [isSaving, setIsSaving] = useState(false);
@@ -51,6 +52,7 @@ const ProductFamiliesManager = ({ productFamilies, productBrands, fetchProductFa
                 name,
                 brand_id: brandId,
                 description,
+                short_description: shortDescription,
                 image_id: imageId
             };
             if (editingId) {
@@ -58,7 +60,7 @@ const ProductFamiliesManager = ({ productFamilies, productBrands, fetchProductFa
             } else {
                 await apiFetch({ path: '/paint-store/v1/product-families', method: 'POST', data });
             }
-            setName(''); setBrandId(''); setDescription(''); setImageId(0); setImageUrl(''); setEditingId(null);
+            setName(''); setBrandId(''); setDescription(''); setShortDescription(''); setImageId(0); setImageUrl(''); setEditingId(null);
             fetchProductFamilies();
         } catch (error) {
             console.error('Error saving product family:', error);
@@ -72,11 +74,12 @@ const ProductFamiliesManager = ({ productFamilies, productBrands, fetchProductFa
         setName(item.name);
         setBrandId(item.brand_id == 0 ? '' : item.brand_id);
         setDescription(item.description || '');
+        setShortDescription(item.short_description || '');
         setImageId(item.image_id ? parseInt(item.image_id) : 0);
         setImageUrl(item.image_url || '');
     };
     const handleCancelEdit = () => {
-        setEditingId(null); setName(''); setBrandId(''); setDescription('');
+        setEditingId(null); setName(''); setBrandId(''); setDescription(''); setShortDescription('');
         setImageId(0); setImageUrl('');
     };
     const handleDelete = async (id) => {
@@ -158,8 +161,16 @@ const ProductFamiliesManager = ({ productFamilies, productBrands, fetchProductFa
                 </PanelRow>
                 <PanelRow>
                     <WPEditorField
+                        id="ps-product-family-short-desc"
+                        label="Short Description (displayed above the product builder)"
+                        value={shortDescription}
+                        onChange={setShortDescription}
+                    />
+                </PanelRow>
+                <PanelRow>
+                    <WPEditorField
                         id="ps-product-family-desc"
-                        label="Description (optional)"
+                        label="Full Description (optional)"
                         value={description}
                         onChange={setDescription}
                     />

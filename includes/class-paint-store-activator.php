@@ -86,6 +86,7 @@ class Paint_Store_Activator {
 			name varchar(255) NOT NULL,
 			brand_id bigint(20) unsigned DEFAULT 0 NOT NULL,
 			description text,
+			short_description text,
 			image_id bigint(20) unsigned DEFAULT 0 NOT NULL,
 			wc_product_id bigint(20) unsigned DEFAULT 0 NOT NULL,
 			PRIMARY KEY  (id),
