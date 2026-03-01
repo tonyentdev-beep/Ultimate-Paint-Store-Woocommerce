@@ -3,7 +3,7 @@ import apiFetch from '@wordpress/api-fetch';
 import { Button, TextControl, SelectControl, PanelBody, PanelRow } from '@wordpress/components';
 import WPEditorField from '../shared/WPEditorField';
 
-const ProductFamiliesManager = ({ productFamilies, productBrands, fetchProductFamilies }) => {
+const ProductFamiliesManager = ({ productFamilies, productBrands, sizes, sheens, surfaceTypes, fetchProductFamilies }) => {
     const [name, setName] = useState('');
     const [brandId, setBrandId] = useState('');
     const [description, setDescription] = useState('');
@@ -13,10 +13,19 @@ const ProductFamiliesManager = ({ productFamilies, productBrands, fetchProductFa
     const [editingId, setEditingId] = useState(null);
     const [syncingId, setSyncingId] = useState(null);
 
+    // New generic feature arrays
+    const [sizeIds, setSizeIds] = useState([]);
+    const [sheenIds, setSheenIds] = useState([]);
+    const [surfaceIds, setSurfaceIds] = useState([]);
+
     const brandOptions = [
         { label: 'Select a Brand...', value: '' },
         ...productBrands.map(b => ({ label: b.name, value: b.id }))
     ];
+
+    const sizeOptions = (sizes || []).map(s => ({ label: s.name, value: s.id.toString() }));
+    const sheenOptions = (sheens || []).map(s => ({ label: s.name, value: s.id.toString() }));
+    const surfaceOptions = (surfaceTypes || []).map(s => ({ label: s.name, value: s.id.toString() }));
 
     const getBrandName = (bid) => {
         if (!bid) return '-';
@@ -47,13 +56,22 @@ const ProductFamiliesManager = ({ productFamilies, productBrands, fetchProductFa
         if (!name || !brandId) { alert('Name and Brand are required.'); return; }
         setIsSaving(true);
         try {
-            const data = { name, brand_id: brandId, description, image_id: imageId };
+            const data = {
+                name,
+                brand_id: brandId,
+                description,
+                image_id: imageId,
+                size_ids: sizeIds,
+                sheen_ids: sheenIds,
+                surface_ids: surfaceIds
+            };
             if (editingId) {
                 await apiFetch({ path: `/paint-store/v1/product-families/${editingId}`, method: 'PUT', data });
             } else {
                 await apiFetch({ path: '/paint-store/v1/product-families', method: 'POST', data });
             }
             setName(''); setBrandId(''); setDescription(''); setImageId(0); setImageUrl(''); setEditingId(null);
+            setSizeIds([]); setSheenIds([]); setSurfaceIds([]);
             fetchProductFamilies();
         } catch (error) {
             console.error('Error saving product family:', error);
@@ -69,10 +87,15 @@ const ProductFamiliesManager = ({ productFamilies, productBrands, fetchProductFa
         setDescription(item.description || '');
         setImageId(item.image_id ? parseInt(item.image_id) : 0);
         setImageUrl(item.image_url || '');
+
+        setSizeIds(item.size_ids ? item.size_ids.map(id => id.toString()) : []);
+        setSheenIds(item.sheen_ids ? item.sheen_ids.map(id => id.toString()) : []);
+        setSurfaceIds(item.surface_ids ? item.surface_ids.map(id => id.toString()) : []);
     };
     const handleCancelEdit = () => {
         setEditingId(null); setName(''); setBrandId(''); setDescription('');
         setImageId(0); setImageUrl('');
+        setSizeIds([]); setSheenIds([]); setSurfaceIds([]);
     };
     const handleDelete = async (id) => {
         if (!confirm('Are you sure you want to delete this product family?')) return;
@@ -159,6 +182,35 @@ const ProductFamiliesManager = ({ productFamilies, productBrands, fetchProductFa
                         onChange={setDescription}
                     />
                 </PanelRow>
+                <div style={{ marginTop: '20px', borderTop: '1px solid #ddd', paddingTop: '15px' }}>
+                    <h4 style={{ margin: '0 0 15px 0' }}>Available Variations</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', width: '100%' }}>
+                        <SelectControl
+                            label="Available Sizes"
+                            multiple
+                            value={sizeIds}
+                            options={sizeOptions}
+                            onChange={(vals) => setSizeIds(vals)}
+                            help="Hold CMD/CTRL to select multiple"
+                        />
+                        <SelectControl
+                            label="Available Sheens"
+                            multiple
+                            value={sheenIds}
+                            options={sheenOptions}
+                            onChange={(vals) => setSheenIds(vals)}
+                            help="Hold CMD/CTRL to select multiple"
+                        />
+                        <SelectControl
+                            label="Suitable Surface Types (Projects)"
+                            multiple
+                            value={surfaceIds}
+                            options={surfaceOptions}
+                            onChange={(vals) => setSurfaceIds(vals)}
+                            help="Hold CMD/CTRL to select multiple"
+                        />
+                    </div>
+                </div>
                 <div style={{ padding: '10px 20px 20px', display: 'flex', gap: '10px' }}>
                     <Button variant="primary" onClick={handleSave} isBusy={isSaving} disabled={!name || !brandId || isSaving}>
                         {editingId ? 'Update Family' : 'Add Family'}

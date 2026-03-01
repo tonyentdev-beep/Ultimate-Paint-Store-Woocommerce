@@ -220,7 +220,14 @@ const App = () => {
                             <BasesManager bases={bases} fetchBases={fetchBases} />
                         )}
                         {activeProductSubTab === 'product-families' && (
-                            <ProductFamiliesManager productFamilies={productFamilies} productBrands={productBrands} fetchProductFamilies={fetchProductFamilies} />
+                            <ProductFamiliesManager
+                                productFamilies={productFamilies}
+                                productBrands={productBrands}
+                                sizes={sizes}
+                                sheens={sheens}
+                                surfaceTypes={surfaceTypes}
+                                fetchProductFamilies={fetchProductFamilies}
+                            />
                         )}
                         {activeProductSubTab === 'product-categories' && (
                             <ProductCategoriesManager productCategories={productCategories} fetchProductCategories={fetchProductCategories} />

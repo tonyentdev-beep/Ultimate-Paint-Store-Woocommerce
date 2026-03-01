@@ -666,13 +666,19 @@ class Paint_Store_API {
 	public function get_product_families( $request ) {
 		global $wpdb;
 		$results = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}ps_product_families", ARRAY_A );
-		// Resolve image URLs
+		
 		foreach ( $results as &$row ) {
 			$row['image_url'] = '';
 			if ( ! empty( $row['image_id'] ) ) {
 				$url = wp_get_attachment_url( intval( $row['image_id'] ) );
 				if ( $url ) $row['image_url'] = $url;
 			}
+			
+			// Fetch related feature IDs
+			$family_id = intval( $row['id'] );
+			$row['size_ids']    = array_map('intval', $wpdb->get_col( "SELECT size_id FROM {$wpdb->prefix}ps_product_family_sizes WHERE family_id = $family_id" ));
+			$row['sheen_ids']   = array_map('intval', $wpdb->get_col( "SELECT sheen_id FROM {$wpdb->prefix}ps_product_family_sheens WHERE family_id = $family_id" ));
+			$row['surface_ids'] = array_map('intval', $wpdb->get_col( "SELECT surface_id FROM {$wpdb->prefix}ps_product_family_surfaces WHERE family_id = $family_id" ));
 		}
 		return rest_ensure_response( $results );
 	}
@@ -683,28 +689,75 @@ class Paint_Store_API {
 		$brand_id = intval( $request->get_param( 'brand_id' ) );
 		$description = wp_kses_post( $request->get_param( 'description' ) );
 		$image_id = intval( $request->get_param( 'image_id' ) );
+		
 		if ( empty( $name ) ) return new WP_Error( 'missing_name', 'Name is required', array( 'status' => 400 ) );
+		
 		$result = $wpdb->insert( $wpdb->prefix . 'ps_product_families', array( 'name' => $name, 'brand_id' => $brand_id, 'description' => $description, 'image_id' => $image_id ), array( '%s', '%d', '%s', '%d' ) );
 		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
-		return rest_ensure_response( array( 'id' => $wpdb->insert_id ) );
+		
+		$family_id = $wpdb->insert_id;
+		$this->save_product_family_relations( $family_id, $request );
+		
+		return rest_ensure_response( array( 'id' => $family_id ) );
 	}
 
 	public function update_product_family( $request ) {
 		global $wpdb;
-		$id = $request->get_param( 'id' );
+		$id = intval( $request->get_param( 'id' ) );
 		$name = sanitize_text_field( $request->get_param( 'name' ) );
 		$brand_id = intval( $request->get_param( 'brand_id' ) );
 		$description = wp_kses_post( $request->get_param( 'description' ) );
 		$image_id = intval( $request->get_param( 'image_id' ) );
+		
 		if ( empty( $name ) ) return new WP_Error( 'missing_name', 'Name is required', array( 'status' => 400 ) );
+		
 		$result = $wpdb->update( $wpdb->prefix . 'ps_product_families', array( 'name' => $name, 'brand_id' => $brand_id, 'description' => $description, 'image_id' => $image_id ), array( 'id' => $id ), array( '%s', '%d', '%s', '%d' ), array( '%d' ) );
 		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
+		
+		$this->save_product_family_relations( $id, $request );
+		
 		return rest_ensure_response( array( 'success' => true ) );
+	}
+
+	private function save_product_family_relations( $family_id, $request ) {
+		global $wpdb;
+		
+		// Sizes
+		$wpdb->delete( $wpdb->prefix . 'ps_product_family_sizes', array( 'family_id' => $family_id ) );
+		$size_ids = $request->get_param( 'size_ids' );
+		if ( is_array( $size_ids ) ) {
+			foreach ( $size_ids as $size_id ) {
+				$wpdb->insert( $wpdb->prefix . 'ps_product_family_sizes', array( 'family_id' => $family_id, 'size_id' => intval( $size_id ) ) );
+			}
+		}
+
+		// Sheens
+		$wpdb->delete( $wpdb->prefix . 'ps_product_family_sheens', array( 'family_id' => $family_id ) );
+		$sheen_ids = $request->get_param( 'sheen_ids' );
+		if ( is_array( $sheen_ids ) ) {
+			foreach ( $sheen_ids as $sheen_id ) {
+				$wpdb->insert( $wpdb->prefix . 'ps_product_family_sheens', array( 'family_id' => $family_id, 'sheen_id' => intval( $sheen_id ) ) );
+			}
+		}
+
+		// Surfaces
+		$wpdb->delete( $wpdb->prefix . 'ps_product_family_surfaces', array( 'family_id' => $family_id ) );
+		$surface_ids = $request->get_param( 'surface_ids' );
+		if ( is_array( $surface_ids ) ) {
+			foreach ( $surface_ids as $surface_id ) {
+				$wpdb->insert( $wpdb->prefix . 'ps_product_family_surfaces', array( 'family_id' => $family_id, 'surface_id' => intval( $surface_id ) ) );
+			}
+		}
 	}
 
 	public function delete_product_family( $request ) {
 		global $wpdb;
-		$wpdb->delete( $wpdb->prefix . 'ps_product_families', array( 'id' => $request->get_param( 'id' ) ), array( '%d' ) );
+		$id = intval( $request->get_param( 'id' ) );
+		$wpdb->delete( $wpdb->prefix . 'ps_product_families', array( 'id' => $id ), array( '%d' ) );
+		// Cleanup relations
+		$wpdb->delete( $wpdb->prefix . 'ps_product_family_sizes', array( 'family_id' => $id ) );
+		$wpdb->delete( $wpdb->prefix . 'ps_product_family_sheens', array( 'family_id' => $id ) );
+		$wpdb->delete( $wpdb->prefix . 'ps_product_family_surfaces', array( 'family_id' => $id ) );
 		return rest_ensure_response( array( 'success' => true ) );
 	}
 
