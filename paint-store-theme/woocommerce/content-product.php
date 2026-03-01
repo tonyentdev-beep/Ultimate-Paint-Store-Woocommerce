@@ -19,18 +19,6 @@ $short_desc   = $product->get_short_description();
 // Get sheens for this product
 $sheens = wp_get_post_terms( $product->get_id(), 'pa_paint_sheen', array( 'fields' => 'names' ) );
 if ( is_wp_error( $sheens ) ) $sheens = array();
-
-// Parse features from short description <li> elements
-$features = array();
-if ( ! empty( $short_desc ) ) {
-	preg_match_all( '/<li[^>]*>(.*?)<\/li>/si', $short_desc, $matches );
-	if ( ! empty( $matches[1] ) ) {
-		$features = array_map( 'wp_strip_all_tags', $matches[1] );
-	} else {
-		$plain = wp_strip_all_tags( $short_desc );
-		$features = array_filter( array_map( 'trim', preg_split( '/[\n\r]+/', $plain ) ) );
-	}
-}
 ?>
 
 <div class="ps-product-card">
@@ -61,13 +49,11 @@ if ( ! empty( $short_desc ) ) {
 			<?php endif; ?>
 		</div>
 
-		<!-- Feature Bullets -->
-		<?php if ( ! empty( $features ) ) : ?>
-		<ul class="ps-card-features">
-			<?php foreach ( array_slice( $features, 0, 4 ) as $feature ) : ?>
-			<li><?php echo esc_html( $feature ); ?></li>
-			<?php endforeach; ?>
-		</ul>
+		<!-- Short Description (full) -->
+		<?php if ( ! empty( $short_desc ) ) : ?>
+		<div class="ps-card-description">
+			<?php echo wp_kses_post( $short_desc ); ?>
+		</div>
 		<?php endif; ?>
 
 		<!-- Available Sheens -->
