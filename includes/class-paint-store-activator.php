@@ -67,7 +67,15 @@ class Paint_Store_Activator {
 			PRIMARY KEY  (color_id, base_id)
 		) $charset_collate;";
 
-		// 7. Product Families (linked to Brand)
+		// 7a. Product Brands (separate from color brands)
+		$table_name = $wpdb->prefix . 'ps_product_brands';
+		$tables[] = "CREATE TABLE $table_name (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			name varchar(255) NOT NULL,
+			PRIMARY KEY  (id)
+		) $charset_collate;";
+
+		// 7b. Product Families (linked to Product Brand)
 		$table_name = $wpdb->prefix . 'ps_product_families';
 		$tables[] = "CREATE TABLE $table_name (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,

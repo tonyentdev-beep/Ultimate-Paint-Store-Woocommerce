@@ -3,7 +3,7 @@ import apiFetch from '@wordpress/api-fetch';
 import { Button, TextControl, SelectControl, PanelBody, PanelRow } from '@wordpress/components';
 import WPEditorField from '../shared/WPEditorField';
 
-const ProductFamiliesManager = ({ productFamilies, brands, fetchProductFamilies }) => {
+const ProductFamiliesManager = ({ productFamilies, productBrands, fetchProductFamilies }) => {
     const [name, setName] = useState('');
     const [brandId, setBrandId] = useState('');
     const [description, setDescription] = useState('');
@@ -14,12 +14,12 @@ const ProductFamiliesManager = ({ productFamilies, brands, fetchProductFamilies 
 
     const brandOptions = [
         { label: 'Select a Brand...', value: '' },
-        ...brands.map(b => ({ label: b.name, value: b.id }))
+        ...productBrands.map(b => ({ label: b.name, value: b.id }))
     ];
 
     const getBrandName = (bid) => {
         if (!bid) return '-';
-        return brands.find(b => parseInt(b.id) === parseInt(bid))?.name || bid;
+        return productBrands.find(b => parseInt(b.id) === parseInt(bid))?.name || bid;
     };
 
     const openMediaUploader = () => {

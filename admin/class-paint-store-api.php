@@ -126,6 +126,16 @@ class Paint_Store_API {
 			array( 'methods' => WP_REST_Server::DELETABLE, 'callback' => array( $this, 'delete_product_family' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
 		) );
 
+		// Product Brands Endpoints
+		register_rest_route( $this->namespace, '/product-brands', array(
+			array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'get_product_brands' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+			array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'create_product_brand' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+		) );
+		register_rest_route( $this->namespace, '/product-brands/(?P<id>\\d+)', array(
+			array( 'methods' => WP_REST_Server::EDITABLE, 'callback' => array( $this, 'update_product_brand' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+			array( 'methods' => WP_REST_Server::DELETABLE, 'callback' => array( $this, 'delete_product_brand' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+		) );
+
 		// Product Categories Endpoints
 		register_rest_route( $this->namespace, '/product-categories', array(
 			array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'get_product_categories' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
@@ -896,6 +906,7 @@ class Paint_Store_API {
 			'colors'             => 'colors',
 			'bases'              => 'bases',
 			'product_families'   => 'product_families',
+			'product_brands'     => 'product_brands',
 			'product_categories' => 'product_categories',
 			'sizes'              => 'sizes',
 			'sheens'             => 'sheens',
@@ -940,5 +951,38 @@ class Paint_Store_API {
 		);
 		update_option( 'paint_store_settings', $settings );
 		return rest_ensure_response( array( 'success' => true, 'settings' => $settings ) );
+	}
+
+	// --- Product Brands Handlers ---
+
+	public function get_product_brands( $request ) {
+		global $wpdb;
+		$results = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}ps_product_brands", ARRAY_A );
+		return rest_ensure_response( $results );
+	}
+
+	public function create_product_brand( $request ) {
+		global $wpdb;
+		$name = sanitize_text_field( $request->get_param( 'name' ) );
+		if ( empty( $name ) ) return new WP_Error( 'missing_name', 'Name is required', array( 'status' => 400 ) );
+		$result = $wpdb->insert( $wpdb->prefix . 'ps_product_brands', array( 'name' => $name ), array( '%s' ) );
+		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
+		return rest_ensure_response( array( 'id' => $wpdb->insert_id ) );
+	}
+
+	public function update_product_brand( $request ) {
+		global $wpdb;
+		$id = $request->get_param( 'id' );
+		$name = sanitize_text_field( $request->get_param( 'name' ) );
+		if ( empty( $name ) ) return new WP_Error( 'missing_name', 'Name is required', array( 'status' => 400 ) );
+		$result = $wpdb->update( $wpdb->prefix . 'ps_product_brands', array( 'name' => $name ), array( 'id' => $id ), array( '%s' ), array( '%d' ) );
+		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
+		return rest_ensure_response( array( 'success' => true ) );
+	}
+
+	public function delete_product_brand( $request ) {
+		global $wpdb;
+		$wpdb->delete( $wpdb->prefix . 'ps_product_brands', array( 'id' => $request->get_param( 'id' ) ), array( '%d' ) );
+		return rest_ensure_response( array( 'success' => true ) );
 	}
 }
