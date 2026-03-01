@@ -47,10 +47,13 @@ class Paint_Store_WooCommerce {
 	 * Removes default price and add-to-cart, adds short description, stars, and custom buttons.
 	 */
 	public function customize_product_loop() {
-		// Remove default price from loop
+		// Remove default price from loop (try multiple priorities)
 		remove_action( 'woocommerce_after_shop_loop_item_title', 'woocommerce_template_loop_price', 10 );
-		// Remove default add to cart button
+		remove_action( 'woocommerce_after_shop_loop_item_title', 'woocommerce_template_loop_price', 15 );
+		// Remove default add to cart / select options button
 		remove_action( 'woocommerce_after_shop_loop_item', 'woocommerce_template_loop_add_to_cart', 10 );
+		// Remove rating (we add our own)
+		remove_action( 'woocommerce_after_shop_loop_item_title', 'woocommerce_template_loop_rating', 5 );
 
 		// Add star rating after title
 		add_action( 'woocommerce_after_shop_loop_item_title', array( $this, 'loop_product_rating' ), 5 );
@@ -208,6 +211,14 @@ class Paint_Store_WooCommerce {
 		.ps-btn-buy:hover {
 			background: #1e5235;
 			color: #fff;
+		}
+		/* Force-hide any remaining default WooCommerce elements */
+		.woocommerce ul.products li.product .price,
+		.woocommerce ul.products li.product .woocommerce-Price-amount,
+		.woocommerce ul.products li.product a.button,
+		.woocommerce ul.products li.product a.add_to_cart_button,
+		.woocommerce ul.products li.product .add_to_cart_button {
+			display: none !important;
 		}
 		';
 	}
