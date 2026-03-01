@@ -125,6 +125,9 @@ class Paint_Store_API {
 			array( 'methods' => WP_REST_Server::EDITABLE, 'callback' => array( $this, 'update_product_family' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
 			array( 'methods' => WP_REST_Server::DELETABLE, 'callback' => array( $this, 'delete_product_family' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
 		) );
+		register_rest_route( $this->namespace, '/product-families/(?P<id>\\d+)/sync', array(
+			array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'sync_product_family_to_woo' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+		) );
 
 		// Product Brands Endpoints
 		register_rest_route( $this->namespace, '/product-brands', array(
@@ -658,6 +661,124 @@ class Paint_Store_API {
 		global $wpdb;
 		$wpdb->delete( $wpdb->prefix . 'ps_product_families', array( 'id' => $request->get_param( 'id' ) ), array( '%d' ) );
 		return rest_ensure_response( array( 'success' => true ) );
+	}
+
+	public function sync_product_family_to_woo( $request ) {
+		if ( ! class_exists( 'WooCommerce' ) ) return new WP_Error( 'woo_missing', 'WooCommerce is not active.', array( 'status' => 400 ) );
+		global $wpdb;
+		$family_id = intval( $request->get_param( 'id' ) );
+		
+		// 1. Get the Family
+		$family = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}ps_product_families WHERE id = %d", $family_id ) );
+		if ( ! $family ) return new WP_Error( 'not_found', 'Product family not found.', array( 'status' => 404 ) );
+
+		// 2. Get all physical products linked to this family to know which sizes/sheens to activate
+		// Note: The structure implies we need actual `ps_products` tied to this family.
+		// If ps_products are not yet built out, we need a way to assign available sizes/sheens to the family directly.
+		// Since we haven't built the `ps_products` UI yet, for Phase 4, we will assign ALL sizes and ALL sheens as a baseline, 
+		// OR we can wait to build the Products UI first.
+
+		// Let's create the parent Variable Product first.
+		$product = new WC_Product_Variable();
+		if ( $family->wc_product_id ) {
+			try {
+				$product = new WC_Product_Variable( $family->wc_product_id );
+			} catch ( Exception $e ) {
+				$product = new WC_Product_Variable(); // fallback if deleted in woo
+			}
+		}
+
+		$product->set_name( $family->name );
+		$product->set_description( $family->description );
+		if ( $family->image_id ) {
+			$product->set_image_id( $family->image_id );
+		}
+		
+		// 3. Set global attributes for Size and Sheen on this parent product
+		$sizes = $wpdb->get_results( "SELECT wc_attribute_id, name FROM {$wpdb->prefix}ps_sizes WHERE wc_attribute_id > 0" );
+		$sheens = $wpdb->get_results( "SELECT wc_attribute_id, name FROM {$wpdb->prefix}ps_sheens WHERE wc_attribute_id > 0" );
+		
+		$attributes = array();
+		
+		if ( ! empty( $sizes ) ) {
+			$attr = new WC_Product_Attribute();
+			$attr->set_id( wc_attribute_taxonomy_id_by_name( 'Paint Size' ) );
+			$attr->set_name( 'pa_paint_size' );
+			$attr->set_options( wp_list_pluck( $sizes, 'wc_attribute_id' ) );
+			$attr->set_visible( true );
+			$attr->set_variation( true ); // Crucial for variable products
+			$attributes[] = $attr;
+		}
+
+		if ( ! empty( $sheens ) ) {
+			$attr = new WC_Product_Attribute();
+			$attr->set_id( wc_attribute_taxonomy_id_by_name( 'Paint Sheen' ) );
+			$attr->set_name( 'pa_paint_sheen' );
+			$attr->set_options( wp_list_pluck( $sheens, 'wc_attribute_id' ) );
+			$attr->set_visible( true );
+			$attr->set_variation( true );
+			$attributes[] = $attr;
+		}
+
+		$product->set_attributes( $attributes );
+		$product_id = $product->save();
+
+		// Update family with the Woo ID
+		$wpdb->update( $wpdb->prefix . 'ps_product_families', array( 'wc_product_id' => $product_id ), array( 'id' => $family_id ) );
+
+		// 4. Generate Variations (if Size and Sheen exist)
+		// For a real app, you only generate variations for combinations that actually exist as `ps_products` and set their specific price.
+		// For now, we will just create the variations with a default price of 0 to get them into WooCommerce.
+		if ( ! empty( $sizes ) && ! empty( $sheens ) ) {
+			foreach ( $sizes as $size ) {
+				$size_term = get_term( $size->wc_attribute_id );
+				foreach ( $sheens as $sheen ) {
+					$sheen_term = get_term( $sheen->wc_attribute_id );
+					if ( ! $size_term || ! $sheen_term ) continue;
+
+					// Check if variation exists
+					$variation_id = $this->find_matching_variation( $product_id, array(
+						'attribute_pa_paint_size' => $size_term->slug,
+						'attribute_pa_paint_sheen' => $sheen_term->slug
+					) );
+
+					$variation = new WC_Product_Variation( $variation_id );
+					$variation->set_parent_id( $product_id );
+					$variation->set_attributes( array(
+						'pa_paint_size' => $size_term->slug,
+						'pa_paint_sheen' => $sheen_term->slug
+					) );
+					
+					// If new, set default price
+					if ( ! $variation_id ) {
+						$variation->set_regular_price( '0.00' ); 
+					}
+					
+					$variation->set_manage_stock( false );
+					$variation->save();
+				}
+			}
+		}
+
+		return rest_ensure_response( array( 'success' => true, 'wc_product_id' => $product_id ) );
+	}
+
+	private function find_matching_variation( $product_id, $match_attributes ) {
+		$product = wc_get_product( $product_id );
+		if ( ! $product || ! $product->is_type( 'variable' ) ) return 0;
+		foreach ( $product->get_children() as $child_id ) {
+			$variation = wc_get_product( $child_id );
+			$attributes = $variation->get_attributes();
+			$match = true;
+			foreach ( $match_attributes as $key => $value ) {
+				if ( ! isset( $attributes[ $key ] ) || $attributes[ $key ] !== $value ) {
+					$match = false;
+					break;
+				}
+			}
+			if ( $match ) return $child_id;
+		}
+		return 0;
 	}
 
 	// --- Product Categories Handlers ---

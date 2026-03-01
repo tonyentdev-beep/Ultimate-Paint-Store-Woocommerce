@@ -11,6 +11,7 @@ const ProductFamiliesManager = ({ productFamilies, productBrands, fetchProductFa
     const [imageUrl, setImageUrl] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [editingId, setEditingId] = useState(null);
+    const [syncingId, setSyncingId] = useState(null);
 
     const brandOptions = [
         { label: 'Select a Brand...', value: '' },
@@ -80,6 +81,19 @@ const ProductFamiliesManager = ({ productFamilies, productBrands, fetchProductFa
             if (editingId === id) handleCancelEdit();
             fetchProductFamilies();
         } catch (error) { alert('Error deleting product family: ' + (error.message || JSON.stringify(error))); }
+    };
+
+    const handleSync = async (id) => {
+        setSyncingId(id);
+        try {
+            const result = await apiFetch({ path: `/paint-store/v1/product-families/${id}/sync`, method: 'POST' });
+            alert(`✅ Synced to WooCommerce! Product ID: ${result.wc_product_id}`);
+            fetchProductFamilies();
+        } catch (error) {
+            console.error('Error syncing product family:', error);
+            alert(`❌ Error syncing: ${error.message || JSON.stringify(error)}`);
+        }
+        setSyncingId(null);
     };
 
     return (
@@ -152,37 +166,53 @@ const ProductFamiliesManager = ({ productFamilies, productBrands, fetchProductFa
                     {editingId && <Button variant="secondary" onClick={handleCancelEdit}>Cancel Edit</Button>}
                 </div>
             </PanelBody>
-            <div style={{ marginTop: '30px' }}>
-                <h3>Existing Product Families</h3>
-                <table className="wp-list-table widefat fixed striped">
-                    <thead><tr><th style={{ width: '50px' }}>ID</th><th style={{ width: '70px' }}>Image</th><th>Name</th><th>Brand</th><th>Description</th><th style={{ width: '150px' }}>Actions</th></tr></thead>
-                    <tbody>
-                        {productFamilies.length === 0 ? (
-                            <tr><td colSpan="6">No product families found.</td></tr>
-                        ) : productFamilies.map(item => (
-                            <tr key={item.id}>
-                                <td>{item.id}</td>
-                                <td>
-                                    {item.image_url ? (
-                                        <img src={item.image_url} alt={item.name} style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '4px' }} />
-                                    ) : (
-                                        <span style={{ color: '#999', fontSize: '11px' }}>No image</span>
-                                    )}
-                                </td>
-                                <td><strong>{item.name}</strong></td>
-                                <td>{getBrandName(item.brand_id)}</td>
-                                <td><div dangerouslySetInnerHTML={{ __html: item.description || '-' }} /></td>
-                                <td>
-                                    <div style={{ display: 'flex', gap: '10px' }}>
-                                        <Button isSmall variant="secondary" onClick={() => handleEdit(item)}>Edit</Button>
-                                        <Button isSmall isDestructive onClick={() => handleDelete(item.id)}>Delete</Button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+            <div style={{ marginTop: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                    <h3 style={{ margin: 0 }}>Existing Product Families</h3>
+                    <p style={{ color: '#666', fontSize: '13px', margin: '5px 0 10px' }}>
+                        Click "WooSync" to generate a WooCommerce Variable Product with Size and Sheen variations.
+                    </p>
+                </div>
             </div>
+            <table className="wp-list-table widefat fixed striped" style={{ marginTop: '10px' }}>
+                <thead><tr><th style={{ width: '40px' }}>ID</th><th style={{ width: '50px' }}>Image</th><th>Name</th><th>Brand</th><th>WooCommerce</th><th style={{ width: '180px' }}>Actions</th></tr></thead>
+                <tbody>
+                    {productFamilies.length === 0 ? (
+                        <tr><td colSpan="6">No product families found.</td></tr>
+                    ) : productFamilies.map(item => (
+                        <tr key={item.id}>
+                            <td>{item.id}</td>
+                            <td>
+                                {item.image_url ? (
+                                    <img src={item.image_url} alt={item.name} style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '4px' }} />
+                                ) : (
+                                    <span style={{ color: '#999', fontSize: '11px' }}>No image</span>
+                                )}
+                            </td>
+                            <td><strong>{item.name}</strong></td>
+                            <td>{getBrandName(item.brand_id)}</td>
+                            <td>
+                                {parseInt(item.wc_product_id) > 0 ? (
+                                    <a href={`/wp-admin/post.php?post=${item.wc_product_id}&action=edit`} target="_blank" rel="noreferrer" style={{ color: '#3c763d', fontSize: '12px', textDecoration: 'none', fontWeight: 'bold' }}>
+                                        ✓ See Product #{item.wc_product_id}
+                                    </a>
+                                ) : (
+                                    <span style={{ color: '#a94442', fontSize: '12px' }}>Not synced</span>
+                                )}
+                            </td>
+                            <td>
+                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                    <Button isSmall variant="primary" onClick={() => handleSync(item.id)} isBusy={syncingId === item.id} disabled={syncingId !== null}>
+                                        WooSync
+                                    </Button>
+                                    <Button isSmall variant="secondary" onClick={() => handleEdit(item)} disabled={syncingId !== null}>Edit</Button>
+                                    <Button isSmall isDestructive onClick={() => handleDelete(item.id)} disabled={syncingId !== null}>Delete</Button>
+                                </div>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
         </div>
     );
 };
