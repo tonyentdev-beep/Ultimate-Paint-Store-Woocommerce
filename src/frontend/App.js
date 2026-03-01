@@ -37,38 +37,48 @@ const App = ({ familyId }) => {
         fetchData();
     }, [familyId]);
 
+    // Determine if we have explicit physical SKUs for this family
+    const hasPhysicalProducts = familyData && familyData.ps_products && familyData.ps_products.length > 0;
+
     // When a color is selected, filter the ps_products to only those
     // whose base_id matches one of the color's required base_ids.
-    // Then filter the WooCommerce variations to only those whose
-    // variation ID matches a valid ps_product's woo_product_id.
+    // If no ps_products exist for the family, or the color has no base_ids,
+    // we fall back to showing everything (no filtering).
+    const shouldFilter = hasPhysicalProducts && selectedColor && selectedColor.base_ids && selectedColor.base_ids.length > 0;
+
     const validProducts = useMemo(() => {
-        if (!familyData || !familyData.ps_products) return [];
-        if (!selectedColor || !selectedColor.base_ids || selectedColor.base_ids.length === 0) {
-            // No color selected yet — show all products
-            return familyData.ps_products;
-        }
+        if (!hasPhysicalProducts) return [];
+        if (!shouldFilter) return familyData.ps_products;
         return familyData.ps_products.filter(p =>
             selectedColor.base_ids.includes(p.base_id)
         );
-    }, [familyData, selectedColor]);
+    }, [familyData, selectedColor, hasPhysicalProducts, shouldFilter]);
 
     // Extract valid WooCommerce variation IDs from the filtered physical products
     const validVariationIds = useMemo(() => {
+        if (!shouldFilter) return []; // empty = don't filter
         return validProducts
             .map(p => p.woo_product_id)
             .filter(id => id > 0);
-    }, [validProducts]);
+    }, [validProducts, shouldFilter]);
 
-    // Filter the WooCommerce variations to only those that are valid
+    // Filter the WooCommerce variations
+    // Only filter if we actually have explicit physical SKU mapping AND valid variation IDs
     const filteredVariations = useMemo(() => {
         if (!familyData || !familyData.variations) return [];
-        if (validVariationIds.length === 0) return familyData.variations;
+        // If we're not filtering (no physical products, or no color chosen, or color has no bases), show all
+        if (!shouldFilter || validVariationIds.length === 0) return familyData.variations;
         return familyData.variations.filter(v => validVariationIds.includes(v.id));
-    }, [familyData, validVariationIds]);
+    }, [familyData, validVariationIds, shouldFilter]);
 
     // Build filtered attributes (sizes and sheens) from the filtered variations
     const filteredAttributes = useMemo(() => {
         if (!familyData || !familyData.attributes) return { sizes: [], sheens: [] };
+
+        // If not filtering, show all attributes
+        if (!shouldFilter || filteredVariations === familyData.variations) {
+            return familyData.attributes;
+        }
 
         // Extract the unique size slugs and sheen slugs from filtered variations
         const validSizeSlugs = new Set();
@@ -82,7 +92,6 @@ const App = ({ familyId }) => {
             }
         });
 
-        // If no filtered variations yet (e.g. no color selected), show all
         const sizes = validSizeSlugs.size > 0
             ? familyData.attributes.sizes.filter(s => validSizeSlugs.has(s.slug))
             : familyData.attributes.sizes;
@@ -91,17 +100,19 @@ const App = ({ familyId }) => {
             : familyData.attributes.sheens;
 
         return { sizes, sheens };
-    }, [familyData, filteredVariations]);
+    }, [familyData, filteredVariations, shouldFilter]);
 
     // Reset size/sheen when color changes and they become unavailable
     useEffect(() => {
-        if (selectedSize && !filteredAttributes.sizes.find(s => s.slug === selectedSize)) {
-            setSelectedSize('');
+        if (shouldFilter) {
+            if (selectedSize && !filteredAttributes.sizes.find(s => s.slug === selectedSize)) {
+                setSelectedSize('');
+            }
+            if (selectedSheen && !filteredAttributes.sheens.find(s => s.slug === selectedSheen)) {
+                setSelectedSheen('');
+            }
         }
-        if (selectedSheen && !filteredAttributes.sheens.find(s => s.slug === selectedSheen)) {
-            setSelectedSheen('');
-        }
-    }, [filteredAttributes]);
+    }, [filteredAttributes, shouldFilter]);
 
     if (!familyId) {
         return <div className="ps-builder-error">Error: No Product Family ID provided.</div>;
@@ -133,6 +144,7 @@ const App = ({ familyId }) => {
                         selectedSheen={selectedSheen}
                         setSelectedSheen={setSelectedSheen}
                         selectedColor={selectedColor}
+                        shouldFilter={shouldFilter}
                     />
                     <AddToCart
                         familyId={familyData.family.wc_product_id}
