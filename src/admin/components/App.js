@@ -231,6 +231,8 @@ const App = () => {
                             <ProductFamiliesManager
                                 productFamilies={productFamilies}
                                 productBrands={productBrands}
+                                productCategories={productCategories}
+                                surfaceTypes={surfaceTypes}
                                 fetchProductFamilies={fetchProductFamilies}
                             />
                         )}

@@ -691,13 +691,14 @@ class Paint_Store_API {
 		global $wpdb;
 		$name = sanitize_text_field( $request->get_param( 'name' ) );
 		$brand_id = intval( $request->get_param( 'brand_id' ) );
+		$category_id = intval( $request->get_param( 'category_id' ) );
 		$description = wp_kses_post( $request->get_param( 'description' ) );
 		$short_description = wp_kses_post( $request->get_param( 'short_description' ) );
 		$image_id = intval( $request->get_param( 'image_id' ) );
 		
 		if ( empty( $name ) ) return new WP_Error( 'missing_name', 'Name is required', array( 'status' => 400 ) );
 		
-		$result = $wpdb->insert( $wpdb->prefix . 'ps_product_families', array( 'name' => $name, 'brand_id' => $brand_id, 'description' => $description, 'short_description' => $short_description, 'image_id' => $image_id ), array( '%s', '%d', '%s', '%s', '%d' ) );
+		$result = $wpdb->insert( $wpdb->prefix . 'ps_product_families', array( 'name' => $name, 'brand_id' => $brand_id, 'category_id' => $category_id, 'description' => $description, 'short_description' => $short_description, 'image_id' => $image_id ), array( '%s', '%d', '%d', '%s', '%s', '%d' ) );
 		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
 		
 		return rest_ensure_response( array( 'id' => $wpdb->insert_id ) );
@@ -708,13 +709,14 @@ class Paint_Store_API {
 		$id = intval( $request->get_param( 'id' ) );
 		$name = sanitize_text_field( $request->get_param( 'name' ) );
 		$brand_id = intval( $request->get_param( 'brand_id' ) );
+		$category_id = intval( $request->get_param( 'category_id' ) );
 		$description = wp_kses_post( $request->get_param( 'description' ) );
 		$short_description = wp_kses_post( $request->get_param( 'short_description' ) );
 		$image_id = intval( $request->get_param( 'image_id' ) );
 		
 		if ( empty( $name ) ) return new WP_Error( 'missing_name', 'Name is required', array( 'status' => 400 ) );
 		
-		$result = $wpdb->update( $wpdb->prefix . 'ps_product_families', array( 'name' => $name, 'brand_id' => $brand_id, 'description' => $description, 'short_description' => $short_description, 'image_id' => $image_id ), array( 'id' => $id ), array( '%s', '%d', '%s', '%s', '%d' ), array( '%d' ) );
+		$result = $wpdb->update( $wpdb->prefix . 'ps_product_families', array( 'name' => $name, 'brand_id' => $brand_id, 'category_id' => $category_id, 'description' => $description, 'short_description' => $short_description, 'image_id' => $image_id ), array( 'id' => $id ), array( '%s', '%d', '%d', '%s', '%s', '%d' ), array( '%d' ) );
 		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
 		
 		return rest_ensure_response( array( 'success' => true ) );

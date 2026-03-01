@@ -85,12 +85,14 @@ class Paint_Store_Activator {
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			name varchar(255) NOT NULL,
 			brand_id bigint(20) unsigned DEFAULT 0 NOT NULL,
+			category_id bigint(20) unsigned DEFAULT 0 NOT NULL,
 			description text,
 			short_description text,
 			image_id bigint(20) unsigned DEFAULT 0 NOT NULL,
 			wc_product_id bigint(20) unsigned DEFAULT 0 NOT NULL,
 			PRIMARY KEY  (id),
 			KEY brand_id (brand_id),
+			KEY category_id (category_id),
 			KEY wc_product_id (wc_product_id)
 		) $charset_collate;";
 
