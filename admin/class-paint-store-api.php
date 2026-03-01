@@ -851,9 +851,27 @@ class Paint_Store_API {
 			$product->set_image_id( $family->image_id );
 		}
 		
-		// 3. Set global attributes for Size and Sheen on this parent product
-		$sizes = $wpdb->get_results( "SELECT wc_attribute_id, name FROM {$wpdb->prefix}ps_sizes WHERE wc_attribute_id > 0" );
-		$sheens = $wpdb->get_results( "SELECT wc_attribute_id, name FROM {$wpdb->prefix}ps_sheens WHERE wc_attribute_id > 0" );
+		// 3. Get all physical products (SKUs) under this family
+		$physical_products = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}ps_products WHERE family_id = %d", $family_id ) );
+		if ( empty( $physical_products ) ) {
+			return new WP_Error( 'no_products', 'No physical SKUs have been mapped to this Product Family yet. Create them first in the Physical Products tab.', array( 'status' => 400 ) );
+		}
+
+		// 4. Extract purely the unique sizes and sheens utilized by these physical products
+		// This ensures the Family only displays variations that actually exist.
+		$attached_size_ids = array_unique( wp_list_pluck( $physical_products, 'size_id' ) );
+		$attached_sheen_ids = array_unique( wp_list_pluck( $physical_products, 'sheen_id' ) );
+
+		if ( empty( $attached_size_ids ) || empty( $attached_sheen_ids ) ) {
+			return new WP_Error( 'missing_attributes', 'The physical products must have Sizes and Sheens assigned.', array( 'status' => 400 ) );
+		}
+
+		// Pull the Woo Attribute Terms mappings for those distinct IDs
+		$size_list = implode( ',', array_map( 'intval', $attached_size_ids ) );
+		$sheen_list = implode( ',', array_map( 'intval', $attached_sheen_ids ) );
+		
+		$sizes = $wpdb->get_results( "SELECT wc_attribute_id, name FROM {$wpdb->prefix}ps_sizes WHERE id IN ($size_list) AND wc_attribute_id > 0" );
+		$sheens = $wpdb->get_results( "SELECT wc_attribute_id, name FROM {$wpdb->prefix}ps_sheens WHERE id IN ($sheen_list) AND wc_attribute_id > 0" );
 		
 		$attributes = array();
 		
@@ -883,37 +901,44 @@ class Paint_Store_API {
 		// Update family with the Woo ID
 		$wpdb->update( $wpdb->prefix . 'ps_product_families', array( 'wc_product_id' => $product_id ), array( 'id' => $family_id ) );
 
-		// 4. Generate Variations (if Size and Sheen exist)
-		// For a real app, you only generate variations for combinations that actually exist as `ps_products` and set their specific price.
-		// For now, we will just create the variations with a default price of 0 to get them into WooCommerce.
-		if ( ! empty( $sizes ) && ! empty( $sheens ) ) {
-			foreach ( $sizes as $size ) {
-				$size_term = get_term( $size->wc_attribute_id );
-				foreach ( $sheens as $sheen ) {
-					$sheen_term = get_term( $sheen->wc_attribute_id );
-					if ( ! $size_term || ! $sheen_term ) continue;
+		// 5. Generate / Update WooCommerce Variations mapping to explicitly defined ps_products
+		$synced_variations = 0;
+		foreach ( $physical_products as $ps_product ) {
+			
+			// Find the Woo Term Slug for this product's specific Size
+			$size_wc_id = $wpdb->get_var( $wpdb->prepare( "SELECT wc_attribute_id FROM {$wpdb->prefix}ps_sizes WHERE id = %d", $ps_product->size_id ) );
+			$size_term = $size_wc_id ? get_term( $size_wc_id ) : false;
+			
+			// Find the Woo Term Slug for this product's specific Sheen
+			$sheen_wc_id = $wpdb->get_var( $wpdb->prepare( "SELECT wc_attribute_id FROM {$wpdb->prefix}ps_sheens WHERE id = %d", $ps_product->sheen_id ) );
+			$sheen_term = $sheen_wc_id ? get_term( $sheen_wc_id ) : false;
 
-					// Check if variation exists
-					$variation_id = $this->find_matching_variation( $product_id, array(
-						'attribute_pa_paint_size' => $size_term->slug,
-						'attribute_pa_paint_sheen' => $sheen_term->slug
-					) );
+			if ( ! $size_term || ! $sheen_term ) continue;
 
-					$variation = new WC_Product_Variation( $variation_id );
-					$variation->set_parent_id( $product_id );
-					$variation->set_attributes( array(
-						'pa_paint_size' => $size_term->slug,
-						'pa_paint_sheen' => $sheen_term->slug
-					) );
-					
-					// If new, set default price
-					if ( ! $variation_id ) {
-						$variation->set_regular_price( '0.00' ); 
-					}
-					
-					$variation->set_manage_stock( false );
-					$variation->save();
-				}
+			// Check if variation exists for this exact Size + Sheen block
+			$variation_id = $this->find_matching_variation( $product_id, array(
+				'attribute_pa_paint_size' => $size_term->slug,
+				'attribute_pa_paint_sheen' => $sheen_term->slug
+			) );
+
+			$variation = new WC_Product_Variation( $variation_id );
+			$variation->set_parent_id( $product_id );
+			$variation->set_attributes( array(
+				'pa_paint_size' => $size_term->slug,
+				'pa_paint_sheen' => $sheen_term->slug
+			) );
+			
+			$variation->set_regular_price( $ps_product->price );
+			$variation->set_sku( $ps_product->sku );
+			$variation->set_manage_stock( true );
+			$variation->set_stock_quantity( $ps_product->stock_quantity );
+			
+			$var_id_saved = $variation->save();
+			
+			if ( $var_id_saved ) {
+				// Update ps_product table linking to the distinct Woo Variation ID
+				$wpdb->update( $wpdb->prefix . 'ps_products', array( 'woo_product_id' => $var_id_saved ), array( 'id' => $ps_product->id ) );
+				$synced_variations++;
 			}
 		}
 
