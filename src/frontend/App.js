@@ -155,6 +155,7 @@ const App = ({ familyId }) => {
                         selectedSize={selectedSize}
                         selectedSheen={selectedSheen}
                         selectedColor={selectedColor}
+                        validProducts={validProducts}
                     />
                 </div>
                 <div style={{ flex: '2 1 400px' }}>

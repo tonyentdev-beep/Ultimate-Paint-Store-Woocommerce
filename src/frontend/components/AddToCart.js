@@ -1,9 +1,30 @@
 import { useState } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 
-const AddToCart = ({ familyId, variations, selectedSize, selectedSheen, selectedColor }) => {
+const AddToCart = ({ familyId, variations, selectedSize, selectedSheen, selectedColor, validProducts }) => {
     const [isAdding, setIsAdding] = useState(false);
     const [message, setMessage] = useState('');
+
+    // Find the matching WooCommerce variation for the selected Size + Sheen
+    const matchedVariation = (selectedSize && selectedSheen)
+        ? variations.find(v =>
+            v.attributes.attribute_pa_paint_size === selectedSize &&
+            v.attributes.attribute_pa_paint_sheen === selectedSheen
+        )
+        : null;
+
+    // Find the matching physical product for the selected Size + Sheen (for price display)
+    const matchedProduct = (selectedSize && selectedSheen && validProducts)
+        ? validProducts.find(p => p.size_slug === selectedSize && p.sheen_slug === selectedSheen)
+        : null;
+
+    // Derive the display price
+    let displayPrice = '';
+    if (matchedProduct && matchedProduct.price > 0) {
+        displayPrice = '$' + parseFloat(matchedProduct.price).toFixed(2);
+    } else if (matchedVariation && matchedVariation.price > 0) {
+        displayPrice = matchedVariation.price_html || ('$' + parseFloat(matchedVariation.price).toFixed(2));
+    }
 
     const handleAddToCart = async () => {
         if (!selectedSize || !selectedSheen) {
@@ -14,12 +35,6 @@ const AddToCart = ({ familyId, variations, selectedSize, selectedSheen, selected
             setMessage('Please select a Color.');
             return;
         }
-
-        // Find the matching variation ID
-        const matchedVariation = variations.find(v =>
-            v.attributes.attribute_pa_paint_size === selectedSize &&
-            v.attributes.attribute_pa_paint_sheen === selectedSheen
-        );
 
         if (!matchedVariation) {
             setMessage('This combination of size and sheen is currently unavailable.');
@@ -61,21 +76,13 @@ const AddToCart = ({ familyId, variations, selectedSize, selectedSheen, selected
         setIsAdding(false);
     };
 
-    // Calculate dynamic price based on variation
-    let activePriceHtml = '';
-    if (selectedSize && selectedSheen) {
-        const matchedVariation = variations.find(v =>
-            v.attributes.attribute_pa_paint_size === selectedSize &&
-            v.attributes.attribute_pa_paint_sheen === selectedSheen
-        );
-        if (matchedVariation && matchedVariation.price_html) {
-            activePriceHtml = matchedVariation.price_html;
-        }
-    }
-
     return (
         <div className="ps-add-to-cart-wrapper" style={{ marginTop: '30px', padding: '20px', background: '#f5f5f5', borderRadius: '8px' }}>
-            <div style={{ marginBottom: '15px' }} dangerouslySetInnerHTML={{ __html: activePriceHtml }} />
+            {displayPrice && (
+                <div style={{ marginBottom: '15px', fontSize: '24px', fontWeight: 'bold', color: '#111' }}>
+                    {displayPrice}
+                </div>
+            )}
 
             <button
                 className="button alt"
