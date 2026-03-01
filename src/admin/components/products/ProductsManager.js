@@ -51,6 +51,10 @@ const ProductsManager = ({
     const getFamilyName = (id) => productFamilies.find(f => parseInt(f.id) === parseInt(id))?.name || '-';
     const getBaseName = (id) => bases.find(b => parseInt(b.id) === parseInt(id))?.name || '-';
     const getSizeName = (id) => sizes.find(s => parseInt(s.id) === parseInt(id))?.name || '-';
+    const getSizeLiters = (id) => {
+        const sizeObj = sizes.find(s => parseInt(s.id) === parseInt(id));
+        return sizeObj ? parseFloat(sizeObj.liters || 0) : 0;
+    };
     const getSheenName = (id) => sheens.find(s => parseInt(s.id) === parseInt(id))?.name || '-';
     const getSurfaceName = (id) => surfaceTypes.find(s => parseInt(s.id) === parseInt(id))?.name || '-';
 
@@ -174,12 +178,13 @@ const ProductsManager = ({
                         <th>SKU</th>
                         <th>Price</th>
                         <th>Stock</th>
+                        <th>Total Volume</th>
                         <th style={{ width: '120px' }}>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {products.length === 0 ? (
-                        <tr><td colSpan="10">No physical products found.</td></tr>
+                        <tr><td colSpan="11">No physical products found.</td></tr>
                     ) : products.map(item => (
                         <tr key={item.id}>
                             <td>{item.id}</td>
@@ -191,6 +196,11 @@ const ProductsManager = ({
                             <td><code>{item.sku || '-'}</code></td>
                             <td>${parseFloat(item.price).toFixed(2)}</td>
                             <td>{item.stock_quantity}</td>
+                            <td>
+                                {item.stock_quantity > 0 && getSizeLiters(item.size_id) > 0
+                                    ? (item.stock_quantity * getSizeLiters(item.size_id)).toFixed(2) + ' L'
+                                    : '-'}
+                            </td>
                             <td>
                                 <div style={{ display: 'flex', gap: '8px' }}>
                                     <Button isSmall variant="secondary" onClick={() => handleEdit(item)}>Edit</Button>
