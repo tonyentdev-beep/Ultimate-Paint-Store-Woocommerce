@@ -827,21 +827,19 @@ class Paint_Store_API {
 		global $wpdb;
 		$family_id = intval( $request->get_param( 'id' ) );
 		
+		try {
 		// 1. Get the Family
 		$family = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}ps_product_families WHERE id = %d", $family_id ) );
 		if ( ! $family ) return new WP_Error( 'not_found', 'Product family not found.', array( 'status' => 404 ) );
-
-		// 2. Get all physical products linked to this family to know which sizes/sheens to activate
-		// Note: The structure implies we need actual `ps_products` tied to this family.
-		// If ps_products are not yet built out, we need a way to assign available sizes/sheens to the family directly.
-		// Since we haven't built the `ps_products` UI yet, for Phase 4, we will assign ALL sizes and ALL sheens as a baseline, 
-		// OR we can wait to build the Products UI first.
 
 		// Let's create the parent Variable Product first.
 		$product = new WC_Product_Variable();
 		if ( $family->wc_product_id ) {
 			try {
-				$product = new WC_Product_Variable( $family->wc_product_id );
+				$existing = wc_get_product( $family->wc_product_id );
+				if ( $existing && $existing->is_type( 'variable' ) ) {
+					$product = $existing;
+				}
 			} catch ( Exception $e ) {
 				$product = new WC_Product_Variable(); // fallback if deleted in woo
 			}
@@ -861,7 +859,6 @@ class Paint_Store_API {
 		}
 
 		// 4. Extract purely the unique sizes and sheens utilized by these physical products
-		// This ensures the Family only displays variations that actually exist.
 		$attached_size_ids = array_unique( wp_list_pluck( $physical_products, 'size_id' ) );
 		$attached_sheen_ids = array_unique( wp_list_pluck( $physical_products, 'sheen_id' ) );
 
@@ -916,7 +913,7 @@ class Paint_Store_API {
 			$sheen_wc_id = $wpdb->get_var( $wpdb->prepare( "SELECT wc_attribute_id FROM {$wpdb->prefix}ps_sheens WHERE id = %d", $ps_product->sheen_id ) );
 			$sheen_term = $sheen_wc_id ? get_term( $sheen_wc_id ) : false;
 
-			if ( ! $size_term || ! $sheen_term ) continue;
+			if ( ! $size_term || ! $sheen_term || is_wp_error( $size_term ) || is_wp_error( $sheen_term ) ) continue;
 
 			// Check if variation exists for this exact Size + Sheen block
 			$variation_id = $this->find_matching_variation( $product_id, array(
@@ -924,28 +921,40 @@ class Paint_Store_API {
 				'attribute_pa_paint_sheen' => $sheen_term->slug
 			) );
 
-			$variation = new WC_Product_Variation( $variation_id );
-			$variation->set_parent_id( $product_id );
-			$variation->set_attributes( array(
-				'pa_paint_size' => $size_term->slug,
-				'pa_paint_sheen' => $sheen_term->slug
-			) );
-			
-			$variation->set_regular_price( $ps_product->price );
-			$variation->set_sku( $ps_product->sku );
-			$variation->set_manage_stock( true );
-			$variation->set_stock_quantity( $ps_product->stock_quantity );
-			
-			$var_id_saved = $variation->save();
-			
-			if ( $var_id_saved ) {
-				// Update ps_product table linking to the distinct Woo Variation ID
-				$wpdb->update( $wpdb->prefix . 'ps_products', array( 'woo_product_id' => $var_id_saved ), array( 'id' => $ps_product->id ) );
-				$synced_variations++;
+			try {
+				$variation = new WC_Product_Variation( $variation_id );
+				$variation->set_parent_id( $product_id );
+				$variation->set_attributes( array(
+					'pa_paint_size' => $size_term->slug,
+					'pa_paint_sheen' => $sheen_term->slug
+				) );
+				
+				$variation->set_regular_price( $ps_product->price );
+				// Only set SKU if it's non-empty, and catch duplicate SKU errors
+				if ( ! empty( $ps_product->sku ) ) {
+					$variation->set_sku( $ps_product->sku );
+				}
+				$variation->set_manage_stock( true );
+				$variation->set_stock_quantity( $ps_product->stock_quantity );
+				
+				$var_id_saved = $variation->save();
+				
+				if ( $var_id_saved ) {
+					// Update ps_product table linking to the distinct Woo Variation ID
+					$wpdb->update( $wpdb->prefix . 'ps_products', array( 'woo_product_id' => $var_id_saved ), array( 'id' => $ps_product->id ) );
+					$synced_variations++;
+				}
+			} catch ( Exception $e ) {
+				// Skip this variation if there's a WooCommerce error (e.g. duplicate SKU)
+				continue;
 			}
 		}
 
 		return rest_ensure_response( array( 'success' => true, 'wc_product_id' => $product_id ) );
+
+		} catch ( Exception $e ) {
+			return new WP_Error( 'sync_error', 'Sync failed: ' . $e->getMessage(), array( 'status' => 500 ) );
+		}
 	}
 
 	private function find_matching_variation( $product_id, $match_attributes ) {
