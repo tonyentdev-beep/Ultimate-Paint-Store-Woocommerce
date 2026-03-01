@@ -1491,7 +1491,7 @@ class Paint_Store_API {
 
 		$ps_products = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}ps_products WHERE family_id = %d", $family_id ), ARRAY_A );
 
-		// Cast the product fields to integers where appropriate to help the frontend
+		// Cast and enrich each product with WooCommerce term slugs for frontend filtering
 		foreach( $ps_products as &$prod ) {
 			$prod['id']         = intval( $prod['id'] );
 			$prod['family_id']  = intval( $prod['family_id'] );
@@ -1502,6 +1502,18 @@ class Paint_Store_API {
 			$prod['price']      = floatval( $prod['price'] );
 			$prod['stock_quantity'] = intval( $prod['stock_quantity'] );
 			$prod['woo_product_id'] = intval( $prod['woo_product_id'] );
+
+			// Resolve size name + WooCommerce slug
+			$size_row = $wpdb->get_row( $wpdb->prepare( "SELECT name, wc_attribute_id FROM {$wpdb->prefix}ps_sizes WHERE id = %d", $prod['size_id'] ) );
+			$prod['size_name'] = $size_row ? $size_row->name : '';
+			$size_term = ( $size_row && $size_row->wc_attribute_id ) ? get_term( $size_row->wc_attribute_id ) : null;
+			$prod['size_slug'] = ( $size_term && ! is_wp_error( $size_term ) ) ? $size_term->slug : '';
+
+			// Resolve sheen name + WooCommerce slug
+			$sheen_row = $wpdb->get_row( $wpdb->prepare( "SELECT name, wc_attribute_id FROM {$wpdb->prefix}ps_sheens WHERE id = %d", $prod['sheen_id'] ) );
+			$prod['sheen_name'] = $sheen_row ? $sheen_row->name : '';
+			$sheen_term = ( $sheen_row && $sheen_row->wc_attribute_id ) ? get_term( $sheen_row->wc_attribute_id ) : null;
+			$prod['sheen_slug'] = ( $sheen_term && ! is_wp_error( $sheen_term ) ) ? $sheen_term->slug : '';
 		}
 
 		$response = array(

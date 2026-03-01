@@ -37,15 +37,17 @@ const App = ({ familyId }) => {
         fetchData();
     }, [familyId]);
 
-    // Determine if we have explicit physical SKUs for this family
+    // Do we have explicit physical products defined for this family?
     const hasPhysicalProducts = familyData && familyData.ps_products && familyData.ps_products.length > 0;
 
-    // When a color is selected, filter the ps_products to only those
-    // whose base_id matches one of the color's required base_ids.
-    // If no ps_products exist for the family, or the color has no base_ids,
-    // we fall back to showing everything (no filtering).
-    const shouldFilter = hasPhysicalProducts && selectedColor && selectedColor.base_ids && selectedColor.base_ids.length > 0;
+    // Should we apply the smart filter?
+    // Only if: physical SKUs exist AND a color is selected AND the color has base associations
+    const shouldFilter = hasPhysicalProducts
+        && selectedColor
+        && selectedColor.base_ids
+        && selectedColor.base_ids.length > 0;
 
+    // Filter ps_products by the selected color's required base_ids
     const validProducts = useMemo(() => {
         if (!hasPhysicalProducts) return [];
         if (!shouldFilter) return familyData.ps_products;
@@ -54,53 +56,54 @@ const App = ({ familyId }) => {
         );
     }, [familyData, selectedColor, hasPhysicalProducts, shouldFilter]);
 
-    // Extract valid WooCommerce variation IDs from the filtered physical products
-    const validVariationIds = useMemo(() => {
-        if (!shouldFilter) return []; // empty = don't filter
-        return validProducts
-            .map(p => p.woo_product_id)
-            .filter(id => id > 0);
-    }, [validProducts, shouldFilter]);
-
-    // Filter the WooCommerce variations
-    // Only filter if we actually have explicit physical SKU mapping AND valid variation IDs
-    const filteredVariations = useMemo(() => {
-        if (!familyData || !familyData.variations) return [];
-        // If we're not filtering (no physical products, or no color chosen, or color has no bases), show all
-        if (!shouldFilter || validVariationIds.length === 0) return familyData.variations;
-        return familyData.variations.filter(v => validVariationIds.includes(v.id));
-    }, [familyData, validVariationIds, shouldFilter]);
-
-    // Build filtered attributes (sizes and sheens) from the filtered variations
+    // Derive valid sizes and sheens DIRECTLY from the filtered ps_products
+    // Each ps_product now has size_slug, size_name, sheen_slug, sheen_name from the API
     const filteredAttributes = useMemo(() => {
         if (!familyData || !familyData.attributes) return { sizes: [], sheens: [] };
 
-        // If not filtering, show all attributes
-        if (!shouldFilter || filteredVariations === familyData.variations) {
+        // If not filtering, show all WooCommerce attributes as normal
+        if (!shouldFilter) {
             return familyData.attributes;
         }
 
-        // Extract the unique size slugs and sheen slugs from filtered variations
-        const validSizeSlugs = new Set();
-        const validSheenSlugs = new Set();
-        filteredVariations.forEach(v => {
-            if (v.attributes && v.attributes.attribute_pa_paint_size) {
-                validSizeSlugs.add(v.attributes.attribute_pa_paint_size);
-            }
-            if (v.attributes && v.attributes.attribute_pa_paint_sheen) {
-                validSheenSlugs.add(v.attributes.attribute_pa_paint_sheen);
-            }
+        // Build unique sizes and sheens from the valid physical products
+        const sizeMap = {};
+        const sheenMap = {};
+        validProducts.forEach(p => {
+            if (p.size_slug) sizeMap[p.size_slug] = p.size_name;
+            if (p.sheen_slug) sheenMap[p.sheen_slug] = p.sheen_name;
         });
 
-        const sizes = validSizeSlugs.size > 0
-            ? familyData.attributes.sizes.filter(s => validSizeSlugs.has(s.slug))
-            : familyData.attributes.sizes;
-        const sheens = validSheenSlugs.size > 0
-            ? familyData.attributes.sheens.filter(s => validSheenSlugs.has(s.slug))
-            : familyData.attributes.sheens;
+        const sizes = Object.keys(sizeMap).map(slug => ({ slug, name: sizeMap[slug] }));
+        const sheens = Object.keys(sheenMap).map(slug => ({ slug, name: sheenMap[slug] }));
+
+        // If the filter produced no sizes/sheens (no matching physical products),
+        // fall back to showing everything
+        if (sizes.length === 0 && sheens.length === 0) {
+            return familyData.attributes;
+        }
 
         return { sizes, sheens };
-    }, [familyData, filteredVariations, shouldFilter]);
+    }, [familyData, validProducts, shouldFilter]);
+
+    // Filter WooCommerce variations to only those matching the valid size/sheen slugs
+    const filteredVariations = useMemo(() => {
+        if (!familyData || !familyData.variations) return [];
+        if (!shouldFilter) return familyData.variations;
+
+        const validSizeSlugs = new Set(filteredAttributes.sizes.map(s => s.slug));
+        const validSheenSlugs = new Set(filteredAttributes.sheens.map(s => s.slug));
+
+        const filtered = familyData.variations.filter(v => {
+            const vSize = v.attributes && v.attributes.attribute_pa_paint_size;
+            const vSheen = v.attributes && v.attributes.attribute_pa_paint_sheen;
+            const sizeOk = !vSize || validSizeSlugs.has(vSize);
+            const sheenOk = !vSheen || validSheenSlugs.has(vSheen);
+            return sizeOk && sheenOk;
+        });
+
+        return filtered.length > 0 ? filtered : familyData.variations;
+    }, [familyData, filteredAttributes, shouldFilter]);
 
     // Reset size/sheen when color changes and they become unavailable
     useEffect(() => {
