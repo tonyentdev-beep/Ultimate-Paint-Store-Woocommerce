@@ -848,8 +848,8 @@ class Paint_Store_API {
 		}
 
 		$product->set_name( $family->name );
-		$product->set_description( $family->description );
-		$product->set_short_description( $family->short_description ?: '' );
+		$product->set_description( $family->description ?: '' );
+		$product->set_short_description( isset( $family->short_description ) ? $family->short_description : '' );
 		if ( $family->image_id ) {
 			$product->set_image_id( $family->image_id );
 		}
