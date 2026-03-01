@@ -9,6 +9,7 @@ import ProductCategoriesManager from './products/ProductCategoriesManager';
 import SizesManager from './products/SizesManager';
 import SheensManager from './products/SheensManager';
 import SurfaceTypesManager from './products/SurfaceTypesManager';
+import SceneImagesManager from './products/SceneImagesManager';
 
 const App = () => {
     const [activeTab, setActiveTab] = useState('colors');
@@ -27,6 +28,7 @@ const App = () => {
     const [sizes, setSizes] = useState([]);
     const [sheens, setSheens] = useState([]);
     const [surfaceTypes, setSurfaceTypes] = useState([]);
+    const [sceneImages, setSceneImages] = useState([]);
 
     // Initial Fetch All
     useEffect(() => {
@@ -39,6 +41,7 @@ const App = () => {
         fetchSizes();
         fetchSheens();
         fetchSurfaceTypes();
+        fetchSceneImages();
     }, []);
 
     const fetchBrands = async () => {
@@ -77,6 +80,10 @@ const App = () => {
         try { const data = await apiFetch({ path: '/paint-store/v1/surface-types' }); setSurfaceTypes(data); }
         catch (error) { console.error('Error fetching surface types:', error); }
     };
+    const fetchSceneImages = async () => {
+        try { const data = await apiFetch({ path: '/paint-store/v1/scene-images' }); setSceneImages(data); }
+        catch (error) { console.error('Error fetching scene images:', error); }
+    };
 
     const handleUpgradeDb = async () => {
         setIsUpgradingDb(true);
@@ -98,6 +105,7 @@ const App = () => {
         { key: 'sizes', label: 'Sizes' },
         { key: 'sheens', label: 'Sheens' },
         { key: 'surface-types', label: 'Surface Types' },
+        { key: 'scene-images', label: 'Scene Images' },
     ];
 
     return (
@@ -201,6 +209,9 @@ const App = () => {
                         )}
                         {activeProductSubTab === 'surface-types' && (
                             <SurfaceTypesManager surfaceTypes={surfaceTypes} fetchSurfaceTypes={fetchSurfaceTypes} />
+                        )}
+                        {activeProductSubTab === 'scene-images' && (
+                            <SceneImagesManager sceneImages={sceneImages} fetchSceneImages={fetchSceneImages} />
                         )}
                     </div>
                 )}

@@ -105,6 +105,15 @@ class Paint_Store_Activator {
 			PRIMARY KEY  (id)
 		) $charset_collate;";
 
+		// 11. Scene Images (for Color Visualizer)
+		$table_name = $wpdb->prefix . 'ps_scene_images';
+		$tables[] = "CREATE TABLE $table_name (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			name varchar(255) NOT NULL,
+			image_id bigint(20) unsigned DEFAULT 0 NOT NULL,
+			PRIMARY KEY  (id)
+		) $charset_collate;";
+
 		// 9. Products (The physical SKUs tied to WooCommerce)
 		$table_name = $wpdb->prefix . 'ps_products';
 		$tables[] = "CREATE TABLE $table_name (

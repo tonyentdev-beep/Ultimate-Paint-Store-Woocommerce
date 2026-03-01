@@ -166,6 +166,16 @@ class Paint_Store_API {
 			array( 'methods' => WP_REST_Server::DELETABLE, 'callback' => array( $this, 'delete_surface_type' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
 		) );
 
+		// Scene Images Endpoints
+		register_rest_route( $this->namespace, '/scene-images', array(
+			array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'get_scene_images' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+			array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'create_scene_image' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+		) );
+		register_rest_route( $this->namespace, '/scene-images/(?P<id>\\d+)', array(
+			array( 'methods' => WP_REST_Server::EDITABLE, 'callback' => array( $this, 'update_scene_image' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+			array( 'methods' => WP_REST_Server::DELETABLE, 'callback' => array( $this, 'delete_scene_image' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+		) );
+
 		// Temporary DB Upgrade Endpoint
 		register_rest_route( $this->namespace, '/upgrade-db', array(
 			array(
@@ -735,6 +745,49 @@ class Paint_Store_API {
 	public function delete_surface_type( $request ) {
 		global $wpdb;
 		$wpdb->delete( $wpdb->prefix . 'ps_surface_types', array( 'id' => $request->get_param( 'id' ) ), array( '%d' ) );
+		return rest_ensure_response( array( 'success' => true ) );
+	}
+
+	// --- Scene Images Handlers ---
+
+	public function get_scene_images( $request ) {
+		global $wpdb;
+		$results = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}ps_scene_images", ARRAY_A );
+		foreach ( $results as &$row ) {
+			$row['image_url'] = '';
+			if ( ! empty( $row['image_id'] ) ) {
+				$url = wp_get_attachment_url( intval( $row['image_id'] ) );
+				if ( $url ) $row['image_url'] = $url;
+			}
+		}
+		return rest_ensure_response( $results );
+	}
+
+	public function create_scene_image( $request ) {
+		global $wpdb;
+		$name = sanitize_text_field( $request->get_param( 'name' ) );
+		$image_id = intval( $request->get_param( 'image_id' ) );
+		if ( empty( $name ) ) return new WP_Error( 'missing_name', 'Name is required', array( 'status' => 400 ) );
+		if ( empty( $image_id ) ) return new WP_Error( 'missing_image', 'Image is required', array( 'status' => 400 ) );
+		$result = $wpdb->insert( $wpdb->prefix . 'ps_scene_images', array( 'name' => $name, 'image_id' => $image_id ), array( '%s', '%d' ) );
+		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
+		return rest_ensure_response( array( 'id' => $wpdb->insert_id ) );
+	}
+
+	public function update_scene_image( $request ) {
+		global $wpdb;
+		$id = $request->get_param( 'id' );
+		$name = sanitize_text_field( $request->get_param( 'name' ) );
+		$image_id = intval( $request->get_param( 'image_id' ) );
+		if ( empty( $name ) ) return new WP_Error( 'missing_name', 'Name is required', array( 'status' => 400 ) );
+		$result = $wpdb->update( $wpdb->prefix . 'ps_scene_images', array( 'name' => $name, 'image_id' => $image_id ), array( 'id' => $id ), array( '%s', '%d' ), array( '%d' ) );
+		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
+		return rest_ensure_response( array( 'success' => true ) );
+	}
+
+	public function delete_scene_image( $request ) {
+		global $wpdb;
+		$wpdb->delete( $wpdb->prefix . 'ps_scene_images', array( 'id' => $request->get_param( 'id' ) ), array( '%d' ) );
 		return rest_ensure_response( array( 'success' => true ) );
 	}
 }
