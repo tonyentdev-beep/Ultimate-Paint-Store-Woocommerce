@@ -21,6 +21,12 @@ class Paint_Store_WooCommerce {
 		$family = $wpdb->get_row( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}ps_product_families WHERE wc_product_id = %d", $post->ID ) );
 
 		if ( $family ) {
+			// Remove ALL default WooCommerce layouts and sidesbars
+			remove_action( 'woocommerce_before_main_content', 'woocommerce_output_content_wrapper', 10 );
+			remove_action( 'woocommerce_after_main_content', 'woocommerce_output_content_wrapper_end', 10 );
+			remove_action( 'woocommerce_sidebar', 'woocommerce_get_sidebar', 10 );
+
+			// Remove default single product components
 			remove_action( 'woocommerce_before_single_product_summary', 'woocommerce_show_product_images', 20 );
 			remove_action( 'woocommerce_single_product_summary', 'woocommerce_template_single_title', 5 );
 			remove_action( 'woocommerce_single_product_summary', 'woocommerce_template_single_rating', 10 );
@@ -29,8 +35,30 @@ class Paint_Store_WooCommerce {
 			remove_action( 'woocommerce_single_product_summary', 'woocommerce_template_single_meta', 40 );
 			remove_action( 'woocommerce_single_product_summary', 'woocommerce_template_single_sharing', 50 );
 			remove_action( 'woocommerce_single_product_summary', 'woocommerce_template_single_add_to_cart', 30 );
-			
+			remove_action( 'woocommerce_after_single_product_summary', 'woocommerce_output_product_data_tabs', 10 );
+			remove_action( 'woocommerce_after_single_product_summary', 'woocommerce_upsell_display', 15 );
+			remove_action( 'woocommerce_after_single_product_summary', 'woocommerce_output_related_products', 20 );
+
+			// Inject theme's exact site-container as the wrapper
+			add_action( 'woocommerce_before_main_content', function() {
+				echo '<main class="site-container">';
+			}, 10 );
+
+			add_action( 'woocommerce_after_main_content', function() {
+				echo '</main>';
+			}, 10 );
+
 			add_action( 'woocommerce_single_product_summary', function() use ( $family ) {
+				echo '<style>
+					/* Clean up residual generic woo constraints */
+					.woocommerce div.product { margin-bottom: 0 !important; }
+					.woocommerce #content div.product div.summary, .woocommerce div.product div.summary, .woocommerce-page #content div.product div.summary, .woocommerce-page div.product div.summary {
+						width: 100% !important; float: none !important; margin: 0 !important; padding: 0 !important; max-width: none !important; clear: both !important;
+					}
+					.woocommerce #content div.product div.images, .woocommerce div.product div.images, .woocommerce-page #content div.product div.images, .woocommerce-page div.product div.images {
+						display: none !important;
+					}
+				</style>';
 				echo do_shortcode( '[paint_store_builder family_id="' . esc_attr( $family->id ) . '"]' );
 			}, 10 );
 		}

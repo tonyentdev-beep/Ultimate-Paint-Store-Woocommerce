@@ -1,6 +1,6 @@
 import { useState, useMemo } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
-import { Button, TextControl, SelectControl, PanelBody, PanelRow, CheckboxControl } from '@wordpress/components';
+import { Button, TextControl, TextareaControl, SelectControl, PanelBody, PanelRow, CheckboxControl } from '@wordpress/components';
 
 const ITEMS_PER_PAGE = 25;
 
@@ -10,7 +10,9 @@ const ColorsManager = ({ colors, families, allBases, brands, fetchColors }) => {
     const [newColorHex, setNewColorHex] = useState('');
     const [newColorFamilyId, setNewColorFamilyId] = useState('');
     const [newColorBrandId, setNewColorBrandId] = useState('');
+    const [newColorDescription, setNewColorDescription] = useState('');
     const [selectedBases, setSelectedBases] = useState([]);
+    const [selectedCoordinatingColors, setSelectedCoordinatingColors] = useState([]);
     const [isSaving, setIsSaving] = useState(false);
     const [editingId, setEditingId] = useState(null);
 
@@ -32,9 +34,11 @@ const ColorsManager = ({ colors, families, allBases, brands, fetchColors }) => {
                 color_code: newColorCode,
                 hex_value: newColorHex,
                 rgb_value: '',
+                description: newColorDescription,
                 family_id: newColorFamilyId,
                 brand_id: newColorBrandId,
-                base_ids: selectedBases
+                base_ids: selectedBases,
+                coordinating_color_ids: selectedCoordinatingColors
             };
 
             if (editingId) {
@@ -54,9 +58,11 @@ const ColorsManager = ({ colors, families, allBases, brands, fetchColors }) => {
             setNewColorName('');
             setNewColorCode('');
             setNewColorHex('');
+            setNewColorDescription('');
             setNewColorFamilyId('');
             setNewColorBrandId('');
             setSelectedBases([]);
+            setSelectedCoordinatingColors([]);
             setEditingId(null);
             fetchColors();
         } catch (error) {
@@ -71,9 +77,11 @@ const ColorsManager = ({ colors, families, allBases, brands, fetchColors }) => {
         setNewColorName(color.name);
         setNewColorCode(color.color_code || '');
         setNewColorHex(color.hex_value || '');
+        setNewColorDescription(color.description || '');
         setNewColorFamilyId(color.family_id == 0 ? '' : color.family_id);
         setNewColorBrandId(color.brand_id == 0 ? '' : color.brand_id);
         setSelectedBases(color.base_ids || []);
+        setSelectedCoordinatingColors(color.coordinating_color_ids || []);
     };
 
     const handleCancelEdit = () => {
@@ -81,9 +89,11 @@ const ColorsManager = ({ colors, families, allBases, brands, fetchColors }) => {
         setNewColorName('');
         setNewColorCode('');
         setNewColorHex('');
+        setNewColorDescription('');
         setNewColorFamilyId('');
         setNewColorBrandId('');
         setSelectedBases([]);
+        setSelectedCoordinatingColors([]);
     };
 
     const handleDelete = async (id) => {
@@ -109,6 +119,10 @@ const ColorsManager = ({ colors, families, allBases, brands, fetchColors }) => {
         );
     };
 
+    const handleCoordinatingColorsChange = (values) => {
+        setSelectedCoordinatingColors(values.map(val => parseInt(val, 10)));
+    };
+
     const familyOptions = [
         { label: 'Select a Family...', value: '' },
         ...families.map(family => ({ label: family.name, value: family.id }))
@@ -118,6 +132,10 @@ const ColorsManager = ({ colors, families, allBases, brands, fetchColors }) => {
         { label: 'Select a Brand...', value: '' },
         ...brands.map(brand => ({ label: brand.name, value: brand.id }))
     ];
+
+    const coordinatingColorOptions = colors
+        .filter(c => c.id !== editingId) // Prevent self-referencing
+        .map(c => ({ label: `${c.name} (${c.color_code})`, value: c.id }));
 
     // Filter options (for the filter bar, includes "All" option)
     const filterFamilyOptions = [
@@ -234,6 +252,27 @@ const ColorsManager = ({ colors, families, allBases, brands, fetchColors }) => {
                         />
                     </div>
                 </PanelRow>
+                <PanelRow>
+                    <TextareaControl
+                        label="Description (for SEO / Meta)"
+                        help="Optional. This description will appear on the frontend and be used for search engine meta tags."
+                        value={newColorDescription}
+                        onChange={(value) => setNewColorDescription(value)}
+                        rows={3}
+                        style={{ width: '100%' }}
+                    />
+                </PanelRow>
+                <PanelRow>
+                    <SelectControl
+                        multiple
+                        label="Coordinating Colors (Optional)"
+                        help="Hold CMD (Mac) or CTRL (Windows) to select multiple colors to recommend alongside this primary color."
+                        value={selectedCoordinatingColors}
+                        options={coordinatingColorOptions}
+                        onChange={handleCoordinatingColorsChange}
+                        style={{ width: '100%', height: '150px' }}
+                    />
+                </PanelRow>
                 <div style={{ marginTop: '15px', padding: '15px 20px' }}>
                     <p style={{ fontWeight: 600, marginBottom: '10px' }}>Compatible Bases (Required)</p>
                     {allBases.length === 0 ? (
@@ -270,7 +309,21 @@ const ColorsManager = ({ colors, families, allBases, brands, fetchColors }) => {
             </PanelBody>
 
             <div style={{ marginTop: '30px' }}>
-                <h3>Existing Colors</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                    <h3 style={{ margin: 0 }}>Existing Colors</h3>
+                    <Button
+                        variant="secondary"
+                        href={`/wp-json/paint-store/v1/colors/export?_wpnonce=${window.wpApiSettings ? window.wpApiSettings.nonce : ''}`}
+                        target="_blank"
+                        icon={
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 16L7 11L8.4 9.55L11 12.15V4H13V12.15L15.6 9.55L17 11L12 16ZM6 20C5.45 20 4.97917 19.8042 4.5875 19.4125C4.19583 19.0208 4 18.55 4 18V15H6V18H18V15H20V18C20 18.55 19.8042 19.0208 19.4125 19.4125C19.0208 19.8042 18.55 20 18 20H6Z" fill="currentColor" />
+                            </svg>
+                        }
+                    >
+                        Export Colors to CSV
+                    </Button>
+                </div>
 
                 {/* ─── Filter Bar ─── */}
                 <div style={{

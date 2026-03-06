@@ -15,6 +15,7 @@ class Paint_Store_Activator {
 		$tables[] = "CREATE TABLE $table_name (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			name varchar(255) NOT NULL,
+			description text,
 			wc_attribute_id bigint(20) unsigned DEFAULT 0 NOT NULL,
 			PRIMARY KEY  (id),
 			KEY wc_attribute_id (wc_attribute_id)
@@ -25,6 +26,7 @@ class Paint_Store_Activator {
 		$tables[] = "CREATE TABLE $table_name (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			name varchar(255) NOT NULL,
+			description text,
 			PRIMARY KEY  (id)
 		) $charset_collate;";
 
@@ -34,6 +36,7 @@ class Paint_Store_Activator {
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			name varchar(255) NOT NULL,
 			slug varchar(255) NOT NULL,
+			description text,
 			hex_representative varchar(10) DEFAULT '' NOT NULL,
 			PRIMARY KEY  (id)
 		) $charset_collate;";
@@ -43,6 +46,7 @@ class Paint_Store_Activator {
 		$tables[] = "CREATE TABLE $table_name (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			name varchar(255) NOT NULL,
+			description text,
 			PRIMARY KEY  (id)
 		) $charset_collate;";
 
@@ -54,6 +58,7 @@ class Paint_Store_Activator {
 			color_code varchar(50) DEFAULT '' NOT NULL,
 			hex_value varchar(10) DEFAULT '' NOT NULL,
 			rgb_value varchar(50) DEFAULT '' NOT NULL,
+			description text,
 			family_id bigint(20) unsigned DEFAULT 0 NOT NULL,
 			brand_id bigint(20) unsigned DEFAULT 0 NOT NULL,
 			PRIMARY KEY  (id),
@@ -75,6 +80,7 @@ class Paint_Store_Activator {
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			name varchar(255) NOT NULL,
 			slug varchar(255) DEFAULT '' NOT NULL,
+			description text,
 			wc_attribute_id bigint(20) unsigned DEFAULT 0 NOT NULL,
 			PRIMARY KEY  (id),
 			KEY wc_attribute_id (wc_attribute_id)
@@ -87,8 +93,9 @@ class Paint_Store_Activator {
 			name varchar(255) NOT NULL,
 			brand_id bigint(20) unsigned DEFAULT 0 NOT NULL,
 			description text,
+			how_to_use text,
 			short_description text,
-			image_id bigint(20) unsigned DEFAULT 0 NOT NULL,
+			gallery_image_ids text,
 			wc_product_id bigint(20) unsigned DEFAULT 0 NOT NULL,
 			PRIMARY KEY  (id),
 			KEY brand_id (brand_id),
@@ -113,12 +120,40 @@ class Paint_Store_Activator {
 			KEY surface_type_id (surface_type_id)
 		) $charset_collate;";
 
+		// 7e. Family ↔ Scenes (many-to-many)
+		$table_name = $wpdb->prefix . 'ps_family_scenes';
+		$tables[] = "CREATE TABLE $table_name (
+			family_id bigint(20) unsigned NOT NULL,
+			scene_id bigint(20) unsigned NOT NULL,
+			PRIMARY KEY  (family_id, scene_id),
+			KEY scene_id (scene_id)
+		) $charset_collate;";
+
+		// 7f. Family ↔ Sheens (Explicit mapping)
+		$table_name = $wpdb->prefix . 'ps_family_sheens';
+		$tables[] = "CREATE TABLE $table_name (
+			family_id bigint(20) unsigned NOT NULL,
+			sheen_id bigint(20) unsigned NOT NULL,
+			PRIMARY KEY  (family_id, sheen_id),
+			KEY sheen_id (sheen_id)
+		) $charset_collate;";
+
+		// 7g. Color ↔ Coordinating Colors (one-way mapping)
+		$table_name = $wpdb->prefix . 'ps_color_coordinations';
+		$tables[] = "CREATE TABLE $table_name (
+			primary_color_id bigint(20) unsigned NOT NULL,
+			coordinating_color_id bigint(20) unsigned NOT NULL,
+			PRIMARY KEY  (primary_color_id, coordinating_color_id),
+			KEY coordinating_color_id (coordinating_color_id)
+		) $charset_collate;";
+
 		// 8. Product Categories
 		$table_name = $wpdb->prefix . 'ps_product_categories';
 		$tables[] = "CREATE TABLE $table_name (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			name varchar(255) NOT NULL,
 			slug varchar(255) NOT NULL,
+			description text,
 			wc_category_id bigint(20) unsigned DEFAULT 0 NOT NULL,
 			PRIMARY KEY  (id),
 			KEY wc_category_id (wc_category_id)
@@ -130,6 +165,7 @@ class Paint_Store_Activator {
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			name varchar(255) NOT NULL,
 			liters decimal(10,2) DEFAULT 0.00 NOT NULL,
+			description text,
 			wc_attribute_id bigint(20) unsigned DEFAULT 0 NOT NULL,
 			PRIMARY KEY  (id),
 			KEY wc_attribute_id (wc_attribute_id)
@@ -140,6 +176,7 @@ class Paint_Store_Activator {
 		$tables[] = "CREATE TABLE $table_name (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			name varchar(255) NOT NULL,
+			description text,
 			wc_attribute_id bigint(20) unsigned DEFAULT 0 NOT NULL,
 			PRIMARY KEY  (id),
 			KEY wc_attribute_id (wc_attribute_id)
@@ -150,6 +187,7 @@ class Paint_Store_Activator {
 		$tables[] = "CREATE TABLE $table_name (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			name varchar(255) NOT NULL,
+			description text,
 			image_id bigint(20) unsigned DEFAULT 0 NOT NULL,
 			PRIMARY KEY  (id)
 		) $charset_collate;";
@@ -165,11 +203,29 @@ class Paint_Store_Activator {
 			surface_id bigint(20) unsigned NOT NULL,
 			sku varchar(100) DEFAULT '' NOT NULL,
 			price decimal(10,2) DEFAULT 0.00 NOT NULL,
+			description text,
 			stock_quantity int(11) DEFAULT 0 NOT NULL,
 			woo_product_id bigint(20) unsigned DEFAULT 0 NOT NULL,
 			PRIMARY KEY  (id),
 			KEY family_id (family_id),
 			KEY woo_product_id (woo_product_id)
+		) $charset_collate;";
+
+		// 13. Family Datasheets (PDS and SDS PDFs per sku config)
+		$table_name = $wpdb->prefix . 'ps_family_datasheets';
+		$tables[] = "CREATE TABLE $table_name (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			family_id bigint(20) unsigned NOT NULL,
+			product_number varchar(100) DEFAULT '' NOT NULL,
+			sheen varchar(100) DEFAULT '' NOT NULL,
+			base_color varchar(100) DEFAULT '' NOT NULL,
+			container_size varchar(50) DEFAULT '' NOT NULL,
+			sds_file_id bigint(20) unsigned DEFAULT 0 NOT NULL,
+			sds_file_url varchar(255) DEFAULT '' NOT NULL,
+			pds_file_id bigint(20) unsigned DEFAULT 0 NOT NULL,
+			pds_file_url varchar(255) DEFAULT '' NOT NULL,
+			PRIMARY KEY  (id),
+			KEY family_id (family_id)
 		) $charset_collate;";
 
 		// 10. Projects

@@ -1,9 +1,10 @@
 import { useState } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
-import { Button, TextControl, PanelBody, PanelRow } from '@wordpress/components';
+import { Button, TextControl, TextareaControl, PanelBody, PanelRow } from '@wordpress/components';
 
 const BasesManager = ({ bases, fetchBases }) => {
     const [newBaseName, setNewBaseName] = useState('');
+    const [description, setDescription] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [editingId, setEditingId] = useState(null);
 

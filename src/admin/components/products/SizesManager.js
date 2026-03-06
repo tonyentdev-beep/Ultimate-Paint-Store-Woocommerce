@@ -1,10 +1,11 @@
 import { useState } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
-import { Button, TextControl, PanelBody, PanelRow } from '@wordpress/components';
+import { Button, TextControl, TextareaControl, PanelBody, PanelRow } from '@wordpress/components';
 
 const SizesManager = ({ sizes, fetchSizes }) => {
     const [name, setName] = useState('');
     const [liters, setLiters] = useState('');
+    const [description, setDescription] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [isSyncing, setIsSyncing] = useState(false);
@@ -20,7 +21,7 @@ const SizesManager = ({ sizes, fetchSizes }) => {
             } else {
                 await apiFetch({ path: '/paint-store/v1/sizes', method: 'POST', data });
             }
-            setName(''); setLiters(''); setEditingId(null); fetchSizes();
+            setName(''); setDescription(''); setLiters(''); setEditingId(null); fetchSizes();
         } catch (error) {
             console.error('Error saving size:', error);
             alert('Error saving size: ' + (error.message || JSON.stringify(error)));
@@ -28,8 +29,8 @@ const SizesManager = ({ sizes, fetchSizes }) => {
         setIsSaving(false);
     };
 
-    const handleEdit = (item) => { setEditingId(item.id); setName(item.name); setLiters(item.liters || ''); };
-    const handleCancelEdit = () => { setEditingId(null); setName(''); setLiters(''); };
+    const handleEdit = (item) => { setEditingId(item.id); setName(item.name); setDescription(item.description || ''); setLiters(item.liters || ''); };
+    const handleCancelEdit = () => { setEditingId(null); setName(''); setDescription(''); setLiters(''); };
     const handleDelete = async (id) => {
         if (!confirm('Are you sure you want to delete this size?')) return;
         try {
@@ -62,6 +63,9 @@ const SizesManager = ({ sizes, fetchSizes }) => {
                         <TextControl label="Size Name (e.g., 1 Gallon, 5 Gallon)" value={name} onChange={setName} />
                         <TextControl label="Liters (e.g., 3.78)" value={liters} onChange={setLiters} type="number" step="0.01" />
                     </div>
+                </PanelRow>
+                <PanelRow>
+                    <TextareaControl label="Description (SEO meta text)" value={description} onChange={setDescription} rows={3} />
                 </PanelRow>
                 <div style={{ padding: '10px 20px 20px', display: 'flex', gap: '10px' }}>
                     <Button variant="primary" onClick={handleSave} isBusy={isSaving} disabled={!name || isSaving}>

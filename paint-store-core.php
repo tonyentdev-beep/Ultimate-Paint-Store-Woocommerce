@@ -69,3 +69,22 @@ function run_paint_store_core() {
 	$plugin->run();
 }
 run_paint_store_core();
+
+/**
+ * Allow SVG uploads for scene images
+ */
+add_filter( 'upload_mimes', function( $mimes ) {
+	$mimes['svg']  = 'image/svg+xml';
+	$mimes['svgz'] = 'image/svg+xml';
+	return $mimes;
+} );
+
+// Fix WordPress MIME check for SVGs
+add_filter( 'wp_check_filetype_and_ext', function( $data, $file, $filename, $mimes ) {
+	$ext = pathinfo( $filename, PATHINFO_EXTENSION );
+	if ( 'svg' === strtolower( $ext ) ) {
+		$data['type'] = 'image/svg+xml';
+		$data['ext']  = 'svg';
+	}
+	return $data;
+}, 10, 4 );

@@ -1,9 +1,10 @@
 import { useState } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
-import { Button, TextControl, PanelBody, PanelRow } from '@wordpress/components';
+import { Button, TextControl, TextareaControl, PanelBody, PanelRow } from '@wordpress/components';
 
 const ProductBrandsManager = ({ productBrands, fetchProductBrands }) => {
     const [name, setName] = useState('');
+    const [description, setDescription] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [isSyncing, setIsSyncing] = useState(false);
@@ -27,8 +28,8 @@ const ProductBrandsManager = ({ productBrands, fetchProductBrands }) => {
         setIsSaving(false);
     };
 
-    const handleEdit = (item) => { setEditingId(item.id); setName(item.name); };
-    const handleCancelEdit = () => { setEditingId(null); setName(''); };
+    const handleEdit = (item) => { setEditingId(item.id); setName(item.name); setDescription(item.description || ''); };
+    const handleCancelEdit = () => { setEditingId(null); setName(''); setDescription(''); };
     const handleDelete = async (id) => {
         if (!confirm('Are you sure you want to delete this product brand?')) return;
         try {

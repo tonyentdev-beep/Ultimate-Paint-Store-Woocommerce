@@ -10,9 +10,13 @@ get_header();
 
 // Page title
 $page_title = 'All Products';
+$page_desc  = '';
 if ( is_product_category() || is_tax() ) {
 	$term = get_queried_object();
-	if ( $term ) $page_title = $term->name;
+	if ( $term ) {
+        $page_title = $term->name;
+        $page_desc  = term_description( $term->term_id, $term->taxonomy );
+    }
 } elseif ( is_shop() ) {
 	$page_title = woocommerce_page_title( false );
 }
@@ -29,7 +33,14 @@ $clear_url       = remove_query_arg( array( 'ps_category', 'ps_sheen' ) );
 
 <!-- Hero Banner -->
 <div class="ps-hero-banner">
-	<h1 class="ps-hero-title"><?php echo esc_html( strtoupper( $page_title ) ); ?></h1>
+    <div class="ps-hero-inner">
+        <h1 class="ps-hero-title"><?php echo esc_html( strtoupper( $page_title ) ); ?></h1>
+        <?php if ( $page_desc ) : ?>
+            <div class="ps-hero-desc" style="max-width: 800px; margin: 15px 0 0; font-size: 1.1rem; opacity: 0.9; line-height: 1.5; font-weight: 400; text-transform: none; color: #ffffff;">
+                <?php echo wp_kses_post( wpautop( $page_desc ) ); ?>
+            </div>
+        <?php endif; ?>
+    </div>
 </div>
 
 <!-- PLP Layout: Sidebar + Products -->

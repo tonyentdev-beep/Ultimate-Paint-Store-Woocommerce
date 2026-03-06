@@ -233,6 +233,9 @@ const App = () => {
                                 productBrands={productBrands}
                                 productCategories={productCategories}
                                 surfaceTypes={surfaceTypes}
+                                sceneImages={sceneImages}
+                                sheens={sheens}
+                                sizes={sizes}
                                 fetchProductFamilies={fetchProductFamilies}
                             />
                         )}

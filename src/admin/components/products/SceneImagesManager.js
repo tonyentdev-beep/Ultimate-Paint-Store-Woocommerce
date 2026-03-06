@@ -1,11 +1,12 @@
 import { useState } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
-import { Button, TextControl, PanelBody, PanelRow } from '@wordpress/components';
+import { Button, TextControl, TextareaControl, PanelBody, PanelRow } from '@wordpress/components';
 
 const SceneImagesManager = ({ sceneImages, fetchSceneImages }) => {
     const [name, setName] = useState('');
     const [imageId, setImageId] = useState(0);
     const [imageUrl, setImageUrl] = useState('');
+    const [description, setDescription] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [editingId, setEditingId] = useState(null);
 
@@ -39,7 +40,7 @@ const SceneImagesManager = ({ sceneImages, fetchSceneImages }) => {
             } else {
                 await apiFetch({ path: '/paint-store/v1/scene-images', method: 'POST', data });
             }
-            setName(''); setImageId(0); setImageUrl(''); setEditingId(null);
+            setName(''); setDescription(''); setImageId(0); setImageUrl(''); setEditingId(null);
             fetchSceneImages();
         } catch (error) {
             console.error('Error saving scene image:', error);
@@ -50,12 +51,12 @@ const SceneImagesManager = ({ sceneImages, fetchSceneImages }) => {
 
     const handleEdit = (item) => {
         setEditingId(item.id);
-        setName(item.name);
+        setName(item.name); setDescription(item.description || '');
         setImageId(item.image_id ? parseInt(item.image_id) : 0);
         setImageUrl(item.image_url || '');
     };
     const handleCancelEdit = () => {
-        setEditingId(null); setName(''); setImageId(0); setImageUrl('');
+        setEditingId(null); setName(''); setDescription(''); setImageId(0); setImageUrl('');
     };
     const handleDelete = async (id) => {
         if (!confirm('Are you sure you want to delete this scene image?')) return;

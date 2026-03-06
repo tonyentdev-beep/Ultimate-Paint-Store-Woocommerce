@@ -1,9 +1,10 @@
 import { useState } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
-import { Button, TextControl, PanelBody, PanelRow } from '@wordpress/components';
+import { Button, TextControl, TextareaControl, PanelBody, PanelRow } from '@wordpress/components';
 
 const SurfaceTypesManager = ({ surfaceTypes, fetchSurfaceTypes }) => {
     const [name, setName] = useState('');
+    const [description, setDescription] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [isSyncing, setIsSyncing] = useState(false);
@@ -14,11 +15,11 @@ const SurfaceTypesManager = ({ surfaceTypes, fetchSurfaceTypes }) => {
         setIsSaving(true);
         try {
             if (editingId) {
-                await apiFetch({ path: `/paint-store/v1/surface-types/${editingId}`, method: 'PUT', data: { name } });
+                await apiFetch({ path: `/paint-store/v1/surface-types/${editingId}`, method: 'PUT', data: { name, description } });
             } else {
-                await apiFetch({ path: '/paint-store/v1/surface-types', method: 'POST', data: { name } });
+                await apiFetch({ path: '/paint-store/v1/surface-types', method: 'POST', data: { name, description } });
             }
-            setName(''); setEditingId(null); fetchSurfaceTypes();
+            setName(''); setDescription(''); setEditingId(null); fetchSurfaceTypes();
         } catch (error) {
             console.error('Error saving surface type:', error);
             alert('Error saving surface type: ' + (error.message || JSON.stringify(error)));
@@ -26,8 +27,8 @@ const SurfaceTypesManager = ({ surfaceTypes, fetchSurfaceTypes }) => {
         setIsSaving(false);
     };
 
-    const handleEdit = (item) => { setEditingId(item.id); setName(item.name); };
-    const handleCancelEdit = () => { setEditingId(null); setName(''); };
+    const handleEdit = (item) => { setEditingId(item.id); setName(item.name); setDescription(item.description || ''); };
+    const handleCancelEdit = () => { setEditingId(null); setName(''); setDescription(''); };
     const handleDelete = async (id) => {
         if (!confirm('Are you sure you want to delete this surface type?')) return;
         try {

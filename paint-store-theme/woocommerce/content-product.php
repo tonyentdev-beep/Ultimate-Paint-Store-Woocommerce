@@ -11,7 +11,7 @@ if ( ! is_a( $product, 'WC_Product' ) ) return;
 
 $link         = get_permalink( $product->get_id() );
 $title        = $product->get_name();
-$image        = $product->get_image( 'woocommerce_thumbnail', array( 'class' => 'ps-card-img' ) );
+$image        = $product->get_image( 'full', array( 'class' => 'ps-card-img' ) );
 $rating_count = $product->get_rating_count();
 $average      = $product->get_average_rating();
 $short_desc   = $product->get_short_description();

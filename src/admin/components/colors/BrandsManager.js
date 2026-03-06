@@ -1,9 +1,10 @@
 import { useState } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
-import { Button, TextControl, PanelBody, PanelRow } from '@wordpress/components';
+import { Button, TextControl, TextareaControl, PanelBody, PanelRow } from '@wordpress/components';
 
 const BrandsManager = ({ brands, fetchBrands }) => {
     const [newBrandName, setNewBrandName] = useState('');
+    const [description, setDescription] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [editingId, setEditingId] = useState(null);
 
@@ -15,16 +16,16 @@ const BrandsManager = ({ brands, fetchBrands }) => {
                 await apiFetch({
                     path: `/paint-store/v1/brands/${editingId}`,
                     method: 'PUT',
-                    data: { name: newBrandName },
+                    data: { name: newBrandName, description },
                 });
             } else {
                 await apiFetch({
                     path: '/paint-store/v1/brands',
                     method: 'POST',
-                    data: { name: newBrandName },
+                    data: { name: newBrandName, description },
                 });
             }
-            setNewBrandName('');
+            setNewBrandName(''); setDescription('');
             setEditingId(null);
             fetchBrands(); // Refresh the list
         } catch (error) {
@@ -36,12 +37,12 @@ const BrandsManager = ({ brands, fetchBrands }) => {
 
     const handleEdit = (brand) => {
         setEditingId(brand.id);
-        setNewBrandName(brand.name);
+        setNewBrandName(brand.name); setDescription(brand.description || '');
     };
 
     const handleCancelEdit = () => {
         setEditingId(null);
-        setNewBrandName('');
+        setNewBrandName(''); setDescription('');
     };
 
     const handleDelete = async (id) => {
@@ -68,6 +69,9 @@ const BrandsManager = ({ brands, fetchBrands }) => {
                         value={newBrandName}
                         onChange={(value) => setNewBrandName(value)}
                     />
+                </PanelRow>
+                <PanelRow>
+                    <TextareaControl label="Description (SEO meta text)" value={description} onChange={setDescription} rows={3} />
                 </PanelRow>
                 <div style={{ padding: '10px 20px 20px', display: 'flex', gap: '10px' }}>
                     <Button

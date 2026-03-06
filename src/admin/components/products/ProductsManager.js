@@ -1,6 +1,6 @@
 import { useState } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
-import { Button, TextControl, SelectControl, PanelBody, PanelRow } from '@wordpress/components';
+import { Button, TextControl, TextareaControl, SelectControl, PanelBody, PanelRow } from '@wordpress/components';
 
 const ProductsManager = ({
     products,
@@ -20,8 +20,14 @@ const ProductsManager = ({
     const [price, setPrice] = useState('0.00');
     const [stockQuantity, setStockQuantity] = useState('0');
 
+    const [description, setDescription] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [editingId, setEditingId] = useState(null);
+
+    // Import State
+    const [csvFile, setCsvFile] = useState(null);
+    const [isImporting, setIsImporting] = useState(false);
+    const [importLog, setImportLog] = useState([]);
 
     // Filters
     const [filterFamilyId, setFilterFamilyId] = useState('');
@@ -92,6 +98,7 @@ const ProductsManager = ({
                 surface_id: surfaceId,
                 sku: sku,
                 price: parseFloat(price) || 0.00,
+                description: description,
                 stock_quantity: parseInt(stockQuantity, 10) || 0
             };
 
@@ -119,6 +126,7 @@ const ProductsManager = ({
         setSurfaceId(item.surface_id.toString());
         setSku(item.sku);
         setPrice(item.price.toString());
+        setDescription(item.description || '');
         setStockQuantity((item.stock_quantity || 0).toString());
     };
 
@@ -131,6 +139,7 @@ const ProductsManager = ({
         setSurfaceId('');
         setSku('');
         setPrice('0.00');
+        setDescription('');
         setStockQuantity('0');
     };
 
@@ -143,6 +152,140 @@ const ProductsManager = ({
         } catch (error) {
             alert('Error deleting physical product: ' + (error.message || JSON.stringify(error)));
         }
+    };
+
+    // --- CSV Import Logic ---
+
+    const handleCsvUpload = (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            setCsvFile(file);
+            setImportLog([]);
+        }
+    };
+
+    const processCsv = () => {
+        if (!csvFile) return;
+
+        setIsImporting(true);
+        setImportLog(['Starting CSV import...']);
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const text = e.target.result;
+            const lines = text.split('\n').filter(line => line.trim() !== '');
+
+            if (lines.length < 2) {
+                setImportLog(prev => [...prev, 'Error: Fast empty or invalid CSV.']);
+                setIsImporting(false);
+                return;
+            }
+
+            // Simple CSV parser (doesn't handle quotes perfectly, simple split by comma)
+            const headers = lines[0].toLowerCase().split(',').map(h => h.trim());
+            const expectedHeaders = ['sku', 'price', 'family', 'base', 'size', 'sheen', 'surface type'];
+
+            // Check headers
+            const missingHeaders = expectedHeaders.filter(eh => !headers.some(h => h.includes(eh)));
+            if (missingHeaders.length > 0) {
+                setImportLog(prev => [...prev, `Error: Missing expected columns: ${missingHeaders.join(', ')}`]);
+                setIsImporting(false);
+                return;
+            }
+
+            const getColIndex = (colName) => headers.findIndex(h => h.includes(colName));
+
+            const skuIdx = getColIndex('sku');
+            const priceIdx = getColIndex('price');
+            const familyIdx = getColIndex('family');
+            const baseIdx = getColIndex('base');
+            const sizeIdx = getColIndex('size');
+            const sheenIdx = getColIndex('sheen');
+            const surfaceIdx = getColIndex('surface type');
+
+            const parsedProducts = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                // Ignore empty lines
+                if (!lines[i].trim()) continue;
+
+                // Naive CSV split that tries to handle quotes
+                const row = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.replace(/^"|"$/g, '').trim());
+
+                if (row.length < headers.length) {
+                    setImportLog(prev => [...prev, `Row ${i + 1}: Skipping, invalid column count.`]);
+                    continue;
+                }
+
+                // Resolve Relations
+                const familyName = row[familyIdx];
+                const baseName = row[baseIdx];
+                const sizeName = row[sizeIdx];
+                const sheenName = row[sheenIdx];
+                const surfaceName = row[surfaceIdx];
+
+                // Fuzzy match helpers
+                const matchName = (arr, name) => arr.find(item => item.name.toLowerCase() === (name || '').toLowerCase());
+
+                const fFamily = matchName(productFamilies, familyName);
+                const fBase = matchName(bases, baseName);
+                const fSize = matchName(sizes, sizeName);
+                const fSheen = matchName(sheens, sheenName);
+                const fSurface = matchName(surfaceTypes, surfaceName);
+
+                if (!fFamily || !fBase || !fSize || !fSheen || !fSurface) {
+                    setImportLog(prev => [...prev, `Row ${i + 1}: Skipped SKU ${row[skuIdx]} due to unresolvable relation. Provide exact names.`]);
+                    continue;
+                }
+
+                parsedProducts.push({
+                    sku: row[skuIdx],
+                    price: parseFloat(row[priceIdx]) || 0,
+                    family_id: fFamily.id,
+                    base_id: fBase.id,
+                    size_id: fSize.id,
+                    sheen_id: fSheen.id,
+                    surface_id: fSurface.id,
+                });
+            }
+
+            if (parsedProducts.length === 0) {
+                setImportLog(prev => [...prev, 'No valid rows found to import.']);
+                setIsImporting(false);
+                return;
+            }
+
+            setImportLog(prev => [...prev, `Found ${parsedProducts.length} valid rows. Sending to server...`]);
+
+            try {
+                // Batch send (if there are many, we might want to split, but for now send all)
+                const response = await apiFetch({
+                    path: '/paint-store/v1/products/bulk-import',
+                    method: 'POST',
+                    data: { products: parsedProducts }
+                });
+
+                if (response.success) {
+                    setImportLog(prev => [...prev, `Success: Imported ${response.imported} products.`]);
+                    if (response.errors && response.errors.length > 0) {
+                        setImportLog(prev => [...prev, 'Server Errors:', ...response.errors]);
+                    }
+                    fetchProducts();
+                } else {
+                    setImportLog(prev => [...prev, 'Import failed via API.']);
+                }
+            } catch (error) {
+                setImportLog(prev => [...prev, `API Error: ${error.message || JSON.stringify(error)}`]);
+            }
+
+            setIsImporting(false);
+        };
+        reader.onerror = () => {
+            setImportLog(prev => [...prev, 'Error reading file.']);
+            setIsImporting(false);
+        };
+
+        reader.readAsText(csvFile);
     };
 
     return (
@@ -168,6 +311,16 @@ const ProductsManager = ({
                         <TextControl type="number" step="1" label="Stock Quantity" value={stockQuantity} onChange={setStockQuantity} />
                     </div>
                 </PanelRow>
+                <PanelRow>
+                    <div style={{ width: '100%', marginTop: '10px' }}>
+                        <TextareaControl
+                            label="Description (SEO meta text)"
+                            value={description}
+                            onChange={(value) => setDescription(value)}
+                            rows={3}
+                        />
+                    </div>
+                </PanelRow>
 
                 <div style={{ padding: '20px 0 0 0', display: 'flex', gap: '10px' }}>
                     <Button variant="primary" onClick={handleSave} isBusy={isSaving} disabled={!familyId || !baseId || !sizeId || !sheenId || !surfaceId || isSaving}>
@@ -177,8 +330,69 @@ const ProductsManager = ({
                 </div>
             </PanelBody>
 
+            <PanelBody title="Bulk Import SKUs via CSV" initialOpen={false}>
+                <PanelRow>
+                    <div style={{ width: '100%', padding: '10px 0' }}>
+                        <p style={{ marginTop: 0, fontSize: '13px', color: '#666' }}>
+                            Upload a CSV with the following columns: <strong>SKU, Price, Family, Base, Size, Sheen, Surface Type</strong>.<br />
+                            Relations (Family, Base, Size, Sheen, Surface Type) must <strong>exactly match names</strong> of existing records in the database.
+                        </p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
+                            <input
+                                type="file"
+                                accept=".csv"
+                                onChange={handleCsvUpload}
+                                disabled={isImporting}
+                            />
+                            <Button
+                                variant="secondary"
+                                onClick={processCsv}
+                                isBusy={isImporting}
+                                disabled={!csvFile || isImporting}
+                            >
+                                Start Import
+                            </Button>
+                        </div>
+
+                        {importLog.length > 0 && (
+                            <div style={{
+                                background: '#f0f0f1',
+                                padding: '15px',
+                                borderRadius: '4px',
+                                border: '1px solid #ddd',
+                                maxHeight: '200px',
+                                overflowY: 'auto'
+                            }}>
+                                <h4 style={{ margin: '0 0 10px 0' }}>Import Log</h4>
+                                <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', fontFamily: 'monospace' }}>
+                                    {importLog.map((log, index) => (
+                                        <li key={index} style={{ color: log.includes('Error') || log.includes('Skipped') ? '#d63638' : '#00a32a', marginBottom: '4px' }}>
+                                            {log}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                    </div>
+                </PanelRow>
+            </PanelBody>
+
             <div style={{ marginTop: '30px', marginBottom: '15px' }}>
-                <h3 style={{ margin: 0 }}>Physical Products Inventory (SKUs)</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={{ margin: 0 }}>Physical Products Inventory (SKUs)</h3>
+                    <Button
+                        variant="secondary"
+                        href={`/wp-json/paint-store/v1/products/export?_wpnonce=${window.wpApiSettings ? window.wpApiSettings.nonce : ''}`}
+                        target="_blank"
+                        icon={
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 16L7 11L8.4 9.55L11 12.15V4H13V12.15L15.6 9.55L17 11L12 16ZM6 20C5.45 20 4.97917 19.8042 4.5875 19.4125C4.19583 19.0208 4 18.55 4 18V15H6V18H18V15H20V18C20 18.55 19.8042 19.0208 19.4125 19.4125C19.0208 19.8042 18.55 20 18 20H6Z" fill="currentColor" />
+                            </svg>
+                        }
+                    >
+                        Export SKUs to CSV
+                    </Button>
+                </div>
                 <p style={{ color: '#666', fontSize: '13px', margin: '5px 0 10px' }}>
                     These explicitly map existing Paint Bases in the real world to specific container Sizes and Sheens.
                 </p>

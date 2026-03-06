@@ -1,9 +1,10 @@
 import { useState } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
-import { Button, TextControl, PanelBody, PanelRow } from '@wordpress/components';
+import { Button, TextControl, TextareaControl, PanelBody, PanelRow } from '@wordpress/components';
 
 const ProductCategoriesManager = ({ productCategories, fetchProductCategories }) => {
     const [name, setName] = useState('');
+    const [description, setDescription] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [isSyncing, setIsSyncing] = useState(false);
@@ -14,11 +15,11 @@ const ProductCategoriesManager = ({ productCategories, fetchProductCategories })
         setIsSaving(true);
         try {
             if (editingId) {
-                await apiFetch({ path: `/paint-store/v1/product-categories/${editingId}`, method: 'PUT', data: { name } });
+                await apiFetch({ path: `/paint-store/v1/product-categories/${editingId}`, method: 'PUT', data: { name, description } });
             } else {
-                await apiFetch({ path: '/paint-store/v1/product-categories', method: 'POST', data: { name } });
+                await apiFetch({ path: '/paint-store/v1/product-categories', method: 'POST', data: { name, description } });
             }
-            setName(''); setEditingId(null); fetchProductCategories();
+            setName(''); setDescription(''); setEditingId(null); fetchProductCategories();
         } catch (error) {
             console.error('Error saving product category:', error);
             alert('Error saving product category: ' + (error.message || JSON.stringify(error)));
@@ -26,8 +27,8 @@ const ProductCategoriesManager = ({ productCategories, fetchProductCategories })
         setIsSaving(false);
     };
 
-    const handleEdit = (item) => { setEditingId(item.id); setName(item.name); };
-    const handleCancelEdit = () => { setEditingId(null); setName(''); };
+    const handleEdit = (item) => { setEditingId(item.id); setName(item.name); setDescription(item.description || ''); };
+    const handleCancelEdit = () => { setEditingId(null); setName(''); setDescription(''); };
     const handleDelete = async (id) => {
         if (!confirm('Are you sure you want to delete this product category?')) return;
         try {
@@ -57,6 +58,9 @@ const ProductCategoriesManager = ({ productCategories, fetchProductCategories })
             <PanelBody title={editingId ? "Edit Product Category" : "Add New Product Category"} initialOpen={true}>
                 <PanelRow>
                     <TextControl label="Category Name (e.g., Paint, Primer, Paint and Primer)" value={name} onChange={setName} />
+                </PanelRow>
+                <PanelRow>
+                    <TextareaControl label="Description (SEO meta text)" value={description} onChange={setDescription} rows={3} />
                 </PanelRow>
                 <div style={{ padding: '10px 20px 20px', display: 'flex', gap: '10px' }}>
                     <Button variant="primary" onClick={handleSave} isBusy={isSaving} disabled={!name || isSaving}>
