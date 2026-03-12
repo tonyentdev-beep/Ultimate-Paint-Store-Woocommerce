@@ -286,7 +286,6 @@ const App = () => {
                                 fetchProductFamilies={fetchProductFamilies}
                             />
                         )}
-                        {activeProductSubTab === 'products' && (
                             <ProductsManager
                                 products={products}
                                 productFamilies={productFamilies}
@@ -295,6 +294,7 @@ const App = () => {
                                 sizes={sizes}
                                 sheens={sheens}
                                 surfaceTypes={surfaceTypes}
+                                toolAttributes={toolAttributes}
                                 fetchProducts={fetchProducts}
                             />
                         )}

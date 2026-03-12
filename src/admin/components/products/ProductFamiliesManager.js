@@ -11,6 +11,7 @@ const ProductFamiliesManager = ({ productFamilies, productBrands, productCategor
     const [selectedSceneIds, setSelectedSceneIds] = useState([]);
     const [selectedSheenIds, setSelectedSheenIds] = useState([]);
     const [selectedSizeIds, setSelectedSizeIds] = useState([]);
+    const [selectedWidthIds, setSelectedWidthIds] = useState([]);
     const [description, setDescription] = useState('');
     const [shortDescription, setShortDescription] = useState('');
     const [howToUse, setHowToUse] = useState('');
@@ -130,6 +131,13 @@ const ProductFamiliesManager = ({ productFamilies, productBrands, productCategor
         );
     };
 
+    const toggleWidthId = (id) => {
+        const numId = parseInt(id);
+        setSelectedWidthIds(prev =>
+            prev.includes(numId) ? prev.filter(x => x !== numId) : [...prev, numId]
+        );
+    };
+
     const openGalleryUploader = () => {
         const frame = wp.media({
             title: 'Select Product Family Images',
@@ -205,6 +213,7 @@ const ProductFamiliesManager = ({ productFamilies, productBrands, productCategor
                 scene_ids: selectedSceneIds,
                 sheen_ids: selectedSheenIds,
                 size_ids: selectedSizeIds,
+                width_ids: selectedWidthIds,
                 description,
                 short_description: shortDescription,
                 how_to_use: howToUse,
@@ -236,7 +245,7 @@ const ProductFamiliesManager = ({ productFamilies, productBrands, productCategor
     };
 
     const resetForm = () => {
-        setName(''); setBrandId(''); setSelectedCategoryIds([]); setSelectedSurfaceTypeIds([]); setSelectedSceneIds([]); setSelectedSheenIds([]); setSelectedSizeIds([]);
+        setName(''); setBrandId(''); setSelectedCategoryIds([]); setSelectedSurfaceTypeIds([]); setSelectedSceneIds([]); setSelectedSheenIds([]); setSelectedSizeIds([]); setSelectedWidthIds([]);
         setDescription(''); setShortDescription(''); setHowToUse(''); setDatasheets([]); setGalleryImages([]);
         setMakeId(''); setSelectedFamilyColorIds([]); setFamilyColorSearch('');
         setToolHandleShapeId('0'); setToolBristleMaterialId('0'); setToolHeadShapeId('0'); setToolHandleLengthId('0'); setToolHandleMaterialId('0'); setToolStiffnessId('0'); setToolPaintCompatId('0'); setToolFerruleMaterialId('0');
@@ -257,6 +266,7 @@ const ProductFamiliesManager = ({ productFamilies, productBrands, productCategor
         setSelectedSceneIds(item.scene_ids || []);
         setSelectedSheenIds(item.sheen_ids || []);
         setSelectedSizeIds(item.size_ids || []);
+        setSelectedWidthIds(item.width_ids || []);
         setMakeId(item.make_id == 0 ? '' : String(item.make_id));
         setSelectedFamilyColorIds(item.family_color_ids || []);
         setFamilyColorSearch('');
@@ -500,7 +510,22 @@ const ProductFamiliesManager = ({ productFamilies, productBrands, productCategor
                                 <SelectControl label="Handle Material" value={toolHandleMaterialId} options={toolAttrOptions('handle_material')} onChange={setToolHandleMaterialId} />
                                 <SelectControl label="Stiffness / Texture" value={toolStiffnessId} options={toolAttrOptions('texture')} onChange={setToolStiffnessId} />
                                 <SelectControl label="Brush Type" value={toolPaintCompatId} options={toolAttrOptions('brush_type')} onChange={setToolPaintCompatId} />
-                                <SelectControl label="Width" value={toolFerruleMaterialId} options={toolAttrOptions('width')} onChange={setToolFerruleMaterialId} />
+                                <SelectControl label="Ferrule Material" value={toolFerruleMaterialId} options={toolAttrOptions('ferrule_material')} onChange={setToolFerruleMaterialId} />
+                            </div>
+                            <div style={{ marginTop: '20px' }}>
+                                <label style={{ display: 'block', fontWeight: 600, marginBottom: '8px' }}>Available Brush Widths</label>
+                                <p style={{ color: '#666', fontSize: '12px', margin: '0 0 10px 0' }}>Select the widths that this brush family is available in.</p>
+                                <div style={{ border: '1px solid #ddd', borderRadius: '4px', padding: '10px', maxHeight: '150px', overflowY: 'auto', background: '#fafafa', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }}>
+                                    {(toolAttributes || []).filter(a => a.attribute_type === 'width').map(width => (
+                                        <CheckboxControl
+                                            key={width.id}
+                                            label={width.name}
+                                            checked={selectedWidthIds.includes(parseInt(width.id))}
+                                            onChange={() => toggleWidthId(width.id)}
+                                            __nextHasNoMarginBottom
+                                        />
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     </PanelRow>

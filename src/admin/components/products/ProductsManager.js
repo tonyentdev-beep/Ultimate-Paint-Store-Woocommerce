@@ -13,6 +13,7 @@ const ProductsManager = ({
     sizes,
     sheens,
     surfaceTypes,
+    toolAttributes,
     fetchProducts
 }) => {
     const [familyId, setFamilyId] = useState('');
@@ -20,6 +21,7 @@ const ProductsManager = ({
     const [sizeId, setSizeId] = useState('');
     const [sheenId, setSheenId] = useState('');
     const [surfaceId, setSurfaceId] = useState('');
+    const [widthId, setWidthId] = useState('');
     const [sku, setSku] = useState('');
     const [price, setPrice] = useState('0.00');
     const [stockQuantity, setStockQuantity] = useState('0');
@@ -78,6 +80,13 @@ const ProductsManager = ({
         ...(surfaceTypes || []).map(s => ({ label: s.name, value: s.id.toString() }))
     ];
 
+    const widthOptions = [
+        { label: 'Select Width...', value: '' },
+        ...((toolAttributes || [])
+            .filter(a => a.attribute_type === 'width' && (selectedFamily?.width_ids || []).includes(parseInt(a.id)))
+            .map(a => ({ label: a.name, value: a.id.toString() })))
+    ];
+
     const opacityOptions = [
         { label: '— Select Opacity —', value: '' },
         { label: 'Transparent', value: 'transparent' },
@@ -94,6 +103,7 @@ const ProductsManager = ({
     };
     const getSheenName = (id) => sheens.find(s => parseInt(s.id) === parseInt(id))?.name || '-';
     const getSurfaceName = (id) => surfaceTypes.find(s => parseInt(s.id) === parseInt(id))?.name || '-';
+    const getWidthName = (id) => (toolAttributes || []).find(a => parseInt(a.id) === parseInt(id))?.name || '-';
 
     const getFamilyMakeSlug = (familyIdVal) => {
         const fam = productFamilies.find(f => parseInt(f.id) === parseInt(familyIdVal));
@@ -131,7 +141,7 @@ const ProductsManager = ({
         if (!familyId) { alert('Product Family is required.'); return; }
 
         if (isBrush) {
-            if (!sizeId) { alert('Size (width) is required for brush SKUs.'); return; }
+            if (!widthId) { alert('Size (width) is required for brush SKUs.'); return; }
         } else if (isWoodStain) {
             if (!sizeId || !surfaceId) { alert('Size and Surface/Project Type are required.'); return; }
         } else {
@@ -146,9 +156,10 @@ const ProductsManager = ({
             const data = {
                 family_id: familyId,
                 base_id: (isWoodStain || isBrush) ? 0 : baseId,
-                size_id: sizeId,
+                size_id: isBrush ? 0 : sizeId,
                 sheen_id: (isWoodStain || isBrush) ? 0 : sheenId,
                 surface_id: isBrush ? 0 : surfaceId,
+                width_id: isBrush ? widthId : 0,
                 sku: sku,
                 price: parseFloat(price) || 0.00,
                 description: description,
@@ -180,6 +191,7 @@ const ProductsManager = ({
         setSizeId(item.size_id.toString());
         setSheenId(item.sheen_id.toString());
         setSurfaceId(item.surface_id.toString());
+        setWidthId(item.width_id ? item.width_id.toString() : '');
         setSku(item.sku);
         setPrice(item.price.toString());
         setDescription(item.description || '');
@@ -197,6 +209,7 @@ const ProductsManager = ({
         setSizeId('');
         setSheenId('');
         setSurfaceId('');
+        setWidthId('');
         setSku('');
         setPrice('0.00');
         setDescription('');
@@ -273,7 +286,7 @@ const ProductsManager = ({
     };
 
     const canSave = isBrush
-        ? !!familyId && !!sizeId && !isSaving
+        ? !!familyId && !!widthId && !isSaving
         : isWoodStain
             ? !!familyId && !!sizeId && !!surfaceId && !isSaving
             : !!familyId && !!baseId && !!sizeId && !!sheenId && !!surfaceId && !isSaving;
@@ -372,7 +385,7 @@ const ProductsManager = ({
                             <div style={{ width: '100%', background: '#e3f2fd', border: '1px solid #90caf9', borderRadius: '6px', padding: '15px', marginBottom: '5px' }}>
                                 <h3 style={{ margin: '0 0 12px 0', fontSize: '15px', color: '#1565c0' }}>🖌️ Brush SKU Details</h3>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '20px' }}>
-                                    <SelectControl label="Width / Size" value={sizeId} options={sizeOptions} onChange={setSizeId} />
+                                    <SelectControl label="Width / Size" value={widthId} options={widthOptions} onChange={setWidthId} />
                                     <TextControl label="SKU (Stock Keeping Unit)" value={sku} onChange={setSku} />
                                     <TextControl type="number" step="0.01" label="Price ($)" value={price} onChange={setPrice} />
                                     <TextControl type="number" step="1" label="Stock Quantity" value={stockQuantity} onChange={setStockQuantity} />
@@ -491,7 +504,7 @@ const ProductsManager = ({
                                     )}
                                 </td>
                                 <td>{itemIsBrush ? '—' : itemIsStain ? (item.color_name || '—') : getBaseName(item.base_id)}</td>
-                                <td>{getSizeName(item.size_id)}</td>
+                                <td>{itemIsBrush ? getWidthName(item.width_id) : getSizeName(item.size_id)}</td>
                                 <td>{itemIsBrush ? '—' : itemIsStain ? (item.opacity || '—') : getSheenName(item.sheen_id)}</td>
                                 <td>{getSurfaceName(item.surface_id)}</td>
                                 <td><code>{item.sku || '-'}</code></td>
