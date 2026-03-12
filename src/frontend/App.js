@@ -5,6 +5,7 @@ import Visualizer from './components/Visualizer';
 import ColorBrowser from './components/ColorBrowser';
 import StainBrowser from './components/StainBrowser';
 import ProductOptions from './components/ProductOptions';
+import ToolOptions from './components/ToolOptions';
 import TopBar from './components/TopBar';
 import InnerNav from './components/InnerNav';
 import OverviewSection from './components/OverviewSection';
@@ -24,6 +25,7 @@ const App = ({ familyId }) => {
 
     const [selectedSize, setSelectedSize] = useState('');
     const [selectedSheen, setSelectedSheen] = useState('');
+    const [selectedWidth, setSelectedWidth] = useState('');
     const [selectedFulfillment, setSelectedFulfillment] = useState('pickup');
     const [deliveryAddress, setDeliveryAddress] = useState(null);
     const [selectedColor, setSelectedColor] = useState(null);
@@ -105,14 +107,21 @@ const App = ({ familyId }) => {
         return slug === 'wood-stains-oil-based' || slug === 'wood-stains-water-based' || slug === 'wood-sealer';
     }, [familyData]);
 
+    const isTool = useMemo(() => {
+        if (!familyData || !familyData.family || !familyData.family.make_slug) return false;
+        return familyData.family.make_slug === 'brushes';
+    }, [familyData]);
+
     // Should we apply the smart filter?
     // For Paint: physical SKUs exist AND a color is selected AND the color has base associations
     // For Stains: physical SKUs exist AND a stain is selected
     const shouldFilter = useMemo(() => {
-        if (!hasPhysicalProducts || !selectedColor) return false;
+        if (!hasPhysicalProducts) return false;
+        if (isTool) return false;
+        if (!selectedColor) return false;
         if (isWoodStain) return true;
         return selectedColor.base_ids && selectedColor.base_ids.length > 0;
-    }, [hasPhysicalProducts, selectedColor, isWoodStain]);
+    }, [hasPhysicalProducts, selectedColor, isWoodStain, isTool]);
 
     // Filter ps_products by the selected color's required base_ids (or stain name)
     const validProducts = useMemo(() => {
@@ -131,7 +140,24 @@ const App = ({ familyId }) => {
     // Derive valid sizes and sheens DIRECTLY from the filtered ps_products
     // Each ps_product now has size_slug, size_name, sheen_slug, sheen_name from the API
     const filteredAttributes = useMemo(() => {
-        if (!hasPhysicalProducts) return { sizes: [], sheens: [], availableSizeSlugs: [] };
+        if (!hasPhysicalProducts) return { sizes: [], sheens: [], widths: [], availableSizeSlugs: [] };
+
+        if (isTool) {
+            const allWidthMap = {};
+            familyData.ps_products.forEach(p => {
+                if (p.width_slug) allWidthMap[p.width_slug] = p.width_name;
+            });
+            const allFamilyWidths = Object.keys(allWidthMap).map(slug => ({ slug, name: allWidthMap[slug] }));
+            
+            let widths = allFamilyWidths;
+            if (familyData.family.explicit_width_ids && familyData.family.explicit_width_ids.length > 0) {
+                const allowedWidthSlugs = familyData.ps_products
+                    .filter(p => familyData.family.explicit_width_ids.includes(p.width_id))
+                    .map(p => p.width_slug);
+                widths = allFamilyWidths.filter(s => allowedWidthSlugs.includes(s.slug));
+            }
+            return { sizes: [], sheens: [], widths, availableSizeSlugs: [] };
+        }
 
         // 1. Get ALL potentially valid sizes for the entire family
         const allSizeMap = {};
@@ -173,8 +199,8 @@ const App = ({ familyId }) => {
             sheens = availableSheens.filter(s => allowedSheenSlugs.includes(s.slug));
         }
 
-        return { sizes, sheens, availableSizeSlugs };
-    }, [familyData, validProducts, shouldFilter, hasPhysicalProducts, isWoodStain]);
+        return { sizes, sheens, widths: [], availableSizeSlugs };
+    }, [familyData, validProducts, shouldFilter, hasPhysicalProducts, isWoodStain, isTool]);
 
     // Filter WooCommerce variations to only those matching the valid size/sheen slugs
     const filteredVariations = useMemo(() => {
@@ -209,7 +235,19 @@ const App = ({ familyId }) => {
 
     // Lifted Add To Cart Logic
     const matchedVariation = useMemo(() => {
-        if (!selectedSize || !filteredVariations) return null;
+        if (!filteredVariations) return null;
+
+        if (isTool) {
+            if (!selectedWidth) return null;
+            return filteredVariations.find(v => {
+                if (!v.attributes) return false;
+                // Note: Tools may sync their width to a specific WooCommerce attribute (e.g. pa_paint_size or pa_tool_width)
+                // For now we match based on the generic size attribute as implemented in the backend sync.
+                return v.attributes.attribute_pa_paint_size === selectedWidth;
+            });
+        }
+
+        if (!selectedSize) return null;
         if (!isWoodStain && !selectedSheen) return null;
 
         return filteredVariations.find(v => {
@@ -218,10 +256,17 @@ const App = ({ familyId }) => {
             const sheenMatch = isWoodStain ? (!selectedSheen || v.attributes.attribute_pa_paint_sheen === selectedSheen) : (v.attributes.attribute_pa_paint_sheen === selectedSheen);
             return sizeMatch && sheenMatch;
         });
-    }, [selectedSize, selectedSheen, filteredVariations, isWoodStain]);
+    }, [selectedSize, selectedSheen, selectedWidth, filteredVariations, isWoodStain, isTool]);
 
     const matchedProduct = useMemo(() => {
-        if (!selectedSize || !validProducts) return null;
+        if (!validProducts) return null;
+
+        if (isTool) {
+            if (!selectedWidth) return null;
+            return validProducts.find(p => p.width_slug === selectedWidth);
+        }
+
+        if (!selectedSize) return null;
         if (!isWoodStain && !selectedSheen) return null;
 
         return validProducts.find(p => {
@@ -229,7 +274,7 @@ const App = ({ familyId }) => {
             const sheenMatch = isWoodStain ? (!selectedSheen || p.sheen_slug === selectedSheen) : (p.sheen_slug === selectedSheen);
             return sizeMatch && sheenMatch;
         });
-    }, [selectedSize, selectedSheen, validProducts, isWoodStain]);
+    }, [selectedSize, selectedSheen, selectedWidth, validProducts, isWoodStain, isTool]);
 
     // Stock quantity for the specifically matched SKU
     const matchedStockQty = matchedProduct ? parseInt(matchedProduct.stock_quantity, 10) || 0 : 0;
@@ -259,7 +304,7 @@ const App = ({ familyId }) => {
             }
         }
         return '';
-    }, [matchedProduct, matchedVariation, isWoodStain, selectedColor, validProducts, selectedSize, selectedSheen]);
+    }, [matchedProduct, matchedVariation, isWoodStain, selectedColor, validProducts, selectedSize, selectedSheen, isTool]);
 
     // Calculate minimum price for each size explicitly for Wood Stains to render on buttons
     const sizePrices = useMemo(() => {
@@ -296,8 +341,12 @@ const App = ({ familyId }) => {
     }, [matchedProduct, matchedVariation]);
 
     const handleAddToCart = async () => {
-        if (!selectedSize || !selectedColor || !matchedVariation) return;
-        if (!isWoodStain && !selectedSheen) return;
+        if (isTool) {
+            if (!selectedWidth || !matchedVariation) return;
+        } else {
+            if (!selectedSize || !selectedColor || !matchedVariation) return;
+            if (!isWoodStain && !selectedSheen) return;
+        }
 
         if (selectedFulfillment === 'delivery' && (!deliveryAddress || !deliveryAddress.address)) {
             setCartMessage('❌ Please select a valid delivery address before adding to cart.');
@@ -313,8 +362,12 @@ const App = ({ familyId }) => {
             formData.append('product_id', familyData.family.wc_product_id);
             formData.append('variation_id', matchedVariation.id);
             formData.append('quantity', quantity);
-            formData.append('color_hex', selectedColor.hex_value);
-            formData.append('color_name', `${selectedColor.name} (${selectedColor.color_code})`);
+            
+            if (!isTool) {
+                formData.append('color_hex', selectedColor.hex_value);
+                formData.append('color_name', `${selectedColor.name} (${selectedColor.color_code})`);
+            }
+            
             formData.append('item_price', matchedProduct?.price || matchedVariation.price || 0);
 
             // Fulfillment metadata
@@ -371,19 +424,21 @@ const App = ({ familyId }) => {
 
     return (
         <div className="paint-store-product-builder" style={{ background: '#fff', width: '100%', boxSizing: 'border-box' }}>
-            <TopBar
-                familyName={familyData.family.name}
-                dynamicTitle={dynamicTitle}
-                categories={familyData.family.categories}
-                displayPrice={displayPrice}
-                isAdding={isAdding}
-                handleAddToCart={handleAddToCart}
-                quantity={quantity}
-                setQuantity={setQuantity}
-                canAddToCart={!!(selectedSize && selectedSheen && selectedColor && matchedVariation)}
-                message={cartMessage}
-                reviewStats={familyData.review_stats}
-            />
+            {!isTool && (
+                <TopBar
+                    familyName={familyData.family.name}
+                    dynamicTitle={dynamicTitle}
+                    categories={familyData.family.categories}
+                    displayPrice={displayPrice}
+                    isAdding={isAdding}
+                    handleAddToCart={handleAddToCart}
+                    quantity={quantity}
+                    setQuantity={setQuantity}
+                    canAddToCart={!!(selectedSize && selectedSheen && selectedColor && matchedVariation)}
+                    message={cartMessage}
+                    reviewStats={familyData.review_stats}
+                />
+            )}
 
             <InnerNav />
 
@@ -530,42 +585,97 @@ const App = ({ familyId }) => {
                             </div>
                         </div>
 
-                        {isWoodStain ? (
-                            <StainBrowser 
-                                psProducts={familyData.ps_products}
-                                selectedStain={selectedColor}
-                                onStainSelect={setSelectedColor}
-                            />
+                        {isTool ? (
+                            <div style={{ marginTop: '20px', background: '#f9f9f9', padding: '20px', borderRadius: '8px', border: '1px solid #eee' }}>
+                                <ToolOptions
+                                    attributes={filteredAttributes}
+                                    selectedWidth={selectedWidth}
+                                    setSelectedWidth={setSelectedWidth}
+                                    selectedFulfillment={selectedFulfillment}
+                                    setSelectedFulfillment={setSelectedFulfillment}
+                                    matchedStockQty={matchedStockQty}
+                                    deliveryAddress={deliveryAddress}
+                                    onDeliveryAddressChange={setDeliveryAddress}
+                                />
+                                <div style={{ marginTop: '30px', borderTop: '1px solid #eee', paddingTop: '20px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #ccc', borderRadius: '4px', overflow: 'hidden' }}>
+                                            <button 
+                                                onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                                                style={{ padding: '10px 15px', background: '#f9f9f9', border: 'none', borderRight: '1px solid #ccc', cursor: 'pointer', fontSize: '16px' }}
+                                            >-</button>
+                                            <span style={{ padding: '0 20px', fontWeight: 'bold' }}>{quantity}</span>
+                                            <button 
+                                                onClick={() => setQuantity(quantity + 1)}
+                                                style={{ padding: '10px 15px', background: '#f9f9f9', border: 'none', borderLeft: '1px solid #ccc', cursor: 'pointer', fontSize: '16px' }}
+                                            >+</button>
+                                        </div>
+                                        <button 
+                                            onClick={handleAddToCart}
+                                            disabled={!selectedWidth || !matchedVariation || isAdding}
+                                            style={{
+                                                flex: 1,
+                                                padding: '14px 24px',
+                                                background: (!selectedWidth || !matchedVariation || isAdding) ? '#ccc' : '#00598e',
+                                                color: '#fff',
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                fontSize: '16px',
+                                                fontWeight: 'bold',
+                                                cursor: (!selectedWidth || !matchedVariation || isAdding) ? 'not-allowed' : 'pointer',
+                                                transition: 'background 0.2s'
+                                            }}
+                                        >
+                                            {isAdding ? 'Adding to Cart...' : `Add to Cart - ${displayPrice}`}
+                                        </button>
+                                    </div>
+                                    {cartMessage && (
+                                        <p style={{ marginTop: '10px', color: cartMessage.includes('❌') ? '#d63638' : '#00a32a', fontWeight: '500' }}>
+                                            {cartMessage}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
                         ) : (
-                            <ColorBrowser
-                                colors={colors}
-                                colorFamilies={colorFamilies}
-                                colorBrands={colorBrands}
-                                selectedColor={selectedColor}
-                                onColorSelect={setSelectedColor}
-                            />
-                        )}
+                            <>
+                                {isWoodStain ? (
+                                    <StainBrowser 
+                                        psProducts={familyData.ps_products}
+                                        selectedStain={selectedColor}
+                                        onStainSelect={setSelectedColor}
+                                    />
+                                ) : (
+                                    <ColorBrowser
+                                        colors={colors}
+                                        colorFamilies={colorFamilies}
+                                        colorBrands={colorBrands}
+                                        selectedColor={selectedColor}
+                                        onColorSelect={setSelectedColor}
+                                    />
+                                )}
 
-                        {/* Product Options (Size & Sheen) */}
-                        <div style={{ marginTop: '30px', background: '#f9f9f9', padding: '20px', borderRadius: '8px', border: '1px solid #eee' }}>
-                            <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '1.2em' }}>Select Options</h3>
-                            <ProductOptions
-                                attributes={filteredAttributes}
-                                selectedSize={selectedSize}
-                                setSelectedSize={setSelectedSize}
-                                selectedSheen={selectedSheen}
-                                setSelectedSheen={setSelectedSheen}
-                                selectedColor={selectedColor}
-                                shouldFilter={shouldFilter}
-                                isWoodStain={isWoodStain}
-                                selectedFulfillment={selectedFulfillment}
-                                setSelectedFulfillment={setSelectedFulfillment}
-                                matchedStockQty={matchedStockQty}
-                                deliveryAddress={deliveryAddress}
-                                onDeliveryAddressChange={setDeliveryAddress}
-                                sizePrices={sizePrices}
-                            />
-                        </div>
+                                {/* Product Options (Size & Sheen) */}
+                                <div style={{ marginTop: '30px', background: '#f9f9f9', padding: '20px', borderRadius: '8px', border: '1px solid #eee' }}>
+                                    <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '1.2em' }}>Select Options</h3>
+                                    <ProductOptions
+                                        attributes={filteredAttributes}
+                                        selectedSize={selectedSize}
+                                        setSelectedSize={setSelectedSize}
+                                        selectedSheen={selectedSheen}
+                                        setSelectedSheen={setSelectedSheen}
+                                        selectedColor={selectedColor}
+                                        shouldFilter={shouldFilter}
+                                        isWoodStain={isWoodStain}
+                                        selectedFulfillment={selectedFulfillment}
+                                        setSelectedFulfillment={setSelectedFulfillment}
+                                        matchedStockQty={matchedStockQty}
+                                        deliveryAddress={deliveryAddress}
+                                        onDeliveryAddressChange={setDeliveryAddress}
+                                        sizePrices={sizePrices}
+                                    />
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
