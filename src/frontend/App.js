@@ -424,23 +424,21 @@ const App = ({ familyId }) => {
 
     return (
         <div className="paint-store-product-builder" style={{ background: '#fff', width: '100%', boxSizing: 'border-box' }}>
-            {!isTool && (
-                <TopBar
-                    familyName={familyData.family.name}
-                    dynamicTitle={dynamicTitle}
-                    categories={familyData.family.categories}
-                    displayPrice={displayPrice}
-                    isAdding={isAdding}
-                    handleAddToCart={handleAddToCart}
-                    quantity={quantity}
-                    setQuantity={setQuantity}
-                    canAddToCart={!!(selectedSize && selectedSheen && selectedColor && matchedVariation)}
-                    message={cartMessage}
-                    reviewStats={familyData.review_stats}
-                />
-            )}
+            <TopBar
+                familyName={familyData.family.name}
+                dynamicTitle={dynamicTitle}
+                categories={familyData.family.categories}
+                displayPrice={displayPrice}
+                isAdding={isAdding}
+                handleAddToCart={handleAddToCart}
+                quantity={quantity}
+                setQuantity={setQuantity}
+                canAddToCart={isTool ? !!(selectedWidth && matchedVariation) : !!(selectedSize && selectedSheen && selectedColor && matchedVariation)}
+                message={cartMessage}
+                reviewStats={familyData.review_stats}
+            />
 
-            <InnerNav />
+            {!isTool && <InnerNav />}
 
             {/* Product Images + Colors Section */}
             <div id="review-selections" style={{
