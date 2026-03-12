@@ -78,9 +78,10 @@ class Paint_Store_Public {
 		$quantity     = isset( $_POST['quantity'] ) ? intval( $_POST['quantity'] ) : 1;
 		$color_hex    = isset( $_POST['color_hex'] ) ? sanitize_text_field( $_POST['color_hex'] ) : '';
 		$color_name   = isset( $_POST['color_name'] ) ? sanitize_text_field( $_POST['color_name'] ) : '';
+		$custom_width = isset( $_POST['ps_custom_width'] ) ? sanitize_text_field( $_POST['ps_custom_width'] ) : '';
 
-		if ( ! $product_id || ! $variation_id ) {
-			wp_send_json_error( array( 'message' => 'Product ID and Variation ID are required.' ) );
+		if ( ! $product_id ) {
+			wp_send_json_error( array( 'message' => 'Product ID is required.' ) );
 		}
 
 		$fulfillment_method = isset( $_POST['fulfillment_method'] ) ? sanitize_text_field( $_POST['fulfillment_method'] ) : '';
@@ -104,12 +105,16 @@ class Paint_Store_Public {
 				'name' => $color_name,
 				'hex'  => $color_hex
 			),
+			'ps_custom_width' => $custom_width,
 			'ps_custom_price' => $item_price
 		);
 
 		// WooCommerce requires the specific attributes used for this variation
-		$variation = wc_get_product( $variation_id );
-		$variation_attributes = $variation ? $variation->get_variation_attributes() : array();
+		$variation_attributes = array();
+		if ( $variation_id > 0 ) {
+			$variation = wc_get_product( $variation_id );
+			$variation_attributes = $variation ? $variation->get_variation_attributes() : array();
+		}
 
 		// Add it to the cart
 		$cart_item_key = WC()->cart->add_to_cart( $product_id, $quantity, $variation_id, $variation_attributes, $cart_item_data );

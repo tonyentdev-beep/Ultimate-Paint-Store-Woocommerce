@@ -30,6 +30,7 @@ do_action( 'woocommerce_before_cart' ); ?>
                         // Custom metadata
                         $custom_color_hex = isset( $cart_item['paint_custom_color']['hex'] ) ? $cart_item['paint_custom_color']['hex'] : '';
 						$custom_color_name = isset( $cart_item['paint_custom_color']['name'] ) ? $cart_item['paint_custom_color']['name'] : '';
+						$custom_width = isset( $cart_item['ps_custom_width'] ) ? $cart_item['ps_custom_width'] : '';
                         $size = $_product->get_attribute('pa_paint_size');
                         $sheen = $_product->get_attribute('pa_paint_sheen');
                         $brands = wp_get_post_terms( $product_id, 'product_brand', array('fields' => 'names') );
@@ -155,6 +156,9 @@ do_action( 'woocommerce_before_cart' ); ?>
                                     <table class="ps-metadata-table">
                                         <?php if($custom_color_name): ?>
                                         <tr><th>Color:</th><td><?php echo esc_html($custom_color_name); ?></td></tr>
+                                        <?php endif; ?>
+                                        <?php if($custom_width): ?>
+                                        <tr><th>Width / Size:</th><td><?php echo esc_html($custom_width); ?></td></tr>
                                         <?php endif; ?>
                                         <tr><th>Type:</th><td>Interior</td></tr>
                                         <?php if($sheen): ?>

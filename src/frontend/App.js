@@ -325,11 +325,15 @@ const App = ({ familyId }) => {
     const dynamicTitle = useMemo(() => {
         if (!familyData || !familyData.family) return '';
         const baseName = familyData.family.name;
+        if (isTool && selectedWidth) {
+            const widthName = filteredAttributes.widths?.find(w => w.slug === selectedWidth)?.name || selectedWidth;
+            return `${baseName} - ${widthName}`;
+        }
         if (selectedColor && selectedColor.name) {
             return `${baseName} - ${selectedColor.name}`;
         }
         return baseName;
-    }, [familyData, selectedColor]);
+    }, [familyData, selectedColor, isTool, selectedWidth, filteredAttributes.widths]);
 
     const displaySku = useMemo(() => {
         if (matchedProduct && matchedProduct.sku) {
@@ -342,7 +346,7 @@ const App = ({ familyId }) => {
 
     const handleAddToCart = async () => {
         if (isTool) {
-            if (!selectedWidth || !matchedVariation) return;
+            if (!selectedWidth || !matchedProduct) return;
         } else {
             if (!selectedSize || !selectedColor || !matchedVariation) return;
             if (!isWoodStain && !selectedSheen) return;
@@ -360,15 +364,17 @@ const App = ({ familyId }) => {
             const formData = new URLSearchParams();
             formData.append('action', 'paint_store_add_to_cart');
             formData.append('product_id', familyData.family.wc_product_id);
-            formData.append('variation_id', matchedVariation.id);
+            formData.append('variation_id', matchedVariation ? matchedVariation.id : 0);
             formData.append('quantity', quantity);
             
             if (!isTool) {
                 formData.append('color_hex', selectedColor.hex_value);
                 formData.append('color_name', `${selectedColor.name} (${selectedColor.color_code})`);
+            } else {
+                formData.append('ps_custom_width', matchedProduct.width_name);
             }
             
-            formData.append('item_price', matchedProduct?.price || matchedVariation.price || 0);
+            formData.append('item_price', matchedProduct?.price || matchedVariation?.price || 0);
 
             // Fulfillment metadata
             formData.append('fulfillment_method', selectedFulfillment);
@@ -433,7 +439,7 @@ const App = ({ familyId }) => {
                 handleAddToCart={handleAddToCart}
                 quantity={quantity}
                 setQuantity={setQuantity}
-                canAddToCart={isTool ? !!(selectedWidth && matchedVariation) : !!(selectedSize && selectedSheen && selectedColor && matchedVariation)}
+                canAddToCart={isTool ? !!(selectedWidth && matchedProduct) : !!(selectedSize && selectedSheen && selectedColor && matchedVariation)}
                 message={cartMessage}
                 reviewStats={familyData.review_stats}
             />

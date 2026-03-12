@@ -69,19 +69,28 @@ class Paint_Store_WooCommerce {
 	// ==========================================
 
 	public function get_item_data( $item_data, $cart_item ) {
-		if ( isset( $cart_item['paint_custom_color'] ) ) {
+		if ( isset( $cart_item['paint_custom_color'] ) && !empty( $cart_item['paint_custom_color']['name'] ) ) {
 			$item_data[] = array(
 				'key'     => 'Paint Color',
 				'value'   => $cart_item['paint_custom_color']['name'],
 				'display' => '<span style="display:inline-block;width:15px;height:15px;background-color:' . esc_attr( $cart_item['paint_custom_color']['hex'] ) . ';border:1px solid #ccc;margin-right:5px;vertical-align:middle;"></span>' . esc_html( $cart_item['paint_custom_color']['name'] ),
 			);
 		}
+		if ( isset( $cart_item['ps_custom_width'] ) && !empty( $cart_item['ps_custom_width'] ) ) {
+			$item_data[] = array(
+				'key'     => 'Width / Size',
+				'value'   => $cart_item['ps_custom_width'],
+			);
+		}
 		return $item_data;
 	}
 
 	public function checkout_create_order_line_item( $item, $cart_item_key, $values, $order ) {
-		if ( isset( $values['paint_custom_color'] ) ) {
+		if ( isset( $values['paint_custom_color'] ) && !empty( $values['paint_custom_color']['name'] ) ) {
 			$item->add_meta_data( 'Paint Color', $values['paint_custom_color']['name'] );
+		}
+		if ( isset( $values['ps_custom_width'] ) && !empty( $values['ps_custom_width'] ) ) {
+			$item->add_meta_data( 'Width / Size', $values['ps_custom_width'] );
 		}
 	}
 
