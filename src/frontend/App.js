@@ -3,9 +3,17 @@ import apiFetch from '@wordpress/api-fetch';
 
 import Visualizer from './components/Visualizer';
 import ColorBrowser from './components/ColorBrowser';
+import StainBrowser from './components/StainBrowser';
 import ProductOptions from './components/ProductOptions';
 import TopBar from './components/TopBar';
 import InnerNav from './components/InnerNav';
+import OverviewSection from './components/OverviewSection';
+import HowToUseSection from './components/HowToUseSection';
+import DataSheetsSection from './components/DataSheetsSection';
+import CompareSection from './components/CompareSection';
+import BrushSpecificationsSection from './components/BrushSpecificationsSection';
+import QASection from './components/QASection';
+import ReviewsSection from './components/ReviewsSection';
 
 const App = ({ familyId }) => {
     const [loading, setLoading] = useState(true);
@@ -16,6 +24,8 @@ const App = ({ familyId }) => {
 
     const [selectedSize, setSelectedSize] = useState('');
     const [selectedSheen, setSelectedSheen] = useState('');
+    const [selectedFulfillment, setSelectedFulfillment] = useState('pickup');
+    const [deliveryAddress, setDeliveryAddress] = useState(null);
     const [selectedColor, setSelectedColor] = useState(null);
     const [activeImageUrl, setActiveImageUrl] = useState('');
     const [galleryPage, setGalleryPage] = useState(0);
@@ -88,28 +98,57 @@ const App = ({ familyId }) => {
     // Do we have explicit physical products defined for this family?
     const hasPhysicalProducts = familyData && familyData.ps_products && familyData.ps_products.length > 0;
 
-    // Should we apply the smart filter?
-    // Only if: physical SKUs exist AND a color is selected AND the color has base associations
-    const shouldFilter = hasPhysicalProducts
-        && selectedColor
-        && selectedColor.base_ids
-        && selectedColor.base_ids.length > 0;
+    // Detect if this product family is a Wood Stain
+    const isWoodStain = useMemo(() => {
+        if (!familyData || !familyData.family || !familyData.family.make_slug) return false;
+        const slug = familyData.family.make_slug;
+        return slug === 'wood-stains-oil-based' || slug === 'wood-stains-water-based' || slug === 'wood-sealer';
+    }, [familyData]);
 
-    // Filter ps_products by the selected color's required base_ids
+    // Should we apply the smart filter?
+    // For Paint: physical SKUs exist AND a color is selected AND the color has base associations
+    // For Stains: physical SKUs exist AND a stain is selected
+    const shouldFilter = useMemo(() => {
+        if (!hasPhysicalProducts || !selectedColor) return false;
+        if (isWoodStain) return true;
+        return selectedColor.base_ids && selectedColor.base_ids.length > 0;
+    }, [hasPhysicalProducts, selectedColor, isWoodStain]);
+
+    // Filter ps_products by the selected color's required base_ids (or stain name)
     const validProducts = useMemo(() => {
         if (!hasPhysicalProducts) return [];
         if (!shouldFilter) return familyData.ps_products;
+        
+        if (isWoodStain) {
+            return familyData.ps_products.filter(p => p.color_name === selectedColor.name);
+        }
+        
         return familyData.ps_products.filter(p =>
             selectedColor.base_ids.includes(p.base_id)
         );
-    }, [familyData, selectedColor, hasPhysicalProducts, shouldFilter]);
+    }, [familyData, selectedColor, hasPhysicalProducts, shouldFilter, isWoodStain]);
 
     // Derive valid sizes and sheens DIRECTLY from the filtered ps_products
     // Each ps_product now has size_slug, size_name, sheen_slug, sheen_name from the API
     const filteredAttributes = useMemo(() => {
-        if (!hasPhysicalProducts) return { sizes: [], sheens: [] };
+        if (!hasPhysicalProducts) return { sizes: [], sheens: [], availableSizeSlugs: [] };
 
-        // Build unique sizes and sheens from the physical products being considered
+        // 1. Get ALL potentially valid sizes for the entire family
+        const allSizeMap = {};
+        familyData.ps_products.forEach(p => {
+            if (p.size_slug) allSizeMap[p.size_slug] = p.size_name;
+        });
+        const allFamilySizes = Object.keys(allSizeMap).map(slug => ({ slug, name: allSizeMap[slug] }));
+
+        let baseSizes = allFamilySizes;
+        if (familyData.family.explicit_size_ids && familyData.family.explicit_size_ids.length > 0) {
+            const allowedSizeSlugs = familyData.ps_products
+                .filter(p => familyData.family.explicit_size_ids.includes(p.size_id))
+                .map(p => p.size_slug);
+            baseSizes = allFamilySizes.filter(s => allowedSizeSlugs.includes(s.slug));
+        }
+
+        // 2. Identify WHICH of these sizes (and sheens) are available for the *currently selected color*
         const sourceProducts = shouldFilter ? validProducts : familyData.ps_products;
 
         const sizeMap = {};
@@ -119,17 +158,11 @@ const App = ({ familyId }) => {
             if (p.sheen_slug) availableSheenMap[p.sheen_slug] = p.sheen_name;
         });
 
-        const availableSizes = Object.keys(sizeMap).map(slug => ({ slug, name: sizeMap[slug] }));
+        const availableSizeSlugs = Object.keys(sizeMap);
         const availableSheens = Object.keys(availableSheenMap).map(slug => ({ slug, name: availableSheenMap[slug] }));
 
-        // Ensure we ONLY show sizes explicitly allowed by the Family Rules (if they are defined)
-        let sizes = availableSizes;
-        if (familyData.family.explicit_size_ids && familyData.family.explicit_size_ids.length > 0) {
-            const allowedSizeSlugs = familyData.ps_products
-                .filter(p => familyData.family.explicit_size_ids.includes(p.size_id))
-                .map(p => p.size_slug);
-            sizes = availableSizes.filter(s => allowedSizeSlugs.includes(s.slug));
-        }
+        // 3. For stains, we show ALL baseSizes (crossing out unavailable). For paint, we only show fully available sizes.
+        const sizes = isWoodStain ? baseSizes : baseSizes.filter(s => availableSizeSlugs.includes(s.slug));
 
         // Ensure we ONLY show sheens explicitly allowed by the Family Rules (if they are defined)
         let sheens = availableSheens;
@@ -140,8 +173,8 @@ const App = ({ familyId }) => {
             sheens = availableSheens.filter(s => allowedSheenSlugs.includes(s.slug));
         }
 
-        return { sizes, sheens };
-    }, [familyData, validProducts, shouldFilter, hasPhysicalProducts]);
+        return { sizes, sheens, availableSizeSlugs };
+    }, [familyData, validProducts, shouldFilter, hasPhysicalProducts, isWoodStain]);
 
     // Filter WooCommerce variations to only those matching the valid size/sheen slugs
     const filteredVariations = useMemo(() => {
@@ -176,55 +209,145 @@ const App = ({ familyId }) => {
 
     // Lifted Add To Cart Logic
     const matchedVariation = useMemo(() => {
-        if (!selectedSize || !selectedSheen || !filteredVariations) return null;
-        return filteredVariations.find(v =>
-            v.attributes &&
-            v.attributes.attribute_pa_paint_size === selectedSize &&
-            v.attributes.attribute_pa_paint_sheen === selectedSheen
-        );
-    }, [selectedSize, selectedSheen, filteredVariations]);
+        if (!selectedSize || !filteredVariations) return null;
+        if (!isWoodStain && !selectedSheen) return null;
+
+        return filteredVariations.find(v => {
+            if (!v.attributes) return false;
+            const sizeMatch = v.attributes.attribute_pa_paint_size === selectedSize;
+            const sheenMatch = isWoodStain ? (!selectedSheen || v.attributes.attribute_pa_paint_sheen === selectedSheen) : (v.attributes.attribute_pa_paint_sheen === selectedSheen);
+            return sizeMatch && sheenMatch;
+        });
+    }, [selectedSize, selectedSheen, filteredVariations, isWoodStain]);
 
     const matchedProduct = useMemo(() => {
-        if (!selectedSize || !selectedSheen || !validProducts) return null;
-        return validProducts.find(p => p.size_slug === selectedSize && p.sheen_slug === selectedSheen);
-    }, [selectedSize, selectedSheen, validProducts]);
+        if (!selectedSize || !validProducts) return null;
+        if (!isWoodStain && !selectedSheen) return null;
+
+        return validProducts.find(p => {
+            const sizeMatch = p.size_slug === selectedSize;
+            const sheenMatch = isWoodStain ? (!selectedSheen || p.sheen_slug === selectedSheen) : (p.sheen_slug === selectedSheen);
+            return sizeMatch && sheenMatch;
+        });
+    }, [selectedSize, selectedSheen, validProducts, isWoodStain]);
+
+    // Stock quantity for the specifically matched SKU
+    const matchedStockQty = matchedProduct ? parseInt(matchedProduct.stock_quantity, 10) || 0 : 0;
 
     const displayPrice = useMemo(() => {
         if (matchedProduct && matchedProduct.price > 0) {
             return '$' + parseFloat(matchedProduct.price).toFixed(2);
         } else if (matchedVariation && matchedVariation.price > 0) {
             return '$' + parseFloat(matchedVariation.price).toFixed(2);
+        } else if (isWoodStain && selectedColor && validProducts && validProducts.length > 0) {
+            let activeProducts = validProducts;
+            if (selectedSize) {
+                activeProducts = activeProducts.filter(p => p.size_slug === selectedSize);
+            }
+            if (selectedSheen) {
+                activeProducts = activeProducts.filter(p => p.sheen_slug === selectedSheen);
+            }
+            const prices = activeProducts.map(p => parseFloat(p.price) || 0).filter(p => p > 0);
+            if (prices.length > 0) {
+                const minPrice = Math.min(...prices);
+                const maxPrice = Math.max(...prices);
+                if (minPrice === maxPrice) {
+                    return '$' + minPrice.toFixed(2);
+                } else {
+                    return 'From $' + minPrice.toFixed(2);
+                }
+            }
+        }
+        return '';
+    }, [matchedProduct, matchedVariation, isWoodStain, selectedColor, validProducts, selectedSize, selectedSheen]);
+
+    // Calculate minimum price for each size explicitly for Wood Stains to render on buttons
+    const sizePrices = useMemo(() => {
+        const pricesMap = {};
+        if (isWoodStain && validProducts) {
+            validProducts.forEach(p => {
+                const pPrice = parseFloat(p.price) || 0;
+                if (pPrice > 0 && p.size_slug) {
+                    if (!pricesMap[p.size_slug] || pPrice < pricesMap[p.size_slug]) {
+                        pricesMap[p.size_slug] = pPrice;
+                    }
+                }
+            });
+        }
+        return pricesMap;
+    }, [isWoodStain, validProducts]);
+
+    const dynamicTitle = useMemo(() => {
+        if (!familyData || !familyData.family) return '';
+        const baseName = familyData.family.name;
+        if (selectedColor && selectedColor.name) {
+            return `${baseName} - ${selectedColor.name}`;
+        }
+        return baseName;
+    }, [familyData, selectedColor]);
+
+    const displaySku = useMemo(() => {
+        if (matchedProduct && matchedProduct.sku) {
+            return matchedProduct.sku;
+        } else if (matchedVariation && matchedVariation.sku) {
+            return matchedVariation.sku;
         }
         return '';
     }, [matchedProduct, matchedVariation]);
 
     const handleAddToCart = async () => {
-        if (!selectedSize || !selectedSheen || !selectedColor || !matchedVariation) return;
+        if (!selectedSize || !selectedColor || !matchedVariation) return;
+        if (!isWoodStain && !selectedSheen) return;
+
+        if (selectedFulfillment === 'delivery' && (!deliveryAddress || !deliveryAddress.address)) {
+            setCartMessage('❌ Please select a valid delivery address before adding to cart.');
+            return;
+        }
 
         setIsAdding(true);
         setCartMessage('');
 
         try {
-            const response = await apiFetch({
-                path: '/paint-store/v1/public/add-to-cart',
+            const formData = new URLSearchParams();
+            formData.append('action', 'paint_store_add_to_cart');
+            formData.append('product_id', familyData.family.wc_product_id);
+            formData.append('variation_id', matchedVariation.id);
+            formData.append('quantity', quantity);
+            formData.append('color_hex', selectedColor.hex_value);
+            formData.append('color_name', `${selectedColor.name} (${selectedColor.color_code})`);
+            formData.append('item_price', matchedProduct?.price || matchedVariation.price || 0);
+
+            // Fulfillment metadata
+            formData.append('fulfillment_method', selectedFulfillment);
+            if (selectedFulfillment === 'delivery' && deliveryAddress) {
+                formData.append('delivery_address', deliveryAddress.address);
+                formData.append('delivery_fee', deliveryAddress.deliveryFee || 0);
+            }
+
+            const ajaxUrl = window.paintStoreSettings?.ajaxUrl || '/wp-admin/admin-ajax.php';
+
+            const response = await fetch(ajaxUrl, {
                 method: 'POST',
-                data: {
-                    product_id: familyData.family.wc_product_id,
-                    variation_id: matchedVariation.id,
-                    quantity: quantity,
-                    color_hex: selectedColor.hex_value,
-                    color_name: `${selectedColor.name} (${selectedColor.color_code})`
-                }
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: formData.toString()
             });
 
-            if (response.success) {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.success) {
                 setCartMessage('✅ Added to cart successfully!');
                 if (typeof jQuery !== 'undefined') {
                     jQuery(document.body).trigger('wc_fragment_refresh');
                     jQuery(document.body).trigger('added_to_cart');
                 }
             } else {
-                setCartMessage('❌ Failed to add to cart.');
+                setCartMessage(`❌ ${data.data?.message || 'Failed to add to cart.'}`);
             }
         } catch (error) {
             console.error('Error adding to cart:', error);
@@ -250,6 +373,7 @@ const App = ({ familyId }) => {
         <div className="paint-store-product-builder" style={{ background: '#fff', width: '100%', boxSizing: 'border-box' }}>
             <TopBar
                 familyName={familyData.family.name}
+                dynamicTitle={dynamicTitle}
                 categories={familyData.family.categories}
                 displayPrice={displayPrice}
                 isAdding={isAdding}
@@ -258,6 +382,7 @@ const App = ({ familyId }) => {
                 setQuantity={setQuantity}
                 canAddToCart={!!(selectedSize && selectedSheen && selectedColor && matchedVariation)}
                 message={cartMessage}
+                reviewStats={familyData.review_stats}
             />
 
             <InnerNav />
@@ -269,7 +394,7 @@ const App = ({ familyId }) => {
                 boxSizing: 'border-box',
                 background: '#fff'
             }}>
-                <div style={{
+                <div className="ps-product-main-layout" style={{
                     width: '100%',
                     maxWidth: '100%',
                     margin: '0 auto',
@@ -279,8 +404,8 @@ const App = ({ familyId }) => {
                     alignItems: 'flex-start',
                     boxSizing: 'border-box'
                 }}>
-                    {/* LEFT COLUMN: 60% - Visualizer + Gallery */}
-                    <div style={{ flex: 6, minWidth: 0 }}>
+                    {/* LEFT COLUMN: 60% - Visualizer + Gallery (Sticky) */}
+                    <div className="ps-product-left-col" style={{ flex: 6, minWidth: 0, position: 'sticky', top: '20px' }}>
                         <div style={{ position: 'relative' }}>
                             {familyData.family.gallery_images && familyData.family.gallery_images.length > 1 && (
                                 <>
@@ -385,6 +510,42 @@ const App = ({ familyId }) => {
                             </div>
                         )}
 
+                    </div>
+
+                    {/* RIGHT COLUMN: 40% - Color/Stain Browser */}
+                    <div className="ps-product-right-col" style={{ flex: 4, minWidth: 0, overflow: 'hidden', boxSizing: 'border-box' }}>
+                        
+                        {/* Selected Product Title & SKU Display */}
+                        <div style={{ marginBottom: '20px', paddingBottom: '15px', borderBottom: '1px solid #eee' }}>
+                            <h2 style={{ fontSize: '22px', margin: '0 0 8px 0', color: '#111', lineHeight: '1.3' }}>
+                                {dynamicTitle}
+                            </h2>
+                            <div style={{ fontSize: '14px', color: '#666', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontWeight: '600' }}>SKU:</span> 
+                                {displaySku ? (
+                                    <span style={{ fontFamily: 'monospace', background: '#f5f5f5', padding: '2px 8px', borderRadius: '4px' }}>{displaySku}</span>
+                                ) : (
+                                    <span style={{ fontStyle: 'italic', opacity: 0.7 }}>Select options to view</span>
+                                )}
+                            </div>
+                        </div>
+
+                        {isWoodStain ? (
+                            <StainBrowser 
+                                psProducts={familyData.ps_products}
+                                selectedStain={selectedColor}
+                                onStainSelect={setSelectedColor}
+                            />
+                        ) : (
+                            <ColorBrowser
+                                colors={colors}
+                                colorFamilies={colorFamilies}
+                                colorBrands={colorBrands}
+                                selectedColor={selectedColor}
+                                onColorSelect={setSelectedColor}
+                            />
+                        )}
+
                         {/* Product Options (Size & Sheen) */}
                         <div style={{ marginTop: '30px', background: '#f9f9f9', padding: '20px', borderRadius: '8px', border: '1px solid #eee' }}>
                             <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '1.2em' }}>Select Options</h3>
@@ -396,23 +557,40 @@ const App = ({ familyId }) => {
                                 setSelectedSheen={setSelectedSheen}
                                 selectedColor={selectedColor}
                                 shouldFilter={shouldFilter}
+                                isWoodStain={isWoodStain}
+                                selectedFulfillment={selectedFulfillment}
+                                setSelectedFulfillment={setSelectedFulfillment}
+                                matchedStockQty={matchedStockQty}
+                                deliveryAddress={deliveryAddress}
+                                onDeliveryAddressChange={setDeliveryAddress}
+                                sizePrices={sizePrices}
                             />
                         </div>
-
-                    </div>
-
-                    {/* RIGHT COLUMN: 40% - Color Browser */}
-                    <div style={{ flex: 4, minWidth: 0, overflow: 'hidden', boxSizing: 'border-box' }}>
-                        <ColorBrowser
-                            colors={colors}
-                            colorFamilies={colorFamilies}
-                            colorBrands={colorBrands}
-                            selectedColor={selectedColor}
-                            onColorSelect={setSelectedColor}
-                        />
                     </div>
                 </div>
             </div>
+
+            {/* Overview Section */}
+            <OverviewSection description={familyData.family.description} />
+
+            {/* How To Use Section */}
+            <HowToUseSection content={familyData.family.how_to_use} />
+
+            {/* Data Sheets Section */}
+            <DataSheetsSection datasheets={familyData.family.datasheets} />
+
+            {/* Compare / Specifications Section */}
+            {familyData.family.make_slug === 'brushes' ? (
+                <BrushSpecificationsSection familyData={familyData} />
+            ) : (
+                <CompareSection familyData={familyData} />
+            )}
+
+            {/* Reviews Section */}
+            <ReviewsSection familyId={familyId} />
+
+            {/* Community Q & A Section */}
+            <QASection familyData={familyData} />
         </div>
     );
 };

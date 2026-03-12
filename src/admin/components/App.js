@@ -10,16 +10,21 @@ import ProductCategoriesManager from './products/ProductCategoriesManager';
 import SizesManager from './products/SizesManager';
 import SheensManager from './products/SheensManager';
 import SurfaceTypesManager from './products/SurfaceTypesManager';
+import ToolAttributesManager from './products/ToolAttributesManager';
 import SceneImagesManager from './products/SceneImagesManager';
 import ProductBrandsManager from './products/ProductBrandsManager';
 import ProductsManager from './products/ProductsManager';
+import ProductTypesManager from './products/ProductTypesManager';
+import ProductMakesManager from './products/ProductMakesManager';
 import Dashboard from './Dashboard';
 import Settings from './Settings';
+import ReviewsManager from './reviews/ReviewsManager';
+import FulfillmentManager from './fulfillment/FulfillmentManager';
 
 const App = () => {
     const [activeTab, setActiveTab] = useState('dashboard');
     const [activeColorSubTab, setActiveColorSubTab] = useState('brands');
-    const [activeProductSubTab, setActiveProductSubTab] = useState('bases');
+    const [activeProductSubTab, setActiveProductSubTab] = useState('product-types');
 
     // Shared State
     const [brands, setBrands] = useState([]);
@@ -34,6 +39,9 @@ const App = () => {
     const [sceneImages, setSceneImages] = useState([]);
     const [productBrands, setProductBrands] = useState([]);
     const [products, setProducts] = useState([]);
+    const [productTypes, setProductTypes] = useState([]);
+    const [productMakes, setProductMakes] = useState([]);
+    const [toolAttributes, setToolAttributes] = useState([]);
 
     // Initial Fetch All
     useEffect(() => {
@@ -49,6 +57,9 @@ const App = () => {
         fetchSceneImages();
         fetchProductBrands();
         fetchProducts();
+        fetchProductTypes();
+        fetchProductMakes();
+        fetchToolAttributes();
     }, []);
 
     const fetchBrands = async () => {
@@ -99,18 +110,33 @@ const App = () => {
         try { const data = await apiFetch({ path: '/paint-store/v1/products' }); setProducts(data); }
         catch (error) { console.error('Error fetching physical products:', error); }
     };
+    const fetchProductTypes = async () => {
+        try { const data = await apiFetch({ path: '/paint-store/v1/product-types' }); setProductTypes(data); }
+        catch (error) { console.error('Error fetching product types:', error); }
+    };
+    const fetchProductMakes = async () => {
+        try { const data = await apiFetch({ path: '/paint-store/v1/product-makes' }); setProductMakes(data); }
+        catch (error) { console.error('Error fetching product makes:', error); }
+    };
+    const fetchToolAttributes = async () => {
+        try { const data = await apiFetch({ path: '/paint-store/v1/tool-attributes' }); setToolAttributes(data); }
+        catch (error) { console.error('Error fetching tool attributes:', error); }
+    };
 
 
     const productSubTabs = [
+        { key: 'product-types', label: 'Product Types' },
+        { key: 'product-makes', label: 'Product Makes' },
+        { key: 'product-categories', label: 'Product Categories' },
         { key: 'product-brands', label: 'Product Brands' },
         { key: 'product-families', label: 'Product Families' },
         { key: 'products', label: 'Physical Products (SKUs)' },
         { key: 'bases', label: 'Paint Bases' },
-        { key: 'product-categories', label: 'Product Categories' },
         { key: 'sizes', label: 'Sizes' },
         { key: 'sheens', label: 'Sheens' },
         { key: 'surface-types', label: 'Surface Types' },
         { key: 'scene-images', label: 'Scene Images' },
+        { key: 'tool-attributes', label: 'Brush Attributes' },
     ];
 
     return (
@@ -135,6 +161,18 @@ const App = () => {
                     onClick={() => setActiveTab('products')}
                 >
                     Products & Bases
+                </button>
+                <button
+                    className={`nav-tab ${activeTab === 'reviews' ? 'nav-tab-active' : ''}`}
+                    onClick={() => setActiveTab('reviews')}
+                >
+                    Reviews
+                </button>
+                <button
+                    className={`nav-tab ${activeTab === 'orders' ? 'nav-tab-active' : ''}`}
+                    onClick={() => setActiveTab('orders')}
+                >
+                    Orders
                 </button>
                 <button
                     className={`nav-tab ${activeTab === 'settings' ? 'nav-tab-active' : ''}`}
@@ -221,6 +259,12 @@ const App = () => {
                         </ul>
                         <div className="clear"></div>
 
+                        {activeProductSubTab === 'product-types' && (
+                            <ProductTypesManager productTypes={productTypes} fetchProductTypes={fetchProductTypes} />
+                        )}
+                        {activeProductSubTab === 'product-makes' && (
+                            <ProductMakesManager productMakes={productMakes} productTypes={productTypes} fetchProductMakes={fetchProductMakes} />
+                        )}
                         {activeProductSubTab === 'product-brands' && (
                             <ProductBrandsManager productBrands={productBrands} fetchProductBrands={fetchProductBrands} />
                         )}
@@ -236,6 +280,9 @@ const App = () => {
                                 sceneImages={sceneImages}
                                 sheens={sheens}
                                 sizes={sizes}
+                                colors={colors}
+                                productMakes={productMakes}
+                                toolAttributes={toolAttributes}
                                 fetchProductFamilies={fetchProductFamilies}
                             />
                         )}
@@ -243,6 +290,7 @@ const App = () => {
                             <ProductsManager
                                 products={products}
                                 productFamilies={productFamilies}
+                                productMakes={productMakes}
                                 bases={bases}
                                 sizes={sizes}
                                 sheens={sheens}
@@ -251,7 +299,7 @@ const App = () => {
                             />
                         )}
                         {activeProductSubTab === 'product-categories' && (
-                            <ProductCategoriesManager productCategories={productCategories} fetchProductCategories={fetchProductCategories} />
+                            <ProductCategoriesManager productCategories={productCategories} productMakes={productMakes} fetchProductCategories={fetchProductCategories} />
                         )}
                         {activeProductSubTab === 'sizes' && (
                             <SizesManager sizes={sizes} fetchSizes={fetchSizes} />
@@ -265,7 +313,18 @@ const App = () => {
                         {activeProductSubTab === 'scene-images' && (
                             <SceneImagesManager sceneImages={sceneImages} fetchSceneImages={fetchSceneImages} />
                         )}
+                        {activeProductSubTab === 'tool-attributes' && (
+                            <ToolAttributesManager toolAttributes={toolAttributes} fetchToolAttributes={fetchToolAttributes} />
+                        )}
                     </div>
+                )}
+
+                {activeTab === 'reviews' && (
+                    <ReviewsManager />
+                )}
+
+                {activeTab === 'orders' && (
+                    <FulfillmentManager />
                 )}
 
                 {activeTab === 'settings' && (

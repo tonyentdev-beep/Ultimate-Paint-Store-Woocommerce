@@ -1,10 +1,12 @@
 const InnerNav = () => {
     const menuItems = [
         { label: 'Review Selections', anchor: '#review-selections' },
+        { label: 'Overview', anchor: '#overview' },
+        { label: 'How To Use', anchor: '#how-to-use' },
         { label: 'Data Sheets', anchor: '#data-sheets' },
-        { label: 'Reviews', anchor: '#reviews' },
         { label: 'Compare', anchor: '#compare' },
-        { label: 'Q&A', anchor: '#qa' },
+        { label: 'Reviews', anchor: '#reviews' },
+        { label: 'Q&A', anchor: '#qa-section' },
     ];
 
     const handleClick = (e, anchor) => {
@@ -18,7 +20,7 @@ const InnerNav = () => {
     };
 
     return (
-        <div style={{
+        <div className="ps-inner-nav" style={{
             background: '#002E5D',
             width: '100%',
             boxSizing: 'border-box'
@@ -32,7 +34,6 @@ const InnerNav = () => {
                 gap: '0',
                 boxSizing: 'border-box'
             }}>
-
 
                 {menuItems.map((item, idx) => (
                     <a

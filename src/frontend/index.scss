@@ -54,3 +54,157 @@
         /* ~30rem, adjust as needed */
     }
 }
+
+/* ========================================
+   MOBILE RESPONSIVE STYLES (≤768px)
+   ======================================== */
+
+/* Mobile bottom cart bar — hidden on desktop */
+.ps-mobile-cart-bar {
+    display: none;
+}
+
+/* Mobile quantity input */
+.ps-qty-input-mobile {
+    width: 42px !important;
+    height: 42px !important;
+    font-size: 16px !important;
+    border-radius: 8px !important;
+}
+
+@media (max-width: 768px) {
+
+    /* Hide the desktop cart row (price, qty, add-to-cart) */
+    .ps-topbar-desktop-cart {
+        display: none !important;
+    }
+
+    /* TopBar: remove sticky on mobile, simplify */
+    .ps-top-bar {
+        position: relative !important;
+        top: auto !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin-left: 0 !important;
+        padding: 10px 15px !important;
+    }
+
+    /* Show the mobile sticky bottom cart bar */
+    .ps-mobile-cart-bar {
+        display: block !important;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 9999;
+        background: #fff;
+        border-top: 1px solid #ddd;
+        box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.1);
+        padding: 10px 15px;
+        box-sizing: border-box;
+    }
+
+    /* Inner nav: sticky bottom above the cart bar on mobile */
+    .ps-inner-nav {
+        position: fixed !important;
+        bottom: 70px;
+        /* above the cart bar */
+        left: 0;
+        right: 0;
+        z-index: 9998;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+
+        &>div {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        a {
+            font-size: 13px !important;
+            padding: 10px 14px !important;
+        }
+    }
+
+    /* Stack the two-column layout vertically */
+    .ps-product-main-layout {
+        flex-direction: column !important;
+        gap: 15px !important;
+        padding: 15px 10px !important;
+
+        /* Left column (visualizer) — remove sticky */
+        .ps-product-left-col {
+            flex: 1 1 100% !important;
+            width: 100% !important;
+            position: relative !important;
+            top: auto !important;
+        }
+
+        /* Right column (colors, options) */
+        .ps-product-right-col {
+            flex: 1 1 100% !important;
+            width: 100% !important;
+        }
+    }
+
+    /* Add bottom padding to page so content isn't hidden behind sticky bars */
+    .paint-store-product-builder {
+        padding-bottom: 140px !important;
+    }
+
+    /* Qty input mobile sizing */
+    .ps-qty-input {
+        width: 42px;
+        height: 42px;
+        font-size: 16px;
+        border-radius: 8px;
+    }
+
+    .ps-qty-btn {
+        width: 30px;
+        height: 30px;
+    }
+}
+
+/* ========================================
+   OVERVIEW SECTION
+   ======================================== */
+.ps-overview-content {
+
+    h2,
+    h3,
+    h4 {
+        margin-top: 25px;
+        margin-bottom: 15px;
+        color: #111;
+    }
+
+    p {
+        margin-bottom: 16px;
+        color: #333;
+        line-height: 1.6;
+        font-size: 15px;
+    }
+
+    ul,
+    ol {
+        margin-bottom: 20px;
+        padding-left: 20px;
+        color: #333;
+        font-size: 15px;
+        line-height: 1.6;
+    }
+
+    li {
+        margin-bottom: 8px;
+    }
+
+    a {
+        color: #00598e;
+        text-decoration: underline;
+
+        &:hover {
+            color: #003d63;
+        }
+    }
+}

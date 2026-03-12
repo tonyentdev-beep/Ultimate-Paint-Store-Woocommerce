@@ -189,53 +189,60 @@ const ColorBrowser = ({ colors, colorFamilies, colorBrands, selectedColor, onCol
                 style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(5, 1fr)',
-                    gap: '2px',
+                    gap: '12px',
                     maxHeight: visibleCount > 10 ? '500px' : 'none',
                     overflowY: visibleCount > 10 ? 'auto' : 'visible',
                     paddingRight: visibleCount > 10 ? '5px' : '0'
                 }}
             >
-                {visibleColors.map(color => (
-                    <div
-                        key={color.id}
-                        onClick={() => onColorSelect(color)}
-                        style={{
-                            cursor: 'pointer',
-                            textAlign: 'center',
-                            padding: '4px',
-                            borderRadius: '6px',
-                            border: selectedColor?.id === color.id ? '2px solid #00598e' : '2px solid transparent',
-                            transition: 'border-color 0.2s'
-                        }}
-                    >
-                        <div style={{
-                            height: '70px',
-                            borderRadius: '6px',
-                            border: '1px solid #e0e0e0', // Light grey border
-                            padding: '5px', // 5px space between border and color
-                            marginBottom: '6px',
-                            backgroundColor: '#fff', // Ensure the gap is always white
-                            boxSizing: 'border-box'
-                        }}>
+                {visibleColors.map(color => {
+                    const isSelected = selectedColor?.id === color.id;
+                    return (
+                        <div
+                            key={color.id}
+                            onClick={() => onColorSelect(color)}
+                            style={{
+                                cursor: 'pointer',
+                                textAlign: 'center',
+                                transition: 'transform 0.15s ease'
+                            }}
+                        >
                             <div style={{
-                                backgroundColor: color.hex_value,
-                                width: '100%',
-                                height: '100%',
-                                borderRadius: '4px' // Slightly smaller inner radius
-                            }} />
+                                aspectRatio: '1',
+                                borderRadius: '16px',
+                                border: isSelected ? '3px solid #00598e' : '1px solid #e0e0e0',
+                                padding: isSelected ? '4px' : '6px',
+                                backgroundColor: '#fff',
+                                boxSizing: 'border-box',
+                                boxShadow: isSelected
+                                    ? '0 2px 8px rgba(0,89,142,0.25)'
+                                    : '0 1px 4px rgba(0,0,0,0.06)',
+                                transition: 'all 0.2s ease'
+                            }}>
+                                <div style={{
+                                    backgroundColor: color.hex_value,
+                                    width: '100%',
+                                    height: '100%',
+                                    borderRadius: '12px'
+                                }} />
+                            </div>
+                            <div style={{
+                                fontSize: '12px',
+                                color: '#333',
+                                lineHeight: '1.3',
+                                marginTop: '6px',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical',
+                                wordBreak: 'break-word'
+                            }}>
+                                {color.name}
+                            </div>
                         </div>
-                        <div style={{
-                            fontSize: '11px',
-                            color: '#333',
-                            lineHeight: '1.3',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis'
-                        }}>
-                            {color.name}
-                        </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
             {/* See More */}

@@ -116,6 +116,26 @@ class Paint_Store_API {
 			),
 		) );
 
+		// Product Types Endpoints
+		register_rest_route( $this->namespace, '/product-types', array(
+			array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'get_product_types' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+			array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'create_product_type' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+		) );
+		register_rest_route( $this->namespace, '/product-types/(?P<id>\\d+)', array(
+			array( 'methods' => WP_REST_Server::EDITABLE, 'callback' => array( $this, 'update_product_type' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+			array( 'methods' => WP_REST_Server::DELETABLE, 'callback' => array( $this, 'delete_product_type' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+		) );
+
+		// Product Makes Endpoints
+		register_rest_route( $this->namespace, '/product-makes', array(
+			array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'get_product_makes' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+			array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'create_product_make' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+		) );
+		register_rest_route( $this->namespace, '/product-makes/(?P<id>\\d+)', array(
+			array( 'methods' => WP_REST_Server::EDITABLE, 'callback' => array( $this, 'update_product_make' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+			array( 'methods' => WP_REST_Server::DELETABLE, 'callback' => array( $this, 'delete_product_make' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+		) );
+
 		// Product Families Endpoints
 		register_rest_route( $this->namespace, '/product-families', array(
 			array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'get_product_families' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
@@ -205,6 +225,16 @@ class Paint_Store_API {
 			array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'sync_sheens_to_woo' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
 		) );
 
+		// Tool Attributes Endpoints
+		register_rest_route( $this->namespace, '/tool-attributes', array(
+			array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'get_tool_attributes' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+			array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'create_tool_attribute' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+		) );
+		register_rest_route( $this->namespace, '/tool-attributes/(?P<id>\\d+)', array(
+			array( 'methods' => WP_REST_Server::EDITABLE, 'callback' => array( $this, 'update_tool_attribute' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+			array( 'methods' => WP_REST_Server::DELETABLE, 'callback' => array( $this, 'delete_tool_attribute' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
+		) );
+
 		// Surface Types Endpoints
 		register_rest_route( $this->namespace, '/surface-types', array(
 			array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'get_surface_types' ), 'permission_callback' => array( $this, 'permissions_check' ) ),
@@ -278,6 +308,27 @@ class Paint_Store_API {
 			),
 		) );
 
+		register_rest_route( $this->namespace, '/admin/reviews', array(
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'admin_get_reviews' ),
+				'permission_callback' => array( $this, 'permissions_check' ),
+			),
+		) );
+
+		register_rest_route( $this->namespace, '/admin/reviews/(?P<id>\\d+)', array(
+			array(
+				'methods'             => WP_REST_Server::EDITABLE,
+				'callback'            => array( $this, 'admin_update_review' ),
+				'permission_callback' => array( $this, 'permissions_check' ),
+			),
+			array(
+				'methods'             => WP_REST_Server::DELETABLE,
+				'callback'            => array( $this, 'admin_delete_review' ),
+				'permission_callback' => array( $this, 'permissions_check' ),
+			),
+		) );
+
 		// ==========================================
 		// PUBLIC ENDPOINTS (Frontend React App)
 		// ==========================================
@@ -286,6 +337,59 @@ class Paint_Store_API {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'public_get_product_family' ),
+				'permission_callback' => '__return_true',
+			),
+		) );
+
+		register_rest_route( $this->namespace, '/public/product-families-list', array(
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'public_get_product_families_list' ),
+				'permission_callback' => '__return_true',
+			),
+		) );
+
+		register_rest_route( $this->namespace, '/public/product-families/(?P<id>\\d+)/reviews', array(
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'public_get_reviews' ),
+				'permission_callback' => '__return_true',
+			),
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'public_submit_review' ),
+				'permission_callback' => '__return_true',
+			),
+		) );
+
+		// ==========================================
+		// PUBLIC Q&A ENDPOINTS
+		// ==========================================
+		register_rest_route( $this->namespace, '/public/product-families/(?P<id>\\d+)/questions', array(
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'public_get_questions' ),
+				'permission_callback' => '__return_true',
+			),
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'public_submit_question' ),
+				'permission_callback' => '__return_true',
+			),
+		) );
+
+		register_rest_route( $this->namespace, '/public/questions/(?P<id>\\d+)/answers', array(
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'public_submit_answer' ),
+				'permission_callback' => '__return_true',
+			),
+		) );
+
+		register_rest_route( $this->namespace, '/public/answers/(?P<id>\\d+)/vote', array(
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'public_vote_answer' ),
 				'permission_callback' => '__return_true',
 			),
 		) );
@@ -314,11 +418,35 @@ class Paint_Store_API {
 			),
 		) );
 
-		register_rest_route( $this->namespace, '/public/add-to-cart', array(
+
+		// Admin Fulfillment Orders
+		register_rest_route( $this->namespace, '/admin/fulfillment-orders', array(
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'admin_get_fulfillment_orders' ),
+				'permission_callback' => array( $this, 'permissions_check' ),
+			),
+		) );
+
+		register_rest_route( $this->namespace, '/admin/fulfillment-orders/(?P<id>\\d+)', array(
+			array(
+				'methods'             => WP_REST_Server::EDITABLE,
+				'callback'            => array( $this, 'admin_update_fulfillment_order' ),
+				'permission_callback' => array( $this, 'permissions_check' ),
+			),
+		) );
+
+		// Admin Fulfillment Settings
+		register_rest_route( $this->namespace, '/admin/fulfillment-settings', array(
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'admin_get_fulfillment_settings' ),
+				'permission_callback' => array( $this, 'permissions_check' ),
+			),
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => array( $this, 'public_add_to_cart' ),
-				'permission_callback' => '__return_true',
+				'callback'            => array( $this, 'admin_save_fulfillment_settings' ),
+				'permission_callback' => array( $this, 'permissions_check' ),
 			),
 		) );
 	}
@@ -808,6 +936,10 @@ class Paint_Store_API {
 			$row['datasheets'] = $wpdb->get_results( $wpdb->prepare(
 				"SELECT * FROM {$wpdb->prefix}ps_family_datasheets WHERE family_id = %d", $row['id']
 			), ARRAY_A );
+			// Fetch associated family color IDs (for wood stains / specialty)
+			$row['family_color_ids'] = array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
+				"SELECT color_id FROM {$wpdb->prefix}ps_family_colors WHERE family_id = %d", $row['id']
+			) ) );
 		}
 		return rest_ensure_response( $results );
 	}
@@ -822,9 +954,31 @@ class Paint_Store_API {
 		$gallery_ids_raw = $request->get_param( 'gallery_image_ids' );
 		$gallery_image_ids = is_array( $gallery_ids_raw ) ? implode( ',', array_map( 'intval', $gallery_ids_raw ) ) : sanitize_text_field( $gallery_ids_raw );
 		
+		// Accept compare_attributes JSON
+		$compare_attributes = wp_unslash( $request->get_param( 'compare_attributes' ) );
+		// Ensure it's valid JSON
+		if ( ! empty( $compare_attributes ) && is_string( $compare_attributes ) ) {
+			$decoded = json_decode( $compare_attributes );
+			$compare_attributes = $decoded !== null ? wp_json_encode( $decoded ) : null;
+		} else {
+			$compare_attributes = null;
+		}
+
+		// Extract new Tool Specification IDs
+		$tool_handle_shape_id     = intval( $request->get_param( 'tool_handle_shape_id' ) );
+		$tool_bristle_material_id = intval( $request->get_param( 'tool_bristle_material_id' ) );
+		$tool_head_shape_id       = intval( $request->get_param( 'tool_head_shape_id' ) );
+		$tool_handle_length_id    = intval( $request->get_param( 'tool_handle_length_id' ) );
+		$tool_handle_material_id  = intval( $request->get_param( 'tool_handle_material_id' ) );
+		$tool_stiffness_id        = intval( $request->get_param( 'tool_stiffness_id' ) );
+		$tool_paint_compat_id     = intval( $request->get_param( 'tool_paint_compat_id' ) );
+		$tool_ferrule_material_id = intval( $request->get_param( 'tool_ferrule_material_id' ) );
+
+		$make_id = intval( $request->get_param( 'make_id' ) );
+
 		if ( empty( $name ) ) return new WP_Error( 'missing_name', 'Name is required', array( 'status' => 400 ) );
 		
-		$result = $wpdb->insert( $wpdb->prefix . 'ps_product_families', array( 'name' => $name, 'brand_id' => $brand_id, 'description' => $description, 'short_description' => $short_description, 'how_to_use' => $how_to_use, 'gallery_image_ids' => $gallery_image_ids ), array( '%s', '%d', '%s', '%s', '%s', '%s' ) );
+		$result = $wpdb->insert( $wpdb->prefix . 'ps_product_families', array( 'name' => $name, 'brand_id' => $brand_id, 'make_id' => $make_id, 'description' => $description, 'short_description' => $short_description, 'how_to_use' => $how_to_use, 'gallery_image_ids' => $gallery_image_ids, 'compare_attributes' => $compare_attributes, 'tool_handle_shape_id' => $tool_handle_shape_id, 'tool_bristle_material_id' => $tool_bristle_material_id, 'tool_head_shape_id' => $tool_head_shape_id, 'tool_handle_length_id' => $tool_handle_length_id, 'tool_handle_material_id' => $tool_handle_material_id, 'tool_stiffness_id' => $tool_stiffness_id, 'tool_paint_compat_id' => $tool_paint_compat_id, 'tool_ferrule_material_id' => $tool_ferrule_material_id ), array( '%s', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d' ) );
 		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
 		
 		$family_id = $wpdb->insert_id;
@@ -844,9 +998,32 @@ class Paint_Store_API {
 		$gallery_ids_raw = $request->get_param( 'gallery_image_ids' );
 		$gallery_image_ids = is_array( $gallery_ids_raw ) ? implode( ',', array_map( 'intval', $gallery_ids_raw ) ) : sanitize_text_field( $gallery_ids_raw );
 		
+		// Accept compare_attributes JSON
+		$compare_attributes = wp_unslash( $request->get_param( 'compare_attributes' ) );
+		// Ensure it's valid JSON
+		if ( ! empty( $compare_attributes ) && is_string( $compare_attributes ) ) {
+			$decoded = json_decode( $compare_attributes );
+			$compare_attributes = $decoded !== null ? wp_json_encode( $decoded ) : null;
+		} else {
+			$compare_attributes = null;
+		}
+
+		// Extract new Tool Specification IDs
+		$tool_handle_shape_id     = intval( $request->get_param( 'tool_handle_shape_id' ) );
+		$tool_bristle_material_id = intval( $request->get_param( 'tool_bristle_material_id' ) );
+		$tool_head_shape_id       = intval( $request->get_param( 'tool_head_shape_id' ) );
+		$tool_handle_length_id    = intval( $request->get_param( 'tool_handle_length_id' ) );
+		$tool_handle_material_id  = intval( $request->get_param( 'tool_handle_material_id' ) );
+		$tool_stiffness_id        = intval( $request->get_param( 'tool_stiffness_id' ) );
+		$tool_paint_compat_id     = intval( $request->get_param( 'tool_paint_compat_id' ) );
+		$tool_ferrule_material_id = intval( $request->get_param( 'tool_ferrule_material_id' ) );
+
+
+		$make_id = intval( $request->get_param( 'make_id' ) );
+
 		if ( empty( $name ) ) return new WP_Error( 'missing_name', 'Name is required', array( 'status' => 400 ) );
 		
-		$result = $wpdb->update( $wpdb->prefix . 'ps_product_families', array( 'name' => $name, 'brand_id' => $brand_id, 'description' => $description, 'short_description' => $short_description, 'how_to_use' => $how_to_use, 'gallery_image_ids' => $gallery_image_ids ), array( 'id' => $id ), array( '%s', '%d', '%s', '%s', '%s', '%s' ), array( '%d' ) );
+		$result = $wpdb->update( $wpdb->prefix . 'ps_product_families', array( 'name' => $name, 'brand_id' => $brand_id, 'make_id' => $make_id, 'description' => $description, 'short_description' => $short_description, 'how_to_use' => $how_to_use, 'gallery_image_ids' => $gallery_image_ids, 'compare_attributes' => $compare_attributes, 'tool_handle_shape_id' => $tool_handle_shape_id, 'tool_bristle_material_id' => $tool_bristle_material_id, 'tool_head_shape_id' => $tool_head_shape_id, 'tool_handle_length_id' => $tool_handle_length_id, 'tool_handle_material_id' => $tool_handle_material_id, 'tool_stiffness_id' => $tool_stiffness_id, 'tool_paint_compat_id' => $tool_paint_compat_id, 'tool_ferrule_material_id' => $tool_ferrule_material_id ), array( 'id' => $id ), array( '%s', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d' ), array( '%d' ) );
 		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
 		
 		$this->sync_family_relations( $id, $request );
@@ -931,6 +1108,15 @@ class Paint_Store_API {
 				$wpdb->insert( $wpdb->prefix . 'ps_family_scenes', array( 'family_id' => $family_id, 'scene_id' => intval( $scid ) ), array( '%d', '%d' ) );
 			}
 		}
+
+		// Sync family colors (for wood stains / specialty coatings)
+		$family_color_ids = $request->get_param( 'family_color_ids' );
+		if ( is_array( $family_color_ids ) ) {
+			$wpdb->delete( $wpdb->prefix . 'ps_family_colors', array( 'family_id' => $family_id ), array( '%d' ) );
+			foreach ( $family_color_ids as $cid ) {
+				$wpdb->insert( $wpdb->prefix . 'ps_family_colors', array( 'family_id' => $family_id, 'color_id' => intval( $cid ) ), array( '%d', '%d' ) );
+			}
+		}
 	}
 
 	public function delete_product_family( $request ) {
@@ -955,6 +1141,10 @@ class Paint_Store_API {
 			$row['surface_id'] = intval( $row['surface_id'] );
 			$row['price']      = floatval( $row['price'] );
 			$row['stock_quantity'] = intval( $row['stock_quantity'] );
+			$row['color_name'] = isset( $row['color_name'] ) ? $row['color_name'] : '';
+			$row['opacity']    = isset( $row['opacity'] ) ? $row['opacity'] : '';
+			$row['stain_image_id'] = intval( isset( $row['stain_image_id'] ) ? $row['stain_image_id'] : 0 );
+			$row['stain_image_url'] = $row['stain_image_id'] > 0 ? wp_get_attachment_url( $row['stain_image_id'] ) : '';
 		}
 		return rest_ensure_response( $results );
 	}
@@ -970,6 +1160,9 @@ class Paint_Store_API {
 		$price      = floatval( $request->get_param( 'price' ) );
 		$stock_quantity = intval( $request->get_param( 'stock_quantity' ) );
 		$description = sanitize_textarea_field( $request->get_param( 'description' ) );
+		$color_name = sanitize_text_field( $request->get_param( 'color_name' ) );
+		$opacity    = sanitize_text_field( $request->get_param( 'opacity' ) );
+		$stain_image_id = intval( $request->get_param( 'stain_image_id' ) );
 		
 		if ( ! $family_id ) return new WP_Error( 'missing_family', 'Product Family is required', array( 'status' => 400 ) );
 		
@@ -984,9 +1177,12 @@ class Paint_Store_API {
 				'sku'        => $sku,
 				'price'      => $price,
 				'description' => $description,
-				'stock_quantity' => $stock_quantity
+				'stock_quantity' => $stock_quantity,
+				'color_name' => $color_name,
+				'opacity'    => $opacity,
+				'stain_image_id' => $stain_image_id
 			), 
-			array( '%d', '%d', '%d', '%d', '%d', '%s', '%f', '%s', '%d' ) 
+			array( '%d', '%d', '%d', '%d', '%d', '%s', '%f', '%s', '%d', '%s', '%s', '%d' ) 
 		);
 		
 		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
@@ -1006,6 +1202,9 @@ class Paint_Store_API {
 		$price      = floatval( $request->get_param( 'price' ) );
 		$stock_quantity = intval( $request->get_param( 'stock_quantity' ) );
 		$description = sanitize_textarea_field( $request->get_param( 'description' ) );
+		$color_name = sanitize_text_field( $request->get_param( 'color_name' ) );
+		$opacity    = sanitize_text_field( $request->get_param( 'opacity' ) );
+		$stain_image_id = intval( $request->get_param( 'stain_image_id' ) );
 		
 		if ( ! $family_id ) return new WP_Error( 'missing_family', 'Product Family is required', array( 'status' => 400 ) );
 		
@@ -1020,10 +1219,13 @@ class Paint_Store_API {
 				'sku'        => $sku,
 				'price'      => $price,
 				'description' => $description,
-				'stock_quantity' => $stock_quantity
+				'stock_quantity' => $stock_quantity,
+				'color_name' => $color_name,
+				'opacity'    => $opacity,
+				'stain_image_id' => $stain_image_id
 			), 
 			array( 'id' => $id ), 
-			array( '%d', '%d', '%d', '%d', '%d', '%s', '%f', '%s', '%d' ), 
+			array( '%d', '%d', '%d', '%d', '%d', '%s', '%f', '%s', '%d', '%s', '%s', '%d' ), 
 			array( '%d' ) 
 		);
 		
@@ -1237,6 +1439,81 @@ class Paint_Store_API {
 
 	// --- Product Categories Handlers ---
 
+	// ========== Product Types ==========
+	public function get_product_types( $request ) {
+		global $wpdb;
+		$results = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}ps_product_types ORDER BY name ASC", ARRAY_A );
+		return rest_ensure_response( $results );
+	}
+
+	public function create_product_type( $request ) {
+		global $wpdb;
+		$name = sanitize_text_field( $request->get_param( 'name' ) );
+		$slug = sanitize_title( $name );
+		$description = sanitize_textarea_field( $request->get_param( 'description' ) );
+		if ( empty( $name ) ) return new WP_Error( 'missing_name', 'Name is required', array( 'status' => 400 ) );
+		$result = $wpdb->insert( $wpdb->prefix . 'ps_product_types', array( 'name' => $name, 'slug' => $slug, 'description' => $description ), array( '%s', '%s', '%s' ) );
+		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
+		return rest_ensure_response( array( 'id' => $wpdb->insert_id ) );
+	}
+
+	public function update_product_type( $request ) {
+		global $wpdb;
+		$id = intval( $request->get_param( 'id' ) );
+		$name = sanitize_text_field( $request->get_param( 'name' ) );
+		$slug = sanitize_title( $name );
+		$description = sanitize_textarea_field( $request->get_param( 'description' ) );
+		if ( empty( $name ) ) return new WP_Error( 'missing_name', 'Name is required', array( 'status' => 400 ) );
+		$result = $wpdb->update( $wpdb->prefix . 'ps_product_types', array( 'name' => $name, 'slug' => $slug, 'description' => $description ), array( 'id' => $id ), array( '%s', '%s', '%s' ), array( '%d' ) );
+		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
+		return rest_ensure_response( array( 'success' => true ) );
+	}
+
+	public function delete_product_type( $request ) {
+		global $wpdb;
+		$wpdb->delete( $wpdb->prefix . 'ps_product_types', array( 'id' => intval( $request->get_param( 'id' ) ) ), array( '%d' ) );
+		return rest_ensure_response( array( 'success' => true ) );
+	}
+
+	// ========== Product Makes ==========
+	public function get_product_makes( $request ) {
+		global $wpdb;
+		$results = $wpdb->get_results( "SELECT m.*, t.name AS type_name FROM {$wpdb->prefix}ps_product_makes m LEFT JOIN {$wpdb->prefix}ps_product_types t ON m.product_type_id = t.id ORDER BY m.name ASC", ARRAY_A );
+		return rest_ensure_response( $results );
+	}
+
+	public function create_product_make( $request ) {
+		global $wpdb;
+		$name = sanitize_text_field( $request->get_param( 'name' ) );
+		$slug = sanitize_title( $name );
+		$product_type_id = intval( $request->get_param( 'product_type_id' ) );
+		$description = sanitize_textarea_field( $request->get_param( 'description' ) );
+		if ( empty( $name ) || empty( $product_type_id ) ) return new WP_Error( 'missing_fields', 'Name and Product Type are required', array( 'status' => 400 ) );
+		$result = $wpdb->insert( $wpdb->prefix . 'ps_product_makes', array( 'name' => $name, 'slug' => $slug, 'product_type_id' => $product_type_id, 'description' => $description ), array( '%s', '%s', '%d', '%s' ) );
+		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
+		return rest_ensure_response( array( 'id' => $wpdb->insert_id ) );
+	}
+
+	public function update_product_make( $request ) {
+		global $wpdb;
+		$id = intval( $request->get_param( 'id' ) );
+		$name = sanitize_text_field( $request->get_param( 'name' ) );
+		$slug = sanitize_title( $name );
+		$product_type_id = intval( $request->get_param( 'product_type_id' ) );
+		$description = sanitize_textarea_field( $request->get_param( 'description' ) );
+		if ( empty( $name ) || empty( $product_type_id ) ) return new WP_Error( 'missing_fields', 'Name and Product Type are required', array( 'status' => 400 ) );
+		$result = $wpdb->update( $wpdb->prefix . 'ps_product_makes', array( 'name' => $name, 'slug' => $slug, 'product_type_id' => $product_type_id, 'description' => $description ), array( 'id' => $id ), array( '%s', '%s', '%d', '%s' ), array( '%d' ) );
+		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
+		return rest_ensure_response( array( 'success' => true ) );
+	}
+
+	public function delete_product_make( $request ) {
+		global $wpdb;
+		$wpdb->delete( $wpdb->prefix . 'ps_product_makes', array( 'id' => intval( $request->get_param( 'id' ) ) ), array( '%d' ) );
+		return rest_ensure_response( array( 'success' => true ) );
+	}
+
+	// ========== Product Categories ==========
 	public function get_product_categories( $request ) {
 		global $wpdb;
 		$results = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}ps_product_categories", ARRAY_A );
@@ -1247,9 +1524,10 @@ class Paint_Store_API {
 		global $wpdb;
 		$name = sanitize_text_field( $request->get_param( 'name' ) );
 		$slug = sanitize_title( $name );
+		$make_id = intval( $request->get_param( 'make_id' ) );
 		$description = sanitize_textarea_field( $request->get_param( 'description' ) );
 		if ( empty( $name ) ) return new WP_Error( 'missing_name', 'Name is required', array( 'status' => 400 ) );
-		$result = $wpdb->insert( $wpdb->prefix . 'ps_product_categories', array( 'name' => $name, 'slug' => $slug, 'description' => $description ), array( '%s', '%s', '%s' ) );
+		$result = $wpdb->insert( $wpdb->prefix . 'ps_product_categories', array( 'name' => $name, 'slug' => $slug, 'make_id' => $make_id, 'description' => $description ), array( '%s', '%s', '%d', '%s' ) );
 		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
 		return rest_ensure_response( array( 'id' => $wpdb->insert_id ) );
 	}
@@ -1259,9 +1537,10 @@ class Paint_Store_API {
 		$id = $request->get_param( 'id' );
 		$name = sanitize_text_field( $request->get_param( 'name' ) );
 		$slug = sanitize_title( $name );
+		$make_id = intval( $request->get_param( 'make_id' ) );
 		$description = sanitize_textarea_field( $request->get_param( 'description' ) );
 		if ( empty( $name ) ) return new WP_Error( 'missing_name', 'Name is required', array( 'status' => 400 ) );
-		$result = $wpdb->update( $wpdb->prefix . 'ps_product_categories', array( 'name' => $name, 'slug' => $slug, 'description' => $description ), array( 'id' => $id ), array( '%s', '%s', '%s' ), array( '%d' ) );
+		$result = $wpdb->update( $wpdb->prefix . 'ps_product_categories', array( 'name' => $name, 'slug' => $slug, 'make_id' => $make_id, 'description' => $description ), array( 'id' => $id ), array( '%s', '%s', '%d', '%s' ), array( '%d' ) );
 		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
 		return rest_ensure_response( array( 'success' => true ) );
 	}
@@ -1339,12 +1618,17 @@ class Paint_Store_API {
 		// 1. Create the Global Attribute if it doesn't exist
 		$slug = 'paint_size';
 		$taxonomy = 'pa_' . $slug;
-		$attribute_id = wc_attribute_taxonomy_id_by_name( 'Paint Size' );
+		$attribute_id = wc_attribute_taxonomy_id_by_name( $taxonomy );
+		if ( ! $attribute_id ) {
+			$attribute_id = wc_attribute_taxonomy_id_by_name( 'Paint Size' );
+		}
 
 		if ( ! $attribute_id ) {
 			$attribute_id = wc_create_attribute( array( 'name' => 'Paint Size', 'slug' => $slug, 'type' => 'select' ) );
 			if ( is_wp_error( $attribute_id ) ) return $attribute_id;
-			register_taxonomy( $taxonomy, array( 'product' ) ); // Register it temporarily for this request
+		}
+		if ( ! taxonomy_exists( $taxonomy ) ) {
+			register_taxonomy( $taxonomy, array( 'product' ) );
 		}
 
 		// 2. Sync all local sizes to terms
@@ -1402,17 +1686,63 @@ class Paint_Store_API {
 		return rest_ensure_response( array( 'success' => true ) );
 	}
 
+	// --- Tool Attributes Handlers ---
+
+	public function get_tool_attributes( $request ) {
+		global $wpdb;
+		$type = $request->get_param( 'attribute_type' );
+		if ( ! empty( $type ) ) {
+			$results = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}ps_tool_attributes WHERE attribute_type = %s ORDER BY name", $type ), ARRAY_A );
+		} else {
+			$results = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}ps_tool_attributes ORDER BY attribute_type, name", ARRAY_A );
+		}
+		return rest_ensure_response( $results );
+	}
+
+	public function create_tool_attribute( $request ) {
+		global $wpdb;
+		$attribute_type = sanitize_text_field( $request->get_param( 'attribute_type' ) );
+		$name = sanitize_text_field( $request->get_param( 'name' ) );
+		$description = sanitize_textarea_field( $request->get_param( 'description' ) );
+		if ( empty( $attribute_type ) || empty( $name ) ) return new WP_Error( 'missing_fields', 'attribute_type and name are required', array( 'status' => 400 ) );
+		$result = $wpdb->insert( $wpdb->prefix . 'ps_tool_attributes', array( 'attribute_type' => $attribute_type, 'name' => $name, 'description' => $description ), array( '%s', '%s', '%s' ) );
+		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
+		return rest_ensure_response( array( 'id' => $wpdb->insert_id ) );
+	}
+
+	public function update_tool_attribute( $request ) {
+		global $wpdb;
+		$id = $request->get_param( 'id' );
+		$attribute_type = sanitize_text_field( $request->get_param( 'attribute_type' ) );
+		$name = sanitize_text_field( $request->get_param( 'name' ) );
+		$description = sanitize_textarea_field( $request->get_param( 'description' ) );
+		if ( empty( $name ) ) return new WP_Error( 'missing_name', 'Name is required', array( 'status' => 400 ) );
+		$result = $wpdb->update( $wpdb->prefix . 'ps_tool_attributes', array( 'attribute_type' => $attribute_type, 'name' => $name, 'description' => $description ), array( 'id' => $id ), array( '%s', '%s', '%s' ), array( '%d' ) );
+		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
+		return rest_ensure_response( array( 'success' => true ) );
+	}
+
+	public function delete_tool_attribute( $request ) {
+		global $wpdb;
+		$wpdb->delete( $wpdb->prefix . 'ps_tool_attributes', array( 'id' => $request->get_param( 'id' ) ), array( '%d' ) );
+		return rest_ensure_response( array( 'success' => true ) );
+	}
 	public function sync_sheens_to_woo( $request ) {
 		if ( ! class_exists( 'WooCommerce' ) ) return new WP_Error( 'woo_missing', 'WooCommerce is not active.', array( 'status' => 400 ) );
 		global $wpdb;
 
 		$slug = 'paint_sheen';
 		$taxonomy = 'pa_' . $slug;
-		$attribute_id = wc_attribute_taxonomy_id_by_name( 'Paint Sheen' );
+		$attribute_id = wc_attribute_taxonomy_id_by_name( $taxonomy );
+		if ( ! $attribute_id ) {
+			$attribute_id = wc_attribute_taxonomy_id_by_name( 'Paint Sheen' );
+		}
 
 		if ( ! $attribute_id ) {
 			$attribute_id = wc_create_attribute( array( 'name' => 'Paint Sheen', 'slug' => $slug, 'type' => 'select' ) );
 			if ( is_wp_error( $attribute_id ) ) return $attribute_id;
+		}
+		if ( ! taxonomy_exists( $taxonomy ) ) {
 			register_taxonomy( $taxonomy, array( 'product' ) );
 		}
 
@@ -1476,11 +1806,16 @@ class Paint_Store_API {
 
 		$slug = 'paint_surface';
 		$taxonomy = 'pa_' . $slug;
-		$attribute_id = wc_attribute_taxonomy_id_by_name( 'Paint Surface' );
+		$attribute_id = wc_attribute_taxonomy_id_by_name( $taxonomy );
+		if ( ! $attribute_id ) {
+			$attribute_id = wc_attribute_taxonomy_id_by_name( 'Paint Surface' );
+		}
 
 		if ( ! $attribute_id ) {
 			$attribute_id = wc_create_attribute( array( 'name' => 'Paint Surface', 'slug' => $slug, 'type' => 'select' ) );
 			if ( is_wp_error( $attribute_id ) ) return $attribute_id;
+		}
+		if ( ! taxonomy_exists( $taxonomy ) ) {
 			register_taxonomy( $taxonomy, array( 'product' ) );
 		}
 
@@ -1879,7 +2214,14 @@ class Paint_Store_API {
 		global $wpdb;
 		$family_id = intval( $request->get_param( 'id' ) );
 		
-		$family = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}ps_product_families WHERE id = %d", $family_id ), ARRAY_A );
+		$query = $wpdb->prepare( "
+			SELECT f.*, m.slug as make_slug, m.name as make_name 
+			FROM {$wpdb->prefix}ps_product_families f
+			LEFT JOIN {$wpdb->prefix}ps_product_makes m ON f.make_id = m.id
+			WHERE f.id = %d
+		", $family_id );
+
+		$family = $wpdb->get_row( $query, ARRAY_A );
 		if ( ! $family ) return new WP_Error( 'not_found', 'Product family not found.', array( 'status' => 404 ) );
 
 		// Parse gallery images
@@ -1972,14 +2314,14 @@ class Paint_Store_API {
 				$sizes = wc_get_product_terms( $family['wc_product_id'], 'pa_paint_size', array( 'fields' => 'all' ) );
 				if ( ! is_wp_error( $sizes ) ) {
 					foreach ( $sizes as $term ) {
-						$attributes['sizes'][] = array( 'slug' => $term->slug, 'name' => $term->name );
+						$attributes['sizes'][] = array( 'slug' => $term->slug, 'name' => $term->name, 'description' => $term->description );
 					}
 				}
 
 				$sheens = wc_get_product_terms( $family['wc_product_id'], 'pa_paint_sheen', array( 'fields' => 'all' ) );
 				if ( ! is_wp_error( $sheens ) ) {
 					foreach ( $sheens as $term ) {
-						$attributes['sheens'][] = array( 'slug' => $term->slug, 'name' => $term->name );
+						$attributes['sheens'][] = array( 'slug' => $term->slug, 'name' => $term->name, 'description' => $term->description );
 					}
 				}
 			}
@@ -2010,16 +2352,73 @@ class Paint_Store_API {
 			$prod['sheen_name'] = $sheen_row ? $sheen_row->name : '';
 			$sheen_term = ( $sheen_row && $sheen_row->wc_attribute_id ) ? get_term( $sheen_row->wc_attribute_id ) : null;
 			$prod['sheen_slug'] = ( $sheen_term && ! is_wp_error( $sheen_term ) ) ? $sheen_term->slug : '';
+
+			// Resolve stain image URL
+			$prod['stain_image_url'] = '';
+			if ( ! empty( $prod['stain_image_id'] ) ) {
+				$prod['stain_image_url'] = wp_get_attachment_url( intval( $prod['stain_image_id'] ) ) ?: '';
+			}
+		}
+
+		// Calculate Review Statistics
+		$reviews_table = $wpdb->prefix . 'ps_reviews';
+		$stats = $wpdb->get_row( $wpdb->prepare(
+			"SELECT COUNT(*) as total_reviews, AVG(rating) as average_rating 
+			 FROM $reviews_table 
+			 WHERE family_id = %d", 
+			$family_id
+		) );
+		
+		$review_stats = array(
+			'total' => $stats ? intval( $stats->total_reviews ) : 0,
+			'average' => $stats && $stats->average_rating ? floatval( $stats->average_rating ) : 0
+		);
+
+		// Decode compare_attributes if it exists
+		if ( ! empty( $family['compare_attributes'] ) ) {
+			$family['compare_attributes'] = json_decode( $family['compare_attributes'], true );
+		} else {
+			$family['compare_attributes'] = null;
+		}
+
+		// Resolve tool attribute IDs to names for the storefront
+		$tool_attr_map = array(
+			'tool_handle_shape'     => 'tool_handle_shape_id',
+			'tool_bristle_material' => 'tool_bristle_material_id',
+			'tool_head_shape'       => 'tool_head_shape_id',
+			'tool_handle_length'    => 'tool_handle_length_id',
+			'tool_handle_material'  => 'tool_handle_material_id',
+			'tool_stiffness'        => 'tool_stiffness_id',
+			'tool_paint_compat'     => 'tool_paint_compat_id',
+			'tool_ferrule_material' => 'tool_ferrule_material_id'
+		);
+		$tool_attrs = array();
+		foreach ( $tool_attr_map as $name_key => $id_key ) {
+			$attr_id = isset( $family[ $id_key ] ) ? intval( $family[ $id_key ] ) : 0;
+			if ( $attr_id > 0 ) {
+				$attr_name = $wpdb->get_var( $wpdb->prepare( "SELECT name FROM {$wpdb->prefix}ps_tool_attributes WHERE id = %d", $attr_id ) );
+				$tool_attrs[ $name_key ] = $attr_name ?: '';
+			} else {
+				$tool_attrs[ $name_key ] = '';
+			}
+			$tool_attrs[ $id_key ] = $attr_id;
 		}
 
 		$response = array(
-			'family'     => $family,
+			'family'     => array_merge($family, $tool_attrs),
 			'variations' => $variations,
 			'attributes' => $attributes,
-			'ps_products' => $ps_products
+			'ps_products' => $ps_products,
+			'review_stats' => $review_stats
 		);
 
 		return rest_ensure_response( $response );
+	}
+
+	public function public_get_product_families_list( $request ) {
+		global $wpdb;
+		$results = $wpdb->get_results( "SELECT id, name FROM {$wpdb->prefix}ps_product_families ORDER BY name ASC", ARRAY_A );
+		return rest_ensure_response( $results );
 	}
 
 	public function public_get_color_families( $request ) {
@@ -2059,40 +2458,571 @@ class Paint_Store_API {
 		return rest_ensure_response( $results );
 	}
 
-	public function public_add_to_cart( $request ) {
-		if ( ! class_exists( 'WooCommerce' ) ) {
-			return new WP_Error( 'woo_missing', 'WooCommerce is not active.', array( 'status' => 400 ) );
+	// ==========================================
+	// PUBLIC REVIEWS ENDPOINTS
+	// ==========================================
+
+	public function public_get_reviews( $request ) {
+		global $wpdb;
+		$family_id = intval( $request->get_param( 'id' ) );
+
+		if ( ! $family_id ) {
+			return new WP_Error( 'missing_id', 'Family ID is required', array( 'status' => 400 ) );
 		}
 
-		$product_id   = intval( $request->get_param( 'product_id' ) );
-		$variation_id = intval( $request->get_param( 'variation_id' ) );
-		$quantity     = intval( $request->get_param( 'quantity' ) ) ?: 1;
-		$color_hex    = sanitize_text_field( $request->get_param( 'color_hex' ) );
-		$color_name   = sanitize_text_field( $request->get_param( 'color_name' ) );
+		$table_name = $wpdb->prefix . 'ps_reviews';
+		
+		// get all reviews for this family
+		$reviews = $wpdb->get_results( $wpdb->prepare(
+			"SELECT * FROM $table_name WHERE family_id = %d ORDER BY created_at DESC",
+			$family_id
+		), ARRAY_A );
 
-		if ( ! $product_id || ! $variation_id ) {
-			return new WP_Error( 'missing_data', 'Product ID and Variation ID are required.', array( 'status' => 400 ) );
-		}
-
-		$cart_item_data = array(
-			'paint_custom_color' => array(
-				'name' => $color_name,
-				'hex'  => $color_hex
+		// calculate aggregates
+		$total_reviews = count( $reviews );
+		$aggregate = array(
+			'average' => 0,
+			'total' => $total_reviews,
+			'recommend_percent' => 0,
+			'distribution' => array(
+				5 => array( 'stars' => 5, 'count' => 0, 'percent' => 0 ),
+				4 => array( 'stars' => 4, 'count' => 0, 'percent' => 0 ),
+				3 => array( 'stars' => 3, 'count' => 0, 'percent' => 0 ),
+				2 => array( 'stars' => 2, 'count' => 0, 'percent' => 0 ),
+				1 => array( 'stars' => 1, 'count' => 0, 'percent' => 0 ),
 			)
 		);
 
-		// WooCommerce requires the specific attributes used for this variation to be passed in to the add_to_cart function
-		$variation = wc_get_product( $variation_id );
-		$variation_attributes = $variation ? $variation->get_variation_attributes() : array();
+		if ( $total_reviews > 0 ) {
+			$sum_rating = 0;
+			$recommend_count = 0;
 
-		// Add it to the cart
-		$cart_item_key = WC()->cart->add_to_cart( $product_id, $quantity, $variation_id, $variation_attributes, $cart_item_data );
-		
-		if ( $cart_item_key ) {
-			return rest_ensure_response( array( 'success' => true, 'cart_item_key' => $cart_item_key ) );
+			foreach ( $reviews as $review ) {
+				$rating = intval( $review['rating'] );
+				if ( $rating >= 1 && $rating <= 5 ) {
+					$aggregate['distribution'][$rating]['count']++;
+					$sum_rating += $rating;
+				}
+				if ( intval( $review['recommend'] ) === 1 ) {
+					$recommend_count++;
+				}
+			}
+
+			// Format to 1 decimal place
+			$aggregate['average'] = number_format( $sum_rating / $total_reviews, 1 );
+			$aggregate['recommend_percent'] = round( ( $recommend_count / $total_reviews ) * 100 );
+
+			foreach ( $aggregate['distribution'] as $stars => $data ) {
+				$aggregate['distribution'][$stars]['percent'] = round( ( $data['count'] / $total_reviews ) * 100 );
+			}
 		}
 
-		return new WP_Error( 'add_to_cart_failed', 'Failed to add item to cart.', array( 'status' => 500 ) );
+		// Re-key distribution to a flat array for easier frontend mapping
+		$aggregate['distribution'] = array_values( $aggregate['distribution'] );
+
+		// Map to frontend-friendly keys
+		$formatted_reviews = array_map(function($r) {
+			return array(
+				'id' => intval($r['id']),
+				'title' => $r['title'],
+				'rating' => intval($r['rating']),
+				'recommend' => intval($r['recommend']) === 1,
+				'text' => $r['text'],
+				'helpful' => array(
+					'yes' => intval($r['helpful_yes']),
+					'no' => intval($r['helpful_no'])
+				),
+				'author' => $r['author_name'],
+				'date' => date('F j, Y', strtotime($r['created_at'])),
+				'productInfo' => $r['product_info'],
+				'verified' => intval($r['verified_purchaser']) === 1,
+				'images' => !empty($r['image_urls']) ? json_decode($r['image_urls'], true) : array(),
+				'response' => $r['response_author'] ? array(
+					'author' => $r['response_author'],
+					'date' => date('F j, Y', strtotime($r['response_date'])),
+					'text' => $r['response_text']
+				) : null
+			);
+		}, $reviews);
+
+		return rest_ensure_response( array(
+			'aggregate' => $aggregate,
+			'reviews'   => $formatted_reviews
+		) );
+	}
+
+	public function public_submit_review( $request ) {
+		global $wpdb;
+		$family_id = intval( $request->get_param( 'id' ) );
+
+		if ( ! $family_id ) {
+			return new WP_Error( 'missing_id', 'Family ID is required', array( 'status' => 400 ) );
+		}
+
+		$rating      = intval( $request->get_param( 'rating' ) );
+		$title       = sanitize_text_field( $request->get_param( 'title' ) );
+		$text        = sanitize_textarea_field( $request->get_param( 'text' ) );
+		$recommend   = intval( $request->get_param( 'recommend' ) ) ? 1 : 0;
+		$author_name = sanitize_text_field( $request->get_param( 'author_name' ) );
+		$product_info= sanitize_text_field( $request->get_param( 'product_info' ) );
+
+		if ( ! $rating || ! $title || ! $text || ! $author_name ) {
+			return new WP_Error( 'missing_fields', 'Required fields are missing', array( 'status' => 400 ) );
+		}
+
+		$image_urls = array();
+		if ( ! empty( $_FILES['images'] ) ) {
+			require_once( ABSPATH . 'wp-admin/includes/file.php' );
+			$files = $_FILES['images'];
+			
+			if ( is_array( $files['name'] ) ) {
+				$file_count = count( $files['name'] );
+				for ( $i = 0; $i < $file_count; $i++ ) {
+					if ( $files['error'][$i] === UPLOAD_ERR_OK ) {
+						$file = array(
+							'name'     => $files['name'][$i],
+							'type'     => $files['type'][$i],
+							'tmp_name' => $files['tmp_name'][$i],
+							'error'    => $files['error'][$i],
+							'size'     => $files['size'][$i]
+						);
+						$upload_overrides = array( 'test_form' => false );
+						$movefile = wp_handle_upload( $file, $upload_overrides );
+						if ( $movefile && ! isset( $movefile['error'] ) ) {
+							$image_urls[] = $movefile['url'];
+						}
+					}
+				}
+			} else {
+				if ( $files['error'] === UPLOAD_ERR_OK ) {
+					$upload_overrides = array( 'test_form' => false );
+					$movefile = wp_handle_upload( $files, $upload_overrides );
+					if ( $movefile && ! isset( $movefile['error'] ) ) {
+						$image_urls[] = $movefile['url'];
+					}
+				}
+			}
+		}
+
+		$table_name = $wpdb->prefix . 'ps_reviews';
+		$wpdb->insert(
+			$table_name,
+			array(
+				'family_id'    => $family_id,
+				'rating'       => $rating,
+				'title'        => $title,
+				'text'         => $text,
+				'recommend'    => $recommend,
+				'author_name'  => $author_name,
+				'product_info' => $product_info,
+				'image_urls'   => empty( $image_urls ) ? null : json_encode( $image_urls ),
+				'created_at'   => current_time( 'mysql' )
+			),
+			array( '%d', '%d', '%s', '%s', '%d', '%s', '%s', '%s', '%s' )
+		);
+
+		return rest_ensure_response( array( 'success' => true, 'id' => $wpdb->insert_id ) );
+	}
+
+
+	// ==========================================
+	// ADMIN REVIEWS ENDPOINTS
+	// ==========================================
+
+	public function admin_get_reviews( $request ) {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ps_reviews';
+		
+		// Join with families to get the family name
+		$families_table = $wpdb->prefix . 'ps_product_families';
+
+		$query = "
+			SELECT r.*, f.name as family_name 
+			FROM $table_name r
+			LEFT JOIN $families_table f ON r.family_id = f.id
+			ORDER BY r.created_at DESC
+		";
+
+		$reviews = $wpdb->get_results( $query, ARRAY_A );
+
+		// Format for frontend admin consumption
+		$formatted_reviews = array_map(function($r) {
+			return array(
+				'id' => intval($r['id']),
+				'family_id' => intval($r['family_id']),
+				'family_name' => $r['family_name'],
+				'title' => $r['title'],
+				'rating' => intval($r['rating']),
+				'recommend' => intval($r['recommend']) === 1,
+				'text' => $r['text'],
+				'author' => $r['author_name'],
+				'date' => $r['created_at'],
+				'images' => !empty($r['image_urls']) ? json_decode($r['image_urls'], true) : array(),
+				'response' => $r['response_author'] ? array(
+					'author' => $r['response_author'],
+					'date' => $r['response_date'],
+					'text' => $r['response_text']
+				) : null
+			);
+		}, $reviews);
+
+		return rest_ensure_response( $formatted_reviews );
+	}
+
+	public function admin_update_review( $request ) {
+		global $wpdb;
+		$id = intval( $request->get_param( 'id' ) );
+
+		if ( ! $id ) {
+			return new WP_Error( 'missing_id', 'Review ID is required', array( 'status' => 400 ) );
+		}
+
+		$response_text = sanitize_textarea_field( $request->get_param( 'response_text' ) );
+		$response_author = sanitize_text_field( $request->get_param( 'response_author' ) );
+
+		$update_data = array();
+		$update_format = array();
+
+		if ( $response_text !== null ) {
+			$update_data['response_text'] = $response_text;
+			$update_data['response_author'] = $response_author ? $response_author : 'Customer Service';
+			$update_data['response_date'] = current_time( 'mysql' );
+			array_push($update_format, '%s', '%s', '%s');
+		}
+
+		if ( empty( $update_data ) ) {
+			return rest_ensure_response( array( 'success' => true, 'message' => 'No changes provided.' ) );
+		}
+
+		$table_name = $wpdb->prefix . 'ps_reviews';
+		$updated = $wpdb->update(
+			$table_name,
+			$update_data,
+			array( 'id' => $id ),
+			$update_format,
+			array( '%d' )
+		);
+
+		if ( $updated === false ) {
+			return new WP_Error( 'db_error', 'Could not update review', array( 'status' => 500 ) );
+		}
+
+		return rest_ensure_response( array( 'success' => true ) );
+	}
+
+	public function admin_delete_review( $request ) {
+		global $wpdb;
+		$id = intval( $request->get_param( 'id' ) );
+
+		if ( ! $id ) {
+			return new WP_Error( 'missing_id', 'Review ID is required', array( 'status' => 400 ) );
+		}
+
+		$table_name = $wpdb->prefix . 'ps_reviews';
+
+		// Optional: Delete physical files from media library if they exist
+		$review = $wpdb->get_row( $wpdb->prepare( "SELECT image_urls FROM $table_name WHERE id = %d", $id ) );
+		if ( $review && ! empty( $review->image_urls ) ) {
+			$image_urls = json_decode( $review->image_urls, true );
+			if ( is_array( $image_urls ) ) {
+				foreach ( $image_urls as $url ) {
+					$attachment_id = attachment_url_to_postid( $url );
+					if ( $attachment_id ) {
+						wp_delete_attachment( $attachment_id, true );
+					}
+				}
+			}
+		}
+
+		$deleted = $wpdb->delete(
+			$table_name,
+			array( 'id' => $id ),
+			array( '%d' )
+		);
+
+		if ( $deleted === false ) {
+			return new WP_Error( 'db_error', 'Could not delete review', array( 'status' => 500 ) );
+		}
+
+		return rest_ensure_response( array( 'success' => true ) );
+	}
+
+	// ==========================================
+	// PUBLIC Q&A METHODS
+	// ==========================================
+
+	public function public_get_questions( $request ) {
+		global $wpdb;
+		$family_id = intval( $request->get_param( 'id' ) );
+		$sort_by = sanitize_text_field( $request->get_param( 'sort' ) ); // 'newest', 'most_answered'
+
+		if ( ! $family_id ) {
+			return new WP_Error( 'missing_id', 'Family ID is required', array( 'status' => 400 ) );
+		}
+
+		$questions_table = $wpdb->prefix . 'ps_questions';
+		$answers_table = $wpdb->prefix . 'ps_answers';
+
+		$order_sql = "ORDER BY created_at DESC";
+		if ( $sort_by === 'Most Answered' || $sort_by === 'most_answered' ) {
+			$order_sql = "ORDER BY (SELECT COUNT(*) FROM $answers_table WHERE question_id = $questions_table.id) DESC, created_at DESC";
+		}
+
+		$questions = $wpdb->get_results( $wpdb->prepare(
+			"SELECT * FROM $questions_table WHERE family_id = %d $order_sql",
+			$family_id
+		), ARRAY_A );
+
+		// Fetch all answers for these questions efficiently
+		if ( ! empty( $questions ) ) {
+			$question_ids = wp_list_pluck( $questions, 'id' );
+			$ids_list = implode( ',', array_map( 'intval', $question_ids ) );
+			
+			$answers = $wpdb->get_results(
+				"SELECT * FROM $answers_table WHERE question_id IN ($ids_list) ORDER BY is_brand_response DESC, helpful_yes DESC, created_at ASC",
+				ARRAY_A
+			);
+
+			// Group answers by question ID
+			$answers_by_question = array();
+			foreach ( $answers as $answer ) {
+				$qid = $answer['question_id'];
+				if ( ! isset( $answers_by_question[ $qid ] ) ) {
+					$answers_by_question[ $qid ] = array();
+				}
+				
+				$answers_by_question[ $qid ][] = array(
+					'id' => intval($answer['id']),
+					'author' => $answer['author_name'], 
+					'text' => $answer['text'],
+					'isBrandResponse' => intval($answer['is_brand_response']) === 1,
+					'helpful' => array(
+						'yes' => intval($answer['helpful_yes']),
+						'no' => intval($answer['helpful_no'])
+					),
+					'date' => date('F j, Y', strtotime($answer['created_at']))
+				);
+			}
+
+			// Map answers to questions
+			foreach ( $questions as &$q ) {
+				$q['author'] = $q['author_name'];
+				$q['date'] = date('F j, Y', strtotime($q['created_at']));
+				$q['answers'] = isset( $answers_by_question[ $q['id'] ] ) ? $answers_by_question[ $q['id'] ] : array();
+				
+				// Remove raw db fields matching internal database structure to keep public API clean and safe
+				unset($q['author_name']);
+				unset($q['author_email']);
+				unset($q['created_at']);
+				unset($q['family_id']);
+			}
+		}
+
+		return rest_ensure_response( $questions );
+	}
+
+	public function public_submit_question( $request ) {
+		global $wpdb;
+		$family_id = intval( $request->get_param( 'id' ) );
+		$params = $request->get_json_params();
+
+		if ( ! $family_id ) {
+			return new WP_Error( 'missing_id', 'Family ID is required', array( 'status' => 400 ) );
+		}
+
+		$author_name = sanitize_text_field( $params['author_name'] ?? '' );
+		$author_email = sanitize_email( $params['author_email'] ?? '' );
+		$text = sanitize_textarea_field( $params['text'] ?? '' );
+
+		if ( empty( $author_name ) || empty( $author_email ) || empty( $text ) ) {
+			return new WP_Error( 'missing_fields', 'Name, email, and question text are required.', array( 'status' => 400 ) );
+		}
+
+		$table_name = $wpdb->prefix . 'ps_questions';
+		$wpdb->insert(
+			$table_name,
+			array(
+				'family_id' => $family_id,
+				'author_name' => $author_name,
+				'author_email' => $author_email,
+				'text' => $text,
+			),
+			array( '%d', '%s', '%s', '%s' )
+		);
+
+		return rest_ensure_response( array( 'success' => true, 'id' => $wpdb->insert_id ) );
+	}
+
+	public function public_submit_answer( $request ) {
+		global $wpdb;
+		$question_id = intval( $request->get_param( 'id' ) );
+		$params = $request->get_json_params();
+
+		if ( ! $question_id ) {
+			return new WP_Error( 'missing_id', 'Question ID is required', array( 'status' => 400 ) );
+		}
+
+		$author_name = sanitize_text_field( $params['author_name'] ?? '' );
+		$author_email = sanitize_email( $params['author_email'] ?? '' );
+		$text = sanitize_textarea_field( $params['text'] ?? '' );
+
+		if ( empty( $author_name ) || empty( $author_email ) || empty( $text ) ) {
+			return new WP_Error( 'missing_fields', 'Name, email, and answer text are required.', array( 'status' => 400 ) );
+		}
+
+		// Mark as brand response automatically if submitted by a WP Admin
+		$is_brand_response = current_user_can( 'manage_options' ) ? 1 : 0;
+
+		$table_name = $wpdb->prefix . 'ps_answers';
+		$wpdb->insert(
+			$table_name,
+			array(
+				'question_id' => $question_id,
+				'author_name' => $author_name,
+				'author_email' => $author_email,
+				'text' => $text,
+				'is_brand_response' => $is_brand_response
+			),
+			array( '%d', '%s', '%s', '%s', '%d' )
+		);
+
+		return rest_ensure_response( array( 'success' => true, 'id' => $wpdb->insert_id ) );
+	}
+
+	public function public_vote_answer( $request ) {
+		global $wpdb;
+		$answer_id = intval( $request->get_param( 'id' ) );
+		$params = $request->get_json_params();
+
+		if ( ! $answer_id ) {
+			return new WP_Error( 'missing_id', 'Answer ID is required', array( 'status' => 400 ) );
+		}
+
+		$vote_type = sanitize_text_field( $params['type'] ?? '' ); // 'yes' or 'no'
+		
+		if ( ! in_array( $vote_type, ['yes', 'no'] ) ) {
+			return new WP_Error( 'invalid_type', 'Vote type must be yes or no.', array( 'status' => 400 ) );
+		}
+
+		$column = $vote_type === 'yes' ? 'helpful_yes' : 'helpful_no';
+		$table_name = $wpdb->prefix . 'ps_answers';
+
+		// direct count increment to prevent race conditions
+		$wpdb->query( $wpdb->prepare(
+			"UPDATE $table_name SET $column = $column + 1 WHERE id = %d",
+			$answer_id
+		) );
+
+		return rest_ensure_response( array( 'success' => true ) );
+	}
+
+	// --- Fulfillment Orders Handlers ---
+
+	public function admin_get_fulfillment_orders( $request ) {
+		// Ensure WooCommerce is active
+		if ( ! function_exists( 'wc_get_orders' ) ) {
+			return rest_ensure_response( array() );
+		}
+
+		// Get all WooCommerce orders
+		$args = array(
+			'limit'  => 50,
+			'orderby' => 'date',
+			'order'   => 'DESC',
+		);
+		$wc_orders = wc_get_orders( $args );
+
+		$orders = array();
+		foreach ( $wc_orders as $wc_order ) {
+			$fulfillment_method = $wc_order->get_meta( 'Fulfillment Method' );
+			
+			// Only include orders that actually went through our custom fulfillment flow
+			if ( empty( $fulfillment_method ) ) {
+				continue;
+			}
+
+			// Generate a summary of items (e.g., "Valspar Reserve (x2), Tape (x1)")
+			$items_summary = array();
+			foreach ( $wc_order->get_items() as $item_id => $item ) {
+				$items_summary[] = $item->get_name() . ' (x' . $item->get_quantity() . ')';
+			}
+			$items_str = implode( ', ', $items_summary );
+
+			// Determine status: Custom meta if set, otherwise default 'pending'
+			$status = $wc_order->get_meta( '_ps_fulfillment_status' );
+			if ( empty( $status ) ) {
+				$status = 'pending';
+			}
+
+			$orders[] = array(
+				'id'               => $wc_order->get_id(),
+				'fulfillment_type' => strtolower( $fulfillment_method ),
+				'customer_name'    => $wc_order->get_billing_first_name() . ' ' . $wc_order->get_billing_last_name(),
+				'customer_email'   => $wc_order->get_billing_email(),
+				'items_summary'    => $items_str,
+				'status'           => $status,
+				'created_at'       => $wc_order->get_date_created() ? $wc_order->get_date_created()->date( 'Y-m-d H:i:s' ) : '',
+			);
+		}
+
+		return rest_ensure_response( $orders );
+	}
+
+	public function admin_update_fulfillment_order( $request ) {
+		if ( ! function_exists( 'wc_get_order' ) ) {
+			return new WP_Error( 'woocommerce_missing', 'WooCommerce is not active.', array( 'status' => 500 ) );
+		}
+
+		$id     = (int) $request['id'];
+		$params = $request->get_json_params();
+		$status = sanitize_text_field( $params['status'] ?? '' );
+
+		if ( empty( $status ) ) {
+			return new WP_Error( 'missing_status', 'Status is required.', array( 'status' => 400 ) );
+		}
+
+		$order = wc_get_order( $id );
+		if ( ! $order ) {
+			return new WP_Error( 'invalid_order', 'Order not found.', array( 'status' => 404 ) );
+		}
+
+		$order->update_meta_data( '_ps_fulfillment_status', $status );
+		$order->save();
+
+		return rest_ensure_response( array( 'success' => true, 'id' => $id, 'status' => $status ) );
+	}
+
+	// --- Fulfillment Settings Handlers ---
+
+	public function admin_get_fulfillment_settings( $request ) {
+		$defaults = array(
+			'pickup_prep_time'     => '3',
+			'delivery_estimate'    => 'Same Day',
+			'store_address'        => '',
+			'store_lat'            => '',
+			'store_lng'            => '',
+			'delivery_rate_per_km' => '2.00',
+			'currency_symbol'      => 'GHS',
+			'google_maps_api_key'  => '',
+		);
+		$settings = get_option( 'ps_fulfillment_settings', $defaults );
+		return rest_ensure_response( wp_parse_args( $settings, $defaults ) );
+	}
+
+	public function admin_save_fulfillment_settings( $request ) {
+		$params   = $request->get_json_params();
+		$settings = array(
+			'pickup_prep_time'     => sanitize_text_field( $params['pickup_prep_time'] ?? '3' ),
+			'delivery_estimate'    => sanitize_text_field( $params['delivery_estimate'] ?? 'Same Day' ),
+			'store_address'        => sanitize_text_field( $params['store_address'] ?? '' ),
+			'store_lat'            => sanitize_text_field( $params['store_lat'] ?? '' ),
+			'store_lng'            => sanitize_text_field( $params['store_lng'] ?? '' ),
+			'delivery_rate_per_km' => sanitize_text_field( $params['delivery_rate_per_km'] ?? '2.00' ),
+			'currency_symbol'      => sanitize_text_field( $params['currency_symbol'] ?? 'GHS' ),
+			'google_maps_api_key'  => sanitize_text_field( $params['google_maps_api_key'] ?? '' ),
+		);
+		update_option( 'ps_fulfillment_settings', $settings );
+		return rest_ensure_response( array( 'success' => true, 'settings' => $settings ) );
 	}
 
 }
