@@ -2376,6 +2376,14 @@ class Paint_Store_API {
 			if ( ! empty( $prod['stain_image_id'] ) ) {
 				$prod['stain_image_url'] = wp_get_attachment_url( intval( $prod['stain_image_id'] ) ) ?: '';
 			}
+
+			// Resolve width name + slug
+			$width_name = '';
+			if ( ! empty( $prod['width_id'] ) ) {
+				$width_name = $wpdb->get_var( $wpdb->prepare( "SELECT name FROM {$wpdb->prefix}ps_tool_attributes WHERE id = %d", $prod['width_id'] ) );
+			}
+			$prod['width_name'] = $width_name ?: '';
+			$prod['width_slug'] = $width_name ? sanitize_title( $width_name ) : '';
 		}
 
 		// Calculate Review Statistics
