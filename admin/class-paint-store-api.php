@@ -928,6 +928,10 @@ class Paint_Store_API {
 			$row['size_ids'] = array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
 				"SELECT size_id FROM {$wpdb->prefix}ps_family_sizes WHERE family_id = %d", $row['id']
 			) ) );
+			// Fetch associated brush width IDs (tool_attributes type='width')
+			$row['width_ids'] = array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
+				"SELECT width_id FROM {$wpdb->prefix}ps_family_widths WHERE family_id = %d", $row['id']
+			) ) );
 			// Fetch associated scene IDs
 			$row['scene_ids'] = array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
 				"SELECT scene_id FROM {$wpdb->prefix}ps_family_scenes WHERE family_id = %d", $row['id']
@@ -1070,6 +1074,15 @@ class Paint_Store_API {
 			}
 		}
 
+		// Sync brush widths (tool_attributes type='width')
+		$width_ids = $request->get_param( 'width_ids' );
+		if ( is_array( $width_ids ) ) {
+			$wpdb->delete( $wpdb->prefix . 'ps_family_widths', array( 'family_id' => $family_id ), array( '%d' ) );
+			foreach ( $width_ids as $wid ) {
+				$wpdb->insert( $wpdb->prefix . 'ps_family_widths', array( 'family_id' => $family_id, 'width_id' => intval( $wid ) ), array( '%d', '%d' ) );
+			}
+		}
+
 		// Sync datasheets
 		$datasheets = $request->get_param( 'datasheets' );
 		if ( is_array( $datasheets ) ) {
@@ -1145,6 +1158,7 @@ class Paint_Store_API {
 			$row['opacity']    = isset( $row['opacity'] ) ? $row['opacity'] : '';
 			$row['stain_image_id'] = intval( isset( $row['stain_image_id'] ) ? $row['stain_image_id'] : 0 );
 			$row['stain_image_url'] = $row['stain_image_id'] > 0 ? wp_get_attachment_url( $row['stain_image_id'] ) : '';
+			$row['width_id'] = intval( isset( $row['width_id'] ) ? $row['width_id'] : 0 );
 		}
 		return rest_ensure_response( $results );
 	}
@@ -1163,6 +1177,7 @@ class Paint_Store_API {
 		$color_name = sanitize_text_field( $request->get_param( 'color_name' ) );
 		$opacity    = sanitize_text_field( $request->get_param( 'opacity' ) );
 		$stain_image_id = intval( $request->get_param( 'stain_image_id' ) );
+		$width_id   = intval( $request->get_param( 'width_id' ) );
 		
 		if ( ! $family_id ) return new WP_Error( 'missing_family', 'Product Family is required', array( 'status' => 400 ) );
 		
@@ -1180,9 +1195,10 @@ class Paint_Store_API {
 				'stock_quantity' => $stock_quantity,
 				'color_name' => $color_name,
 				'opacity'    => $opacity,
-				'stain_image_id' => $stain_image_id
+				'stain_image_id' => $stain_image_id,
+				'width_id'   => $width_id
 			), 
-			array( '%d', '%d', '%d', '%d', '%d', '%s', '%f', '%s', '%d', '%s', '%s', '%d' ) 
+			array( '%d', '%d', '%d', '%d', '%d', '%s', '%f', '%s', '%d', '%s', '%s', '%d', '%d' ) 
 		);
 		
 		if ( false === $result ) return new WP_Error( 'db_error', $wpdb->last_error, array( 'status' => 500 ) );
@@ -1205,6 +1221,7 @@ class Paint_Store_API {
 		$color_name = sanitize_text_field( $request->get_param( 'color_name' ) );
 		$opacity    = sanitize_text_field( $request->get_param( 'opacity' ) );
 		$stain_image_id = intval( $request->get_param( 'stain_image_id' ) );
+		$width_id   = intval( $request->get_param( 'width_id' ) );
 		
 		if ( ! $family_id ) return new WP_Error( 'missing_family', 'Product Family is required', array( 'status' => 400 ) );
 		
@@ -1222,10 +1239,11 @@ class Paint_Store_API {
 				'stock_quantity' => $stock_quantity,
 				'color_name' => $color_name,
 				'opacity'    => $opacity,
-				'stain_image_id' => $stain_image_id
+				'stain_image_id' => $stain_image_id,
+				'width_id'   => $width_id
 			), 
 			array( 'id' => $id ), 
-			array( '%d', '%d', '%d', '%d', '%d', '%s', '%f', '%s', '%d', '%s', '%s', '%d' ), 
+			array( '%d', '%d', '%d', '%d', '%d', '%s', '%f', '%s', '%d', '%s', '%s', '%d', '%d' ), 
 			array( '%d' ) 
 		);
 		

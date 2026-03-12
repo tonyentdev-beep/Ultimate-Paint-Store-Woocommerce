@@ -9,9 +9,11 @@ const ATTRIBUTE_TYPES = [
     { label: 'Head Shape', value: 'head_shape' },
     { label: 'Handle Length', value: 'handle_length' },
     { label: 'Handle Material', value: 'handle_material' },
+    { label: 'Ferrule Material', value: 'ferrule_material' },
     { label: 'Width', value: 'width' },
     { label: 'Texture', value: 'texture' },
     { label: 'Brush Type', value: 'brush_type' },
+    { label: 'Finishing Look', value: 'finishing_look' },
 ];
 
 const typeLabel = (val) => {

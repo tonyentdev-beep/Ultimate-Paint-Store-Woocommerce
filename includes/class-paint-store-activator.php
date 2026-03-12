@@ -182,6 +182,15 @@ class Paint_Store_Activator {
 			KEY sheen_id (sheen_id)
 		) $charset_collate;";
 
+		// 7h. Family ↔ Brush Widths (many-to-many, references ps_tool_attributes)
+		$table_name = $wpdb->prefix . 'ps_family_widths';
+		$tables[] = "CREATE TABLE $table_name (
+			family_id bigint(20) unsigned NOT NULL,
+			width_id bigint(20) unsigned NOT NULL,
+			PRIMARY KEY  (family_id, width_id),
+			KEY width_id (width_id)
+		) $charset_collate;";
+
 		// 7g. Color ↔ Coordinating Colors (one-way mapping)
 		$table_name = $wpdb->prefix . 'ps_color_coordinations';
 		$tables[] = "CREATE TABLE $table_name (
@@ -254,6 +263,7 @@ class Paint_Store_Activator {
 			color_name varchar(255) DEFAULT '' NOT NULL,
 			opacity varchar(50) DEFAULT '' NOT NULL,
 			stain_image_id bigint(20) unsigned DEFAULT 0 NOT NULL,
+			width_id bigint(20) unsigned DEFAULT 0 NOT NULL,
 			woo_product_id bigint(20) unsigned DEFAULT 0 NOT NULL,
 			PRIMARY KEY  (id),
 			KEY family_id (family_id),
