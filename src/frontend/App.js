@@ -350,7 +350,7 @@ const App = ({ familyId }) => {
     }, [isWoodStain, validProducts]);
 
     const dynamicTitle = useMemo(() => {
-        if (!familyData || !familyData.family) return '';
+        if (!familyData || !familyData.family || !familyData.family.name) return '';
         const baseName = familyData.family.name;
         if (isBrush && selectedWidth) {
             const widthName = filteredAttributes.widths?.find(w => w.slug === selectedWidth)?.name || selectedWidth;
@@ -461,6 +461,14 @@ const App = ({ familyId }) => {
                 <h2>Something went wrong loading the product builder.</h2>
                 <pre>{renderError}</pre>
                 <button onClick={() => window.location.reload()} style={{ padding: '10px', marginTop: '15px' }}>Reload Page</button>
+            </div>
+        );
+    }
+
+    if (loading || !familyData || !familyData.family) {
+        return (
+            <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
+                Loading product...
             </div>
         );
     }
