@@ -35,8 +35,8 @@ if ( $family_id ) {
 	}
 }
 
-// DEBUG: Temporary debug output — remove after fixing
-echo '<!-- DEBUG: WC Product ID=' . $product->get_id() . ' | Family ID=' . ($family_id ?: 'NULL') . ' | Rating Count=' . $rating_count . ' | Average=' . $average . ' -->';
+// DEBUG: Temporary VISIBLE debug output — remove after fixing
+echo '<p style="color:red;font-size:12px;background:#ffe0e0;padding:4px;">DEBUG: WC_ID=' . $product->get_id() . ' | FAM_ID=' . ($family_id ?: 'NULL') . ' | REVIEWS=' . $rating_count . ' | AVG=' . $average . '</p>';
 
 // Get sheens for this product
 $sheens = wp_get_post_terms( $product->get_id(), 'pa_paint_sheen', array( 'fields' => 'names' ) );
