@@ -164,7 +164,7 @@ const App = ({ familyId }) => {
             const allFamilyWidths = Object.keys(allWidthMap).map(slug => ({ slug, name: allWidthMap[slug] }));
             
             let widths = allFamilyWidths;
-            if (familyData.family.explicit_width_ids && familyData.family.explicit_width_ids.length > 0) {
+            if (familyData.family && familyData.family.explicit_width_ids && familyData.family.explicit_width_ids.length > 0) {
                 const allowedWidthSlugs = familyData.ps_products
                     .filter(p => familyData.family.explicit_width_ids.includes(p.width_id))
                     .map(p => p.width_slug);
@@ -181,7 +181,7 @@ const App = ({ familyId }) => {
         const allFamilySizes = Object.keys(allSizeMap).map(slug => ({ slug, name: allSizeMap[slug] }));
 
         let baseSizes = allFamilySizes;
-        if (familyData.family.explicit_size_ids && familyData.family.explicit_size_ids.length > 0) {
+        if (familyData.family && familyData.family.explicit_size_ids && familyData.family.explicit_size_ids.length > 0) {
             const allowedSizeSlugs = familyData.ps_products
                 .filter(p => familyData.family.explicit_size_ids.includes(p.size_id))
                 .map(p => p.size_slug);
@@ -206,7 +206,7 @@ const App = ({ familyId }) => {
 
         // Ensure we ONLY show sheens explicitly allowed by the Family Rules (if they are defined)
         let sheens = availableSheens;
-        if (familyData.family.explicit_sheen_ids && familyData.family.explicit_sheen_ids.length > 0) {
+        if (familyData.family && familyData.family.explicit_sheen_ids && familyData.family.explicit_sheen_ids.length > 0) {
             const allowedSheenSlugs = familyData.ps_products
                 .filter(p => familyData.family.explicit_sheen_ids.includes(p.sheen_id))
                 .map(p => p.sheen_slug);
@@ -757,19 +757,21 @@ const App = ({ familyId }) => {
             </div>
 
             {/* Overview Section */}
-            <OverviewSection description={familyData.family.description} />
+            {familyData.family && <OverviewSection description={familyData.family.description} />}
 
             {/* How To Use Section */}
-            <HowToUseSection content={familyData.family.how_to_use} />
+            {familyData.family && <HowToUseSection content={familyData.family.how_to_use} />}
 
             {/* Data Sheets Section */}
-            <DataSheetsSection datasheets={familyData.family.datasheets} />
+            {familyData.family && <DataSheetsSection datasheets={familyData.family.datasheets} />}
 
             {/* Compare / Specifications Section */}
-            {familyData.family.make_slug === 'brushes' ? (
-                <BrushSpecificationsSection familyData={familyData} />
-            ) : (
-                <CompareSection familyData={familyData} />
+            {familyData.family && (
+                familyData.family.make_slug === 'brushes' ? (
+                    <BrushSpecificationsSection familyData={familyData} />
+                ) : (
+                    <CompareSection familyData={familyData} />
+                )
             )}
 
             {/* Reviews Section */}
