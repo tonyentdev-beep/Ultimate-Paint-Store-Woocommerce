@@ -24,7 +24,7 @@ const TopBar = ({ familyName, dynamicTitle, categories, displayPrice, isAdding, 
                 }}>
                     {/* Breadcrumb row */}
                     <div style={{ fontSize: '13px', color: '#00598e', fontWeight: 'bold' }}>
-                        Home / {(categories && categories.length > 0) ? categories.join(' / ') : 'Products'} / {familyName}
+                        Home / {(Array.isArray(categories) && categories.length > 0) ? categories.join(' / ') : 'Products'} / {familyName}
                     </div>
 
                     {/* Title & Cart Row — visible on desktop only */}

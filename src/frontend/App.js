@@ -116,7 +116,10 @@ const App = ({ familyId }) => {
     const isGenericTool = useMemo(() => {
         if (!familyData || !familyData.family || !familyData.family.categories) return false;
         // It's a generic tool if it's in the Tools category but NOT a brush
-        return Array.isArray(familyData.family.categories) && familyData.family.categories.includes('Tools') && !isBrush;
+        const isToolCategory = Array.isArray(familyData.family.categories) 
+            ? familyData.family.categories.includes('Tools')
+            : (typeof familyData.family.categories === 'string' && familyData.family.categories.includes('Tools'));
+        return isToolCategory && !isBrush;
     }, [familyData, isBrush]);
 
     // Should we apply the smart filter?
@@ -443,10 +446,11 @@ const App = ({ familyId }) => {
 
     // Calculate global cart validation state for the TopBar
     const canAddToCart = useMemo(() => {
+        if (!familyData || !familyData.family) return false;
         if (isGenericTool) return !!matchedProduct;
         if (isBrush) return !!(selectedWidth && matchedProduct);
         return !!(selectedSize && selectedSheen && selectedColor && matchedVariation);
-    }, [isGenericTool, isBrush, selectedWidth, matchedProduct, selectedSize, selectedSheen, selectedColor, matchedVariation]);
+    }, [isGenericTool, isBrush, selectedWidth, matchedProduct, selectedSize, selectedSheen, selectedColor, matchedVariation, familyData]);
 
     return (
         <div className="paint-store-product-builder" style={{ background: '#fff', width: '100%', boxSizing: 'border-box' }}>
