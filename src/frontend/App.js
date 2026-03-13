@@ -13,6 +13,7 @@ import HowToUseSection from './components/HowToUseSection';
 import DataSheetsSection from './components/DataSheetsSection';
 import CompareSection from './components/CompareSection';
 import BrushSpecificationsSection from './components/BrushSpecificationsSection';
+import GenericToolOptions from './components/GenericToolOptions';
 import QASection from './components/QASection';
 import ReviewsSection from './components/ReviewsSection';
 
@@ -107,21 +108,27 @@ const App = ({ familyId }) => {
         return slug === 'wood-stains-oil-based' || slug === 'wood-stains-water-based' || slug === 'wood-sealer';
     }, [familyData]);
 
-    const isTool = useMemo(() => {
+    const isBrush = useMemo(() => {
         if (!familyData || !familyData.family || !familyData.family.make_slug) return false;
         return familyData.family.make_slug === 'brushes';
     }, [familyData]);
+
+    const isGenericTool = useMemo(() => {
+        if (!familyData || !familyData.family || !familyData.family.categories) return false;
+        // It's a generic tool if it's in the Tools category but NOT a brush
+        return familyData.family.categories.includes('Tools') && !isBrush;
+    }, [familyData, isBrush]);
 
     // Should we apply the smart filter?
     // For Paint: physical SKUs exist AND a color is selected AND the color has base associations
     // For Stains: physical SKUs exist AND a stain is selected
     const shouldFilter = useMemo(() => {
         if (!hasPhysicalProducts) return false;
-        if (isTool) return false;
+        if (isBrush || isGenericTool) return false;
         if (!selectedColor) return false;
         if (isWoodStain) return true;
         return selectedColor.base_ids && selectedColor.base_ids.length > 0;
-    }, [hasPhysicalProducts, selectedColor, isWoodStain, isTool]);
+    }, [hasPhysicalProducts, selectedColor, isWoodStain, isBrush, isGenericTool]);
 
     // Filter ps_products by the selected color's required base_ids (or stain name)
     const validProducts = useMemo(() => {
@@ -142,7 +149,11 @@ const App = ({ familyId }) => {
     const filteredAttributes = useMemo(() => {
         if (!hasPhysicalProducts) return { sizes: [], sheens: [], widths: [], availableSizeSlugs: [] };
 
-        if (isTool) {
+        if (isGenericTool) {
+            return { sizes: [], sheens: [], widths: [], availableSizeSlugs: [] };
+        }
+
+        if (isBrush) {
             const allWidthMap = {};
             familyData.ps_products.forEach(p => {
                 if (p.width_slug) allWidthMap[p.width_slug] = p.width_name;
@@ -200,7 +211,7 @@ const App = ({ familyId }) => {
         }
 
         return { sizes, sheens, widths: [], availableSizeSlugs };
-    }, [familyData, validProducts, shouldFilter, hasPhysicalProducts, isWoodStain, isTool]);
+    }, [familyData, validProducts, shouldFilter, hasPhysicalProducts, isWoodStain, isBrush, isGenericTool]);
 
     // Filter WooCommerce variations to only those matching the valid size/sheen slugs
     const filteredVariations = useMemo(() => {
@@ -237,7 +248,12 @@ const App = ({ familyId }) => {
     const matchedVariation = useMemo(() => {
         if (!filteredVariations) return null;
 
-        if (isTool) {
+        if (isGenericTool) {
+            // Generic tools might not even have variations, or they might just match the first available variation if any
+            return filteredVariations.length > 0 ? filteredVariations[0] : null;
+        }
+
+        if (isBrush) {
             if (!selectedWidth) return null;
             return filteredVariations.find(v => {
                 if (!v.attributes) return false;
@@ -256,12 +272,17 @@ const App = ({ familyId }) => {
             const sheenMatch = isWoodStain ? (!selectedSheen || v.attributes.attribute_pa_paint_sheen === selectedSheen) : (v.attributes.attribute_pa_paint_sheen === selectedSheen);
             return sizeMatch && sheenMatch;
         });
-    }, [selectedSize, selectedSheen, selectedWidth, filteredVariations, isWoodStain, isTool]);
+    }, [selectedSize, selectedSheen, selectedWidth, filteredVariations, isWoodStain, isBrush, isGenericTool]);
 
     const matchedProduct = useMemo(() => {
         if (!validProducts) return null;
 
-        if (isTool) {
+        if (isGenericTool) {
+            // Standard single tool product returns the first one in the list
+            return validProducts.length > 0 ? validProducts[0] : null;
+        }
+
+        if (isBrush) {
             if (!selectedWidth) return null;
             return validProducts.find(p => p.width_slug === selectedWidth);
         }
@@ -274,7 +295,7 @@ const App = ({ familyId }) => {
             const sheenMatch = isWoodStain ? (!selectedSheen || p.sheen_slug === selectedSheen) : (p.sheen_slug === selectedSheen);
             return sizeMatch && sheenMatch;
         });
-    }, [selectedSize, selectedSheen, selectedWidth, validProducts, isWoodStain, isTool]);
+    }, [selectedSize, selectedSheen, selectedWidth, validProducts, isWoodStain, isBrush, isGenericTool]);
 
     // Stock quantity for the specifically matched SKU
     const matchedStockQty = matchedProduct ? parseInt(matchedProduct.stock_quantity, 10) || 0 : 0;
@@ -304,7 +325,7 @@ const App = ({ familyId }) => {
             }
         }
         return '';
-    }, [matchedProduct, matchedVariation, isWoodStain, selectedColor, validProducts, selectedSize, selectedSheen, isTool]);
+    }, [matchedProduct, matchedVariation, isWoodStain, selectedColor, validProducts, selectedSize, selectedSheen, isBrush, isGenericTool]);
 
     // Calculate minimum price for each size explicitly for Wood Stains to render on buttons
     const sizePrices = useMemo(() => {
@@ -325,7 +346,7 @@ const App = ({ familyId }) => {
     const dynamicTitle = useMemo(() => {
         if (!familyData || !familyData.family) return '';
         const baseName = familyData.family.name;
-        if (isTool && selectedWidth) {
+        if (isBrush && selectedWidth) {
             const widthName = filteredAttributes.widths?.find(w => w.slug === selectedWidth)?.name || selectedWidth;
             return `${baseName} - ${widthName}`;
         }
@@ -333,7 +354,7 @@ const App = ({ familyId }) => {
             return `${baseName} - ${selectedColor.name}`;
         }
         return baseName;
-    }, [familyData, selectedColor, isTool, selectedWidth, filteredAttributes.widths]);
+    }, [familyData, selectedColor, isBrush, selectedWidth, filteredAttributes.widths]);
 
     const displaySku = useMemo(() => {
         if (matchedProduct && matchedProduct.sku) {
@@ -345,7 +366,9 @@ const App = ({ familyId }) => {
     }, [matchedProduct, matchedVariation]);
 
     const handleAddToCart = async () => {
-        if (isTool) {
+        if (isGenericTool) {
+            if (!matchedProduct) return;
+        } else if (isBrush) {
             if (!selectedWidth || !matchedProduct) return;
         } else {
             if (!selectedSize || !selectedColor || !matchedVariation) return;
@@ -367,11 +390,13 @@ const App = ({ familyId }) => {
             formData.append('variation_id', matchedVariation ? matchedVariation.id : 0);
             formData.append('quantity', quantity);
             
-            if (!isTool) {
+            if (isGenericTool) {
+                // Generic tool, no special metadata needed except price
+            } else if (isBrush) {
+                formData.append('ps_custom_width', matchedProduct.width_name);
+            } else {
                 formData.append('color_hex', selectedColor.hex_value);
                 formData.append('color_name', `${selectedColor.name} (${selectedColor.color_code})`);
-            } else {
-                formData.append('ps_custom_width', matchedProduct.width_name);
             }
             
             formData.append('item_price', matchedProduct?.price || matchedVariation?.price || 0);
@@ -416,17 +441,12 @@ const App = ({ familyId }) => {
         setIsAdding(false);
     };
 
-    if (!familyId) {
-        return <div className="ps-builder-error">Error: No Product Family ID provided.</div>;
-    }
-
-    if (loading) {
-        return <div className="ps-builder-loading" style={{ padding: '40px', textAlign: 'center' }}>Loading Product Data...</div>;
-    }
-
-    if (!familyData || !familyData.family) {
-        return <div className="ps-builder-error">Error: Failed to load Product Family data.</div>;
-    }
+    // Calculate global cart validation state for the TopBar
+    const canAddToCart = useMemo(() => {
+        if (isGenericTool) return !!matchedProduct;
+        if (isBrush) return !!(selectedWidth && matchedProduct);
+        return !!(selectedSize && selectedSheen && selectedColor && matchedVariation);
+    }, [isGenericTool, isBrush, selectedWidth, matchedProduct, selectedSize, selectedSheen, selectedColor, matchedVariation]);
 
     return (
         <div className="paint-store-product-builder" style={{ background: '#fff', width: '100%', boxSizing: 'border-box' }}>
@@ -439,12 +459,12 @@ const App = ({ familyId }) => {
                 handleAddToCart={handleAddToCart}
                 quantity={quantity}
                 setQuantity={setQuantity}
-                canAddToCart={isTool ? !!(selectedWidth && matchedProduct) : !!(selectedSize && selectedSheen && selectedColor && matchedVariation)}
+                canAddToCart={canAddToCart}
                 message={cartMessage}
                 reviewStats={familyData.review_stats}
             />
 
-            {!isTool && <InnerNav />}
+            {(!isBrush && !isGenericTool) && <InnerNav />}
 
             {/* Product Images + Colors Section */}
             <div id="review-selections" style={{
@@ -589,7 +609,55 @@ const App = ({ familyId }) => {
                             </div>
                         </div>
 
-                        {isTool ? (
+                        {isGenericTool ? (
+                            <div style={{ marginTop: '20px', background: '#f9f9f9', padding: '20px', borderRadius: '8px', border: '1px solid #eee' }}>
+                                <GenericToolOptions
+                                    selectedFulfillment={selectedFulfillment}
+                                    setSelectedFulfillment={setSelectedFulfillment}
+                                    matchedStockQty={matchedStockQty}
+                                    deliveryAddress={deliveryAddress}
+                                    onDeliveryAddressChange={setDeliveryAddress}
+                                />
+                                <div style={{ marginTop: '30px', borderTop: '1px solid #eee', paddingTop: '20px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #ccc', borderRadius: '4px', overflow: 'hidden' }}>
+                                            <button 
+                                                onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                                                style={{ padding: '10px 15px', background: '#f9f9f9', border: 'none', borderRight: '1px solid #ccc', cursor: 'pointer', fontSize: '16px' }}
+                                            >-</button>
+                                            <span style={{ padding: '0 20px', fontWeight: 'bold' }}>{quantity}</span>
+                                            <button 
+                                                onClick={() => setQuantity(quantity + 1)}
+                                                style={{ padding: '10px 15px', background: '#f9f9f9', border: 'none', borderLeft: '1px solid #ccc', cursor: 'pointer', fontSize: '16px' }}
+                                            >+</button>
+                                        </div>
+                                        <button 
+                                            onClick={handleAddToCart}
+                                            disabled={!canAddToCart || isAdding}
+                                            style={{
+                                                flex: 1,
+                                                padding: '14px 24px',
+                                                background: (!canAddToCart || isAdding) ? '#ccc' : '#00598e',
+                                                color: '#fff',
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                fontSize: '16px',
+                                                fontWeight: 'bold',
+                                                cursor: (!canAddToCart || isAdding) ? 'not-allowed' : 'pointer',
+                                                transition: 'background 0.2s'
+                                            }}
+                                        >
+                                            {isAdding ? 'Adding to Cart...' : `Add to Cart - ${displayPrice}`}
+                                        </button>
+                                    </div>
+                                    {cartMessage && (
+                                        <p style={{ marginTop: '10px', color: cartMessage.includes('❌') ? '#d63638' : '#00a32a', fontWeight: '500' }}>
+                                            {cartMessage}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        ) : isBrush ? (
                             <div style={{ marginTop: '20px', background: '#f9f9f9', padding: '20px', borderRadius: '8px', border: '1px solid #eee' }}>
                                 <ToolOptions
                                     attributes={filteredAttributes}
@@ -616,17 +684,17 @@ const App = ({ familyId }) => {
                                         </div>
                                         <button 
                                             onClick={handleAddToCart}
-                                            disabled={!selectedWidth || !matchedVariation || isAdding}
+                                            disabled={!canAddToCart || isAdding}
                                             style={{
                                                 flex: 1,
                                                 padding: '14px 24px',
-                                                background: (!selectedWidth || !matchedVariation || isAdding) ? '#ccc' : '#00598e',
+                                                background: (!canAddToCart || isAdding) ? '#ccc' : '#00598e',
                                                 color: '#fff',
                                                 border: 'none',
                                                 borderRadius: '4px',
                                                 fontSize: '16px',
                                                 fontWeight: 'bold',
-                                                cursor: (!selectedWidth || !matchedVariation || isAdding) ? 'not-allowed' : 'pointer',
+                                                cursor: (!canAddToCart || isAdding) ? 'not-allowed' : 'pointer',
                                                 transition: 'background 0.2s'
                                             }}
                                         >
