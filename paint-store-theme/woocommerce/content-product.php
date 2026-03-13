@@ -12,9 +12,28 @@ if ( ! is_a( $product, 'WC_Product' ) ) return;
 $link         = get_permalink( $product->get_id() );
 $title        = $product->get_name();
 $image        = $product->get_image( 'full', array( 'class' => 'ps-card-img' ) );
-$rating_count = $product->get_rating_count();
-$average      = $product->get_average_rating();
 $short_desc   = $product->get_short_description();
+
+// Look up the product family linked to this WooCommerce product, then query custom reviews
+global $wpdb;
+$family_id = $wpdb->get_var( $wpdb->prepare(
+	"SELECT id FROM {$wpdb->prefix}ps_product_families WHERE wc_product_id = %d LIMIT 1",
+	$product->get_id()
+) );
+
+$rating_count = 0;
+$average      = 0;
+
+if ( $family_id ) {
+	$review_stats = $wpdb->get_row( $wpdb->prepare(
+		"SELECT COUNT(*) as total, COALESCE(AVG(rating), 0) as avg_rating FROM {$wpdb->prefix}ps_reviews WHERE family_id = %d",
+		$family_id
+	) );
+	if ( $review_stats ) {
+		$rating_count = intval( $review_stats->total );
+		$average      = floatval( $review_stats->avg_rating );
+	}
+}
 
 // Get sheens for this product
 $sheens = wp_get_post_terms( $product->get_id(), 'pa_paint_sheen', array( 'fields' => 'names' ) );
