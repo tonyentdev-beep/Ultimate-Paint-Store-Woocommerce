@@ -116,7 +116,7 @@ const App = ({ familyId }) => {
     const isGenericTool = useMemo(() => {
         if (!familyData || !familyData.family || !familyData.family.categories) return false;
         // It's a generic tool if it's in the Tools category but NOT a brush
-        return familyData.family.categories.includes('Tools') && !isBrush;
+        return Array.isArray(familyData.family.categories) && familyData.family.categories.includes('Tools') && !isBrush;
     }, [familyData, isBrush]);
 
     // Should we apply the smart filter?
