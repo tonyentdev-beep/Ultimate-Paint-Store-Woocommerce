@@ -34,18 +34,25 @@ if ( is_wp_error( $sheens ) ) $sheens = array();
 		</h3>
 
 		<!-- Star Rating -->
-		<div class="ps-card-rating">
+		<div class="ps-card-rating" style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">
 			<?php if ( $rating_count > 0 ) :
 				$full = floor( $average );
 				$half = ( $average - $full >= 0.5 ) ? 1 : 0;
 				$empty = 5 - $full - $half;
-				for ( $i = 0; $i < $full; $i++ ) echo '<span class="ps-star ps-star-full">★</span>';
-				if ( $half ) echo '<span class="ps-star ps-star-half">★</span>';
-				for ( $i = 0; $i < $empty; $i++ ) echo '<span class="ps-star ps-star-empty">★</span>';
+				
+				echo '<div style="display: flex; color: #ffc107; font-size: 16px;">';
+				for ( $i = 0; $i < $full; $i++ ) echo '<span>★</span>';
+				if ( $half ) echo '<span>★</span>'; // We'll just use full star chars for simplicity here
+				for ( $i = 0; $i < $empty; $i++ ) echo '<span>☆</span>';
+				echo '</div>';
 			?>
-				<span class="ps-rating-num"><?php echo number_format( $average, 1 ); ?></span>
+				<span class="ps-rating-num" style="font-size: 14px; font-weight: bold; color: #00598E;"><?php echo number_format( $average, 1 ); ?></span>
+				<span class="ps-rating-count" style="font-size: 13px; color: #666;">(<?php echo esc_html( $rating_count ); ?> <?php echo _n( 'Review', 'Reviews', $rating_count, 'ultimate-paint-store' ); ?>)</span>
 			<?php else : ?>
-				<span class="ps-no-rating">No reviews yet</span>
+				<div style="display: flex; color: #ddd; font-size: 16px;">
+					<span>☆</span><span>☆</span><span>☆</span><span>☆</span><span>☆</span>
+				</div>
+				<span class="ps-no-rating" style="font-size: 13px; color: #888;">No reviews yet</span>
 			<?php endif; ?>
 		</div>
 
