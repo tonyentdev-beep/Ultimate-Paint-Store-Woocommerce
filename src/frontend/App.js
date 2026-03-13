@@ -18,6 +18,7 @@ import QASection from './components/QASection';
 import ReviewsSection from './components/ReviewsSection';
 
 const App = ({ familyId }) => {
+    const [renderError, setRenderError] = useState(null);
     const [loading, setLoading] = useState(true);
     const [familyData, setFamilyData] = useState(null);
     const [colors, setColors] = useState([]);
@@ -47,12 +48,14 @@ const App = ({ familyId }) => {
                     apiFetch({ path: '/paint-store/v1/public/color-families' }),
                     apiFetch({ path: '/paint-store/v1/public/brands' })
                 ]);
+                console.log('App Fetch Results:', { familyResponse, colorsResponse, colorFamiliesResponse, colorBrandsResponse });
                 setFamilyData(familyResponse);
                 setColors(colorsResponse);
                 setColorFamilies(colorFamiliesResponse);
                 setColorBrands(colorBrandsResponse);
             } catch (error) {
                 console.error('Error fetching builder data:', error);
+                setRenderError(error.toString());
             } finally {
                 setLoading(false);
             }
@@ -452,8 +455,19 @@ const App = ({ familyId }) => {
         return !!(selectedSize && selectedSheen && selectedColor && matchedVariation);
     }, [isGenericTool, isBrush, selectedWidth, matchedProduct, selectedSize, selectedSheen, selectedColor, matchedVariation, familyData]);
 
-    return (
-        <div className="paint-store-product-builder" style={{ background: '#fff', width: '100%', boxSizing: 'border-box' }}>
+    if (renderError) {
+        return (
+            <div style={{ padding: '40px', background: '#ffebee', color: '#c62828', border: '1px solid #ef9a9a', borderRadius: '8px' }}>
+                <h2>Something went wrong loading the product builder.</h2>
+                <pre>{renderError}</pre>
+                <button onClick={() => window.location.reload()} style={{ padding: '10px', marginTop: '15px' }}>Reload Page</button>
+            </div>
+        );
+    }
+
+    try {
+        return (
+            <div className="paint-store-product-builder" style={{ background: '#fff', width: '100%', boxSizing: 'border-box' }}>
             <TopBar
                 familyName={familyData.family.name}
                 dynamicTitle={dynamicTitle}
@@ -780,7 +794,17 @@ const App = ({ familyId }) => {
             {/* Community Q & A Section */}
             <QASection familyData={familyData} />
         </div>
-    );
+        );
+    } catch (err) {
+        console.error("App Render Error Block Caught:", err);
+        return (
+            <div style={{ padding: '40px', background: '#ffebee', color: '#c62828' }}>
+                <h2>Render Error</h2>
+                <pre>{err.toString()}</pre>
+                <pre>{err.stack}</pre>
+            </div>
+        );
+    }
 };
 
 export default App;
