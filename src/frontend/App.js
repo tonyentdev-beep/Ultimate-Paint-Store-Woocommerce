@@ -36,6 +36,7 @@ const App = ({ familyId }) => {
     const [quantity, setQuantity] = useState(1);
     const [isAdding, setIsAdding] = useState(false);
     const [cartMessage, setCartMessage] = useState('');
+    const [showAllImages, setShowAllImages] = useState(false);
 
     useEffect(() => {
         if (!familyId) return;
@@ -124,6 +125,11 @@ const App = ({ familyId }) => {
             : (typeof familyData.family.categories === 'string' && familyData.family.categories.includes('Tools'));
         return isToolCategory && !isBrush;
     }, [familyData, isBrush]);
+
+    // Coating = default paint type (not stain, brush, or generic tool)
+    const isCoating = useMemo(() => {
+        return !isWoodStain && !isBrush && !isGenericTool;
+    }, [isWoodStain, isBrush, isGenericTool]);
 
     // Should we apply the smart filter?
     // For Paint: physical SKUs exist AND a color is selected AND the color has base associations
@@ -511,107 +517,186 @@ const App = ({ familyId }) => {
                 }}>
                     {/* LEFT COLUMN: 60% - Visualizer + Gallery (Sticky) */}
                     <div className="ps-product-left-col" style={{ flex: 6, minWidth: 0, position: 'sticky', top: '20px' }}>
-                        <div style={{ position: 'relative' }}>
-                            {familyData.family.gallery_images && familyData.family.gallery_images.length > 1 && (
-                                <>
-                                    {/* Prev Arrow Main */}
-                                    {familyData.family.gallery_images.findIndex(img => img.url === activeImageUrl) > 0 && (
-                                        <button
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                const idx = familyData.family.gallery_images.findIndex(img => img.url === activeImageUrl);
-                                                setActiveImageUrl(familyData.family.gallery_images[idx - 1].url);
-                                            }}
-                                            style={{
-                                                position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', zIndex: 10,
-                                                background: 'rgba(255,255,255,0.9)', border: '1px solid #ccc', borderRadius: '50%', width: '40px', height: '40px',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', fontSize: '20px'
-                                            }}
-                                        >
-                                            &#8592;
-                                        </button>
-                                    )}
-                                    {/* Next Arrow Main */}
-                                    {familyData.family.gallery_images.findIndex(img => img.url === activeImageUrl) < familyData.family.gallery_images.length - 1 && (
-                                        <button
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                const idx = familyData.family.gallery_images.findIndex(img => img.url === activeImageUrl);
-                                                setActiveImageUrl(familyData.family.gallery_images[idx + 1].url);
-                                            }}
-                                            style={{
-                                                position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', zIndex: 10,
-                                                background: 'rgba(255,255,255,0.9)', border: '1px solid #ccc', borderRadius: '50%', width: '40px', height: '40px',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', fontSize: '20px'
-                                            }}
-                                        >
-                                            &#8594;
-                                        </button>
-                                    )}
-                                </>
-                            )}
-                            <Visualizer
-                                imageUrl={activeImageUrl}
-                                selectedColor={selectedColor}
-                            />
-                        </div>
-                        {familyData.family.gallery_images && familyData.family.gallery_images.length > 1 && (
-                            <div style={{ position: 'relative', marginTop: '15px' }}>
-                                {/* Left Arrow */}
-                                {galleryPage > 0 && (
-                                    <button
-                                        onClick={(e) => { e.preventDefault(); setGalleryPage(prev => Math.max(0, prev - 1)); }}
-                                        style={{
-                                            position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)', zIndex: 2,
-                                            background: 'rgba(255,255,255,0.9)', border: '1px solid #ccc', borderRadius: '50%', width: '30px', height: '30px',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                                        }}
-                                    >
-                                        &#8592;
-                                    </button>
-                                )}
 
-                                {/* Thumbnails Container */}
-                                <div style={{ overflow: 'hidden', margin: '0 35px' }}>
-                                    <div style={{
-                                        display: 'flex', gap: '8px', transition: 'transform 0.3s ease',
-                                        transform: `translateX(-${galleryPage * 100}%)`
-                                    }}>
-                                        {familyData.family.gallery_images.map((img, idx) => (
-                                            <img
-                                                key={img.id}
-                                                src={img.url}
-                                                alt={`View ${idx + 1}`}
-                                                onClick={() => setActiveImageUrl(img.url)}
-                                                style={{
-                                                    flex: '0 0 calc(25% - 6px)', // 4 images per page
-                                                    height: '70px',
-                                                    objectFit: 'contain',
-                                                    backgroundColor: '#f9f9f9',
-                                                    borderRadius: '6px', cursor: 'pointer',
-                                                    border: activeImageUrl === img.url ? '2px solid #00598e' : '1px solid #ddd',
-                                                    opacity: activeImageUrl === img.url ? 1 : 0.7,
-                                                    transition: 'all 0.2s',
-                                                    boxSizing: 'border-box'
-                                                }}
-                                            />
-                                        ))}
-                                    </div>
+                        {/* ===== COATING: Keep the existing slider ===== */}
+                        {isCoating ? (
+                            <>
+                                <div style={{ position: 'relative' }}>
+                                    {familyData.family.gallery_images && familyData.family.gallery_images.length > 1 && (
+                                        <>
+                                            {familyData.family.gallery_images.findIndex(img => img.url === activeImageUrl) > 0 && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        const idx = familyData.family.gallery_images.findIndex(img => img.url === activeImageUrl);
+                                                        setActiveImageUrl(familyData.family.gallery_images[idx - 1].url);
+                                                    }}
+                                                    style={{
+                                                        position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', zIndex: 10,
+                                                        background: 'rgba(255,255,255,0.9)', border: '1px solid #ccc', borderRadius: '50%', width: '40px', height: '40px',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', fontSize: '20px'
+                                                    }}
+                                                >
+                                                    &#8592;
+                                                </button>
+                                            )}
+                                            {familyData.family.gallery_images.findIndex(img => img.url === activeImageUrl) < familyData.family.gallery_images.length - 1 && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        const idx = familyData.family.gallery_images.findIndex(img => img.url === activeImageUrl);
+                                                        setActiveImageUrl(familyData.family.gallery_images[idx + 1].url);
+                                                    }}
+                                                    style={{
+                                                        position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', zIndex: 10,
+                                                        background: 'rgba(255,255,255,0.9)', border: '1px solid #ccc', borderRadius: '50%', width: '40px', height: '40px',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', fontSize: '20px'
+                                                    }}
+                                                >
+                                                    &#8594;
+                                                </button>
+                                            )}
+                                        </>
+                                    )}
+                                    <Visualizer imageUrl={activeImageUrl} selectedColor={selectedColor} />
                                 </div>
-
-                                {/* Right Arrow */}
-                                {galleryPage < Math.ceil(familyData.family.gallery_images.length / 4) - 1 && (
-                                    <button
-                                        onClick={(e) => { e.preventDefault(); setGalleryPage(prev => prev + 1); }}
-                                        style={{
-                                            position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)', zIndex: 2,
-                                            background: 'rgba(255,255,255,0.9)', border: '1px solid #ccc', borderRadius: '50%', width: '30px', height: '30px',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                                        }}
-                                    >
-                                        &#8594;
-                                    </button>
+                                {familyData.family.gallery_images && familyData.family.gallery_images.length > 1 && (
+                                    <div style={{ position: 'relative', marginTop: '15px' }}>
+                                        {galleryPage > 0 && (
+                                            <button
+                                                onClick={(e) => { e.preventDefault(); setGalleryPage(prev => Math.max(0, prev - 1)); }}
+                                                style={{
+                                                    position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)', zIndex: 2,
+                                                    background: 'rgba(255,255,255,0.9)', border: '1px solid #ccc', borderRadius: '50%', width: '30px', height: '30px',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                                }}
+                                            >
+                                                &#8592;
+                                            </button>
+                                        )}
+                                        <div style={{ overflow: 'hidden', margin: '0 35px' }}>
+                                            <div style={{ display: 'flex', gap: '8px', transition: 'transform 0.3s ease', transform: `translateX(-${galleryPage * 100}%)` }}>
+                                                {familyData.family.gallery_images.map((img, idx) => (
+                                                    <img key={img.id} src={img.url} alt={`View ${idx + 1}`}
+                                                        onClick={() => setActiveImageUrl(img.url)}
+                                                        style={{
+                                                            flex: '0 0 calc(25% - 6px)', height: '70px', objectFit: 'contain',
+                                                            backgroundColor: '#f9f9f9', borderRadius: '6px', cursor: 'pointer',
+                                                            border: activeImageUrl === img.url ? '2px solid #00598e' : '1px solid #ddd',
+                                                            opacity: activeImageUrl === img.url ? 1 : 0.7, transition: 'all 0.2s', boxSizing: 'border-box'
+                                                        }}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+                                        {galleryPage < Math.ceil(familyData.family.gallery_images.length / 4) - 1 && (
+                                            <button
+                                                onClick={(e) => { e.preventDefault(); setGalleryPage(prev => prev + 1); }}
+                                                style={{
+                                                    position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)', zIndex: 2,
+                                                    background: 'rgba(255,255,255,0.9)', border: '1px solid #ccc', borderRadius: '50%', width: '30px', height: '30px',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                                }}
+                                            >
+                                                &#8594;
+                                            </button>
+                                        )}
+                                    </div>
                                 )}
+                            </>
+                        ) : (
+                            /* ===== NON-COATING: Gallery Grid (4 images + View All) ===== */
+                            <div>
+                                {(() => {
+                                    const images = familyData.family.gallery_images || [];
+                                    const visibleImages = showAllImages ? images : images.slice(0, 4);
+                                    const hasMore = images.length > 4;
+                                    return (
+                                        <>
+                                            <div style={{
+                                                display: 'grid',
+                                                gridTemplateColumns: images.length === 1 ? '1fr' : 'repeat(2, 1fr)',
+                                                gap: '12px'
+                                            }}>
+                                                {visibleImages.map((img, idx) => (
+                                                    <div key={img.id || idx} style={{
+                                                        backgroundColor: '#f7f8f8',
+                                                        borderRadius: '8px',
+                                                        overflow: 'hidden',
+                                                        border: '1px solid #eee',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        padding: '15px',
+                                                        aspectRatio: '1',
+                                                        cursor: 'pointer',
+                                                        transition: 'box-shadow 0.2s, transform 0.2s'
+                                                    }}
+                                                        onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'; e.currentTarget.style.transform = 'scale(1.02)'; }}
+                                                        onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'scale(1)'; }}
+                                                        onClick={() => setActiveImageUrl(img.url)}
+                                                    >
+                                                        <img
+                                                            src={img.url}
+                                                            alt={`Product image ${idx + 1}`}
+                                                            style={{
+                                                                width: '100%',
+                                                                height: '100%',
+                                                                objectFit: 'contain'
+                                                            }}
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            {hasMore && !showAllImages && (
+                                                <button
+                                                    onClick={() => setShowAllImages(true)}
+                                                    style={{
+                                                        display: 'block',
+                                                        width: '100%',
+                                                        marginTop: '16px',
+                                                        padding: '12px 24px',
+                                                        background: '#002E5D',
+                                                        color: '#fff',
+                                                        border: 'none',
+                                                        borderRadius: '25px',
+                                                        fontSize: '14px',
+                                                        fontWeight: '700',
+                                                        cursor: 'pointer',
+                                                        transition: 'background 0.2s'
+                                                    }}
+                                                    onMouseEnter={(e) => e.currentTarget.style.background = '#63B5E5'}
+                                                    onMouseLeave={(e) => e.currentTarget.style.background = '#002E5D'}
+                                                >
+                                                    View All {images.length} Images
+                                                </button>
+                                            )}
+                                            {showAllImages && images.length > 4 && (
+                                                <button
+                                                    onClick={() => setShowAllImages(false)}
+                                                    style={{
+                                                        display: 'block',
+                                                        width: '100%',
+                                                        marginTop: '16px',
+                                                        padding: '12px 24px',
+                                                        background: 'transparent',
+                                                        color: '#002E5D',
+                                                        border: '2px solid #002E5D',
+                                                        borderRadius: '25px',
+                                                        fontSize: '14px',
+                                                        fontWeight: '700',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.2s'
+                                                    }}
+                                                    onMouseEnter={(e) => { e.currentTarget.style.background = '#002E5D'; e.currentTarget.style.color = '#fff'; }}
+                                                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#002E5D'; }}
+                                                >
+                                                    Show Less
+                                                </button>
+                                            )}
+                                        </>
+                                    );
+                                })()}
                             </div>
                         )}
 
