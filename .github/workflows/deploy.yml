@@ -40,6 +40,8 @@ jobs:
             **/node_modules/**
             **/paint-store-theme/**
             package-lock.json
+            **/Icon*
+            **/.DS_Store
 
       - name: Deploy Theme via FTPS
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
@@ -51,3 +53,6 @@ jobs:
           port: 21
           server-dir: public_html/wp-content/themes/paint-store-theme/  # Update to your actual staging theme path
           local-dir: ./paint-store-theme/
+          exclude: |
+            **/Icon*
+            **/.DS_Store
