@@ -402,6 +402,16 @@ class Paint_Store_API {
 			),
 		) );
 
+		register_rest_route( $this->namespace, '/public/colors/(?P<slug>[a-zA-Z0-9-]+)', array(
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'public_get_color' ),
+				'permission_callback' => '__return_true',
+			),
+		) );
+
+
+
 		register_rest_route( $this->namespace, '/public/colors', array(
 			array(
 				'methods'             => WP_REST_Server::READABLE,
@@ -519,10 +529,25 @@ class Paint_Store_API {
 			return new WP_Error( 'missing_bases', 'At least one Base is required for a Color', array( 'status' => 400 ) );
 		}
 
+		// Generate a unique slug for the color
+		$base_string = $name;
+		if ( ! empty( $color_code ) ) {
+			$base_string .= '-' . $color_code;
+		}
+		$slug = sanitize_title( $base_string );
+		
+		$original_slug = $slug;
+		$count = 1;
+		while ( $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $table_name WHERE slug = %s", $slug ) ) ) {
+			$slug = $original_slug . '-' . $count;
+			$count++;
+		}
+
 		$result = $wpdb->insert(
 			$table_name,
 			array(
 				'name'       => $name,
+				'slug'       => $slug,
 				'color_code' => $color_code,
 				'hex_value'  => $hex_value,
 				'rgb_value'  => $rgb_value,
@@ -530,7 +555,7 @@ class Paint_Store_API {
 				'family_id'  => $family_id,
 				'brand_id'   => $brand_id,
 			),
-			array( '%s', '%s', '%s', '%s', '%s', '%d', '%d' )
+			array( '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d' )
 		);
 
 		if ( false === $result ) {
@@ -596,10 +621,25 @@ class Paint_Store_API {
 			return new WP_Error( 'missing_bases', 'At least one Base is required for a Color', array( 'status' => 400 ) );
 		}
 
+		// Generate a unique slug for the color
+		$base_string = $name;
+		if ( ! empty( $color_code ) ) {
+			$base_string .= '-' . $color_code;
+		}
+		$slug = sanitize_title( $base_string );
+		
+		$original_slug = $slug;
+		$count = 1;
+		while ( $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $table_name WHERE slug = %s AND id != %d", $slug, $id ) ) ) {
+			$slug = $original_slug . '-' . $count;
+			$count++;
+		}
+
 		$result = $wpdb->update(
 			$table_name,
 			array(
 				'name'       => $name,
+				'slug'       => $slug,
 				'color_code' => $color_code,
 				'hex_value'  => $hex_value,
 				'rgb_value'  => $rgb_value,
@@ -608,7 +648,7 @@ class Paint_Store_API {
 				'brand_id'   => $brand_id,
 			),
 			array( 'id' => $id ),
-			array( '%s', '%s', '%s', '%s', '%s', '%d', '%d' ),
+			array( '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d' ),
 			array( '%d' )
 		);
 
@@ -2456,13 +2496,47 @@ class Paint_Store_API {
 	public function public_get_colors( $request ) {
 		global $wpdb;
 		$family_id = intval( $request->get_param( 'family_id' ) );
+		$search    = sanitize_text_field( $request->get_param( 'search' ) );
 		
-		$query = "SELECT * FROM {$wpdb->prefix}ps_colors";
+		$query = "SELECT * FROM {$wpdb->prefix}ps_colors WHERE 1=1";
+		$args = array();
+
 		if ( $family_id > 0 ) {
-			$query .= $wpdb->prepare( " WHERE family_id = %d", $family_id );
+			$query .= " AND family_id = %d";
+			$args[] = $family_id;
 		}
+
+		if ( ! empty( $search ) ) {
+			$like = '%' . $wpdb->esc_like( $search ) . '%';
+			$query .= " AND (name LIKE %s OR color_code LIKE %s)";
+			$args[] = $like;
+			$args[] = $like;
+		}
+
+		// Check if pagination is requested
+		$is_paginated = $request->has_param( 'per_page' );
 		
-		$colors = $wpdb->get_results( $query, ARRAY_A );
+		if ( $is_paginated ) {
+			$page = max( 1, intval( $request->get_param( 'page' ) ) );
+			$per_page = max( 1, intval( $request->get_param( 'per_page' ) ) );
+			if ( $per_page > 500 ) $per_page = 500; // Cap at 500 per page to save memory
+			
+			$offset = ( $page - 1 ) * $per_page;
+
+			// Count total for pagination meta
+			$count_query = str_replace( "SELECT *", "SELECT COUNT(id)", $query );
+			$total_items = $wpdb->get_var( empty($args) ? $count_query : $wpdb->prepare( $count_query, $args ) );
+			$total_pages = ceil( $total_items / $per_page );
+
+			$query .= " ORDER BY name ASC LIMIT %d OFFSET %d";
+			$args[] = $per_page;
+			$args[] = $offset;
+		} else {
+			$query .= " ORDER BY name ASC";
+		}
+
+		$prepared_query = empty($args) ? $query : $wpdb->prepare( $query, $args );
+		$colors = $wpdb->get_results( $prepared_query, ARRAY_A );
 		
 		// Map the base_ids and coordinating_color_ids to each Color
 		foreach ( $colors as &$color ) {
@@ -2475,8 +2549,108 @@ class Paint_Store_API {
 			$color['coordinating_color_ids'] = array_map( 'intval', $cc_ids );
 		}
 
+		if ( $is_paginated ) {
+			return rest_ensure_response( array(
+				'items'       => $colors,
+				'total_items' => intval( $total_items ),
+				'total_pages' => intval( $total_pages ),
+				'page'        => $page,
+				'per_page'    => $per_page,
+				'has_more'    => $page < $total_pages
+			) );
+		}
+
 		return rest_ensure_response( $colors );
 	}
+
+	public function public_get_color( $request ) {
+		global $wpdb;
+		$slug = sanitize_title( $request->get_param( 'slug' ) );
+
+		$colors_table = $wpdb->prefix . 'ps_colors';
+		$color_bases_table = $wpdb->prefix . 'ps_color_bases';
+		$coordinations_table = $wpdb->prefix . 'ps_color_coordinations';
+		$brands_table = $wpdb->prefix . 'ps_brands';
+		$color_fam_table = $wpdb->prefix . 'ps_color_families';
+
+		$color = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $colors_table WHERE slug = %s", $slug ), ARRAY_A );
+
+		if ( ! $color ) {
+			return new WP_Error( 'not_found', 'Color not found', array( 'status' => 404 ) );
+		}
+
+		$color_id = intval( $color['id'] );
+		
+		// Color Brand
+		$brand = null;
+		if ( ! empty( $color['brand_id'] ) ) {
+			$brand = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $brands_table WHERE id = %d", intval( $color['brand_id'] ) ), ARRAY_A );
+		}
+
+		// Color Family
+		$family = null;
+		if ( ! empty( $color['family_id'] ) ) {
+			$family = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $color_fam_table WHERE id = %d", intval( $color['family_id'] ) ), ARRAY_A );
+		}
+
+		// Bases
+		$base_ids = $wpdb->get_col( $wpdb->prepare( "SELECT base_id FROM $color_bases_table WHERE color_id = %d", $color_id ) );
+		$color['base_ids'] = $base_ids ? array_map( 'intval', $base_ids ) : array();
+
+		// Coordinating Colors
+		$cc_ids = $wpdb->get_col( $wpdb->prepare( "SELECT coordinating_color_id FROM $coordinations_table WHERE primary_color_id = %d", $color_id ) );
+		$coordinating_colors = array();
+		if ( ! empty( $cc_ids ) ) {
+			$cc_placeholders = implode( ',', array_fill( 0, count( $cc_ids ), '%d' ) );
+			$coordinating_colors = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM $colors_table WHERE id IN ($cc_placeholders)", ...$cc_ids ), ARRAY_A );
+		}
+
+		// Available Product Families
+		// 1. Stains (Direct mapping via ps_family_colors)
+		$direct_family_ids = $wpdb->get_col( $wpdb->prepare( "SELECT family_id FROM {$wpdb->prefix}ps_family_colors WHERE color_id = %d", $color_id ) );
+		
+		// 2. Coatings (via Bases in ps_products)
+		$base_family_ids = array();
+		if ( ! empty( $color['base_ids'] ) ) {
+			$base_placeholders = implode( ',', array_fill( 0, count( $color['base_ids'] ), '%d' ) );
+			$base_family_ids = $wpdb->get_col( $wpdb->prepare( "SELECT DISTINCT family_id FROM {$wpdb->prefix}ps_products WHERE base_id IN ($base_placeholders) AND stock_quantity > 0", ...$color['base_ids'] ) );
+		}
+
+		$all_family_ids = array_unique( array_merge( $direct_family_ids, $base_family_ids ) );
+		$available_products = array();
+
+		if ( ! empty( $all_family_ids ) ) {
+			$fam_placeholders = implode( ',', array_fill( 0, count( $all_family_ids ), '%d' ) );
+			$available_products = $wpdb->get_results( $wpdb->prepare( "SELECT id, name, short_description, wc_product_id, gallery_image_ids, coating_type, product_type FROM {$wpdb->prefix}ps_product_families WHERE id IN ($fam_placeholders)", ...$all_family_ids ), ARRAY_A );
+			
+			// Add permalinks, images, and categories
+			foreach ( $available_products as &$prod ) {
+				$prod['permalink'] = $prod['wc_product_id'] ? get_permalink( $prod['wc_product_id'] ) : '';
+				$prod['image_url'] = $prod['wc_product_id'] ? get_the_post_thumbnail_url( $prod['wc_product_id'], 'medium' ) : '';
+				
+				$prod['category'] = '';
+				if ( $prod['wc_product_id'] ) {
+					$terms = wp_get_post_terms( $prod['wc_product_id'], 'product_cat', array( 'fields' => 'names' ) );
+					if ( ! is_wp_error( $terms ) && ! empty( $terms ) ) {
+						// Filter out Uncategorized if possible, otherwise just use the first term
+						$filtered = array_filter($terms, function($t) { return strtolower($t) !== 'uncategorized'; });
+						$prod['category'] = !empty($filtered) ? array_values($filtered)[0] : $terms[0];
+					}
+				}
+			}
+		}
+
+		$response = array(
+			'color'               => $color,
+			'brand'               => $brand,
+			'color_family'        => $family,
+			'coordinating_colors' => $coordinating_colors,
+			'available_products'  => $available_products
+		);
+
+		return rest_ensure_response( $response );
+	}
+
 
 	public function public_get_brands( $request ) {
 		global $wpdb;

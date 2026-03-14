@@ -17,6 +17,11 @@ class Paint_Store_Public {
 		add_action( 'woocommerce_before_calculate_totals', array( $this, 'set_custom_cart_item_prices' ), 10, 1 );
 		add_action( 'woocommerce_cart_calculate_fees', array( $this, 'add_distance_delivery_fee' ), 10, 1 );
 		add_action( 'woocommerce_checkout_create_order', array( $this, 'save_fulfillment_order_meta' ), 10, 2 );
+
+		// Virtual Pages / Rewrite Rules
+		add_filter( 'query_vars', array( $this, 'add_query_vars' ) );
+		add_action( 'init', array( $this, 'add_rewrite_rules' ) );
+		add_filter( 'template_include', array( $this, 'include_color_page_template' ), 1, 1 );
 	}
 
 	public function enqueue_styles() {
@@ -45,6 +50,8 @@ class Paint_Store_Public {
 				'storeLng'          => isset( $fulfillment_settings['store_lng'] ) ? $fulfillment_settings['store_lng'] : '',
 				'deliveryRatePerKm' => isset( $fulfillment_settings['delivery_rate_per_km'] ) ? $fulfillment_settings['delivery_rate_per_km'] : '2.00',
 				'currencySymbol'    => isset( $fulfillment_settings['currency_symbol'] ) ? $fulfillment_settings['currency_symbol'] : 'GHS',
+				'colorSlug'         => get_query_var( 'ps_color_slug' ) ? sanitize_text_field( get_query_var( 'ps_color_slug' ) ) : '',
+				'isGlobalColorsPage'=> get_query_var( 'ps_global_colors' ) ? true : false,
 			) );
 		}
 	}
@@ -65,6 +72,28 @@ class Paint_Store_Public {
 		</div>
 		<?php
 		return ob_get_clean();
+	}
+
+	public function add_query_vars( $vars ) {
+		$vars[] = 'ps_color_slug';
+		$vars[] = 'ps_global_colors';
+		return $vars;
+	}
+
+	public function add_rewrite_rules() {
+		// e.g. /colors/melting-sunset-8002-14c
+		add_rewrite_rule( '^colors/([^/]+)/?$', 'index.php?ps_color_slug=$matches[1]', 'top' );
+		add_rewrite_rule( '^colors/?$', 'index.php?ps_global_colors=1', 'top' );
+	}
+
+	public function include_color_page_template( $template ) {
+		if ( get_query_var( 'ps_color_slug' ) || get_query_var( 'ps_global_colors' ) ) {
+			global $wp_query;
+			$wp_query->is_404 = false;
+			status_header( 200 );
+			return plugin_dir_path( dirname( __FILE__ ) ) . 'public/partials/color-page.php';
+		}
+		return $template;
 	}
 
 	public function ajax_add_to_cart() {

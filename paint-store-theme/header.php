@@ -51,6 +51,7 @@
 				'depth'          => 1,
 				'fallback_cb'    => function() {
 					echo '<ul>';
+					echo '<li><a href="' . esc_url( home_url( '/colors/' ) ) . '">Browse Colors</a></li>';
 					echo '<li><a href="' . esc_url( home_url( '/shop/' ) ) . '">Products ▾</a></li>';
 					if ( taxonomy_exists( 'product_brand' ) ) {
 						$brands = get_terms( array( 'taxonomy' => 'product_brand', 'hide_empty' => true ) );

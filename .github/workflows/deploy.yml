@@ -1,0 +1,49 @@
+name: Deploy Plugin & Theme to Staging
+
+on:
+  push:
+    branches:
+      - main
+      - staging  # Adjust depending on which branch you push to for staging
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Or whatever node version you require
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Assets
+        run: npm run build
+
+      - name: Deploy Plugin via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: public_html/wp-content/plugins/paint-store-plugin/  # Update to your actual staging WP path
+          local-dir: ./
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/paint-store-theme/**
+            package-lock.json
+
+      - name: Deploy Theme via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: public_html/wp-content/themes/paint-store-theme/  # Update to your actual staging theme path
+          local-dir: ./paint-store-theme/
