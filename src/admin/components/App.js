@@ -286,6 +286,7 @@ const App = () => {
                                 fetchProductFamilies={fetchProductFamilies}
                             />
                         )}
+                        {activeProductSubTab === 'products' && (
                             <ProductsManager
                                 products={products}
                                 productFamilies={productFamilies}
