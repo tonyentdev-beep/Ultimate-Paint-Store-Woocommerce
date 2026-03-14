@@ -620,17 +620,14 @@ const App = ({ familyId }) => {
                                             }}>
                                                 {visibleImages.map((img, idx) => (
                                                     <div key={img.id || idx} style={{
-                                                        backgroundColor: '#f7f8f8',
-                                                        borderRadius: '8px',
                                                         overflow: 'hidden',
-                                                        border: '1px solid #eee',
                                                         display: 'flex',
                                                         alignItems: 'center',
                                                         justifyContent: 'center',
                                                         padding: '15px',
                                                         aspectRatio: '1',
                                                         cursor: 'pointer',
-                                                        transition: 'box-shadow 0.2s, transform 0.2s'
+                                                        transition: 'transform 0.2s'
                                                     }}
                                                         onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'; e.currentTarget.style.transform = 'scale(1.02)'; }}
                                                         onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'scale(1)'; }}
