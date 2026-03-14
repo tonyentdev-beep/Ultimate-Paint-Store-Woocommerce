@@ -24,12 +24,14 @@ jobs:
       - name: Build Assets
         run: npm run build
 
-      - name: Deploy Plugin via FTP
+      - name: Deploy Plugin via SFTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
+          protocol: sftp
+          port: 22
           server-dir: public_html/wp-content/plugins/paint-store-plugin/  # Update to your actual staging WP path
           local-dir: ./
           exclude: |
@@ -39,11 +41,13 @@ jobs:
             **/paint-store-theme/**
             package-lock.json
 
-      - name: Deploy Theme via FTP
+      - name: Deploy Theme via SFTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
+          protocol: sftp
+          port: 22
           server-dir: public_html/wp-content/themes/paint-store-theme/  # Update to your actual staging theme path
           local-dir: ./paint-store-theme/
