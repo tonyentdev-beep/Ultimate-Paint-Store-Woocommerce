@@ -32,7 +32,7 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftps
           port: 21
-          server-dir: wp-content/plugins/paint-store-plugin/  # Update to your actual staging WP path
+          server-dir: public_html/wp-content/plugins/paint-store-plugin/  # Update to your actual staging WP path
           local-dir: ./
           exclude: |
             **/.git*
@@ -51,7 +51,7 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftps
           port: 21
-          server-dir: wp-content/themes/paint-store-theme/  # Update to your actual staging theme path
+          server-dir: public_html/wp-content/themes/paint-store-theme/  # Update to your actual staging theme path
           local-dir: ./paint-store-theme/
           exclude: |
             **/Icon*
