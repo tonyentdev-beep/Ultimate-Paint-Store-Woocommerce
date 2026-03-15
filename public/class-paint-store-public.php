@@ -43,13 +43,32 @@ class Paint_Store_Public {
 			// Pass Google Maps API key and fulfillment settings to the frontend
 			$fulfillment_settings = get_option( 'ps_fulfillment_settings', array() );
 			$google_maps_key = isset( $fulfillment_settings['google_maps_api_key'] ) ? $fulfillment_settings['google_maps_api_key'] : '';
+
+			// Derive currency symbol from global settings
+			$global_settings = get_option( 'paint_store_settings', array() );
+			$currency_code   = isset( $global_settings['currency'] ) ? $global_settings['currency'] : 'USD';
+			$currency_map    = array(
+				'USD' => '$',
+				'EUR' => '€',
+				'GBP' => '£',
+				'CAD' => 'C$',
+				'AUD' => 'A$',
+				'TTD' => 'TT$',
+				'JMD' => 'J$',
+				'BBD' => 'Bds$',
+				'XCD' => 'EC$',
+				'GYD' => 'G$',
+				'GHS' => 'GH₵',
+			);
+			$currency_symbol = isset( $currency_map[ $currency_code ] ) ? $currency_map[ $currency_code ] : $currency_code;
+
 			wp_localize_script( $this->plugin_name . '-frontend', 'paintStoreSettings', array(
 				'ajaxUrl'           => admin_url( 'admin-ajax.php' ),
 				'googleMapsApiKey'  => $google_maps_key,
 				'storeLat'          => isset( $fulfillment_settings['store_lat'] ) ? $fulfillment_settings['store_lat'] : '',
 				'storeLng'          => isset( $fulfillment_settings['store_lng'] ) ? $fulfillment_settings['store_lng'] : '',
 				'deliveryRatePerKm' => isset( $fulfillment_settings['delivery_rate_per_km'] ) ? $fulfillment_settings['delivery_rate_per_km'] : '2.00',
-				'currencySymbol'    => isset( $fulfillment_settings['currency_symbol'] ) ? $fulfillment_settings['currency_symbol'] : 'GHS',
+				'currencySymbol'    => $currency_symbol,
 				'colorSlug'         => get_query_var( 'ps_color_slug' ) ? sanitize_text_field( get_query_var( 'ps_color_slug' ) ) : '',
 				'isGlobalColorsPage'=> get_query_var( 'ps_global_colors' ) ? true : false,
 			) );

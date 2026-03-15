@@ -18,6 +18,7 @@ import QASection from './components/QASection';
 import ReviewsSection from './components/ReviewsSection';
 
 const App = ({ familyId }) => {
+    const currencySymbol = (typeof window !== 'undefined' && window.paintStoreSettings && window.paintStoreSettings.currencySymbol) ? window.paintStoreSettings.currencySymbol : '$';
     const [renderError, setRenderError] = useState(null);
     const [loading, setLoading] = useState(true);
     const [familyData, setFamilyData] = useState(null);
@@ -314,9 +315,9 @@ const App = ({ familyId }) => {
 
     const displayPrice = useMemo(() => {
         if (matchedProduct && matchedProduct.price > 0) {
-            return '$' + parseFloat(matchedProduct.price).toFixed(2);
+            return currencySymbol + parseFloat(matchedProduct.price).toFixed(2);
         } else if (matchedVariation && matchedVariation.price > 0) {
-            return '$' + parseFloat(matchedVariation.price).toFixed(2);
+            return currencySymbol + parseFloat(matchedVariation.price).toFixed(2);
         } else if (isWoodStain && selectedColor && validProducts && validProducts.length > 0) {
             let activeProducts = validProducts;
             if (selectedSize) {
@@ -330,14 +331,14 @@ const App = ({ familyId }) => {
                 const minPrice = Math.min(...prices);
                 const maxPrice = Math.max(...prices);
                 if (minPrice === maxPrice) {
-                    return '$' + minPrice.toFixed(2);
+                    return currencySymbol + minPrice.toFixed(2);
                 } else {
-                    return 'From $' + minPrice.toFixed(2);
+                    return 'From ' + currencySymbol + minPrice.toFixed(2);
                 }
             }
         }
         return '';
-    }, [matchedProduct, matchedVariation, isWoodStain, selectedColor, validProducts, selectedSize, selectedSheen, isBrush, isGenericTool]);
+    }, [matchedProduct, matchedVariation, isWoodStain, selectedColor, validProducts, selectedSize, selectedSheen, isBrush, isGenericTool, currencySymbol]);
 
     // Calculate minimum price for each size explicitly for Wood Stains to render on buttons
     const sizePrices = useMemo(() => {
@@ -852,6 +853,7 @@ const App = ({ familyId }) => {
                                         deliveryAddress={deliveryAddress}
                                         onDeliveryAddressChange={setDeliveryAddress}
                                         sizePrices={sizePrices}
+                                        currencySymbol={currencySymbol}
                                     />
                                 </div>
                             </>

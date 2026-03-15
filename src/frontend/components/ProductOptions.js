@@ -168,7 +168,7 @@ const SheenCompareModal = ({ isOpen, onClose }) => {
     );
 };
 
-const ProductOptions = ({ attributes, selectedSize, setSelectedSize, selectedSheen, setSelectedSheen, selectedColor, shouldFilter, isWoodStain = false, selectedFulfillment, setSelectedFulfillment, matchedStockQty, deliveryAddress, onDeliveryAddressChange, sizePrices = {} }) => {
+const ProductOptions = ({ attributes, selectedSize, setSelectedSize, selectedSheen, setSelectedSheen, selectedColor, shouldFilter, isWoodStain = false, selectedFulfillment, setSelectedFulfillment, matchedStockQty, deliveryAddress, onDeliveryAddressChange, sizePrices = {}, currencySymbol = '$' }) => {
     const hasSizes = attributes.sizes && attributes.sizes.length > 0;
     const hasSheens = attributes.sheens && attributes.sheens.length > 0;
     const [showSheenModal, setShowSheenModal] = useState(false);
@@ -244,7 +244,7 @@ const ProductOptions = ({ attributes, selectedSize, setSelectedSize, selectedShe
                                             {size.name}
                                             {isAvailable && sizePrices && sizePrices[size.slug] && (
                                                 <span style={{ marginLeft: '6px', fontSize: '13px', opacity: 0.85 }}>
-                                                    (${parseFloat(sizePrices[size.slug]).toFixed(2)})
+                                                    ({currencySymbol}{parseFloat(sizePrices[size.slug]).toFixed(2)})
                                                 </span>
                                             )}
                                         </span>
