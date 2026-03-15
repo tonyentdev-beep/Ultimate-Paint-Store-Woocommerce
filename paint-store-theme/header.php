@@ -46,27 +46,11 @@
 		<nav class="ps-primary-nav">
 			<?php
 			wp_nav_menu( array(
-				'theme_location' => 'primary',
-				'container'      => false,
-				'depth'          => 1,
-				'fallback_cb'    => function() {
-					echo '<ul>';
-					echo '<li><a href="' . esc_url( home_url( '/colors/' ) ) . '">Browse Colors</a></li>';
-					echo '<li><a href="' . esc_url( home_url( '/shop/' ) ) . '">Products ▾</a></li>';
-					if ( taxonomy_exists( 'product_brand' ) ) {
-						$brands = get_terms( array( 'taxonomy' => 'product_brand', 'hide_empty' => true ) );
-						if ( ! is_wp_error( $brands ) && ! empty( $brands ) ) {
-							echo '<li><a href="' . esc_url( get_term_link( $brands[0] ) ) . '">Brands ▾</a></li>';
-						}
-					}
-					$cats = get_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => true, 'parent' => 0 ) );
-					if ( ! is_wp_error( $cats ) && ! empty( $cats ) ) {
-						foreach ( array_slice( $cats, 0, 3 ) as $cat ) {
-							echo '<li><a href="' . esc_url( get_term_link( $cat ) ) . '">' . esc_html( $cat->name ) . '</a></li>';
-						}
-					}
-					echo '</ul>';
-				},
+				'theme_location'  => 'primary',
+				'container'       => false,
+				'menu_class'      => 'ps-menu-list',
+				'depth'           => 2,
+				'fallback_cb'     => false, // Completely disable the fallback; rely on WP Menu assignment
 			) );
 			?>
 		</nav>

@@ -215,7 +215,8 @@ img {
 	flex: 1;
 }
 
-.ps-primary-nav ul {
+.ps-primary-nav ul,
+.ps-menu-list {
 	list-style: none;
 	display: flex;
 	gap: 6px;
@@ -223,7 +224,8 @@ img {
 	padding: 0;
 }
 
-.ps-primary-nav li a {
+.ps-primary-nav li a,
+.ps-menu-list li a {
 	color: var(--ps-navy);
 	font-size: 15px;
 	font-weight: 600;
@@ -235,7 +237,9 @@ img {
 }
 
 .ps-primary-nav li a:hover,
-.ps-primary-nav li.current-menu-item a {
+.ps-primary-nav li.current-menu-item a,
+.ps-menu-list li a:hover,
+.ps-menu-list li.current-menu-item > a {
 	background: rgba(0, 46, 93, 0.06);
 	color: var(--ps-navy);
 }
