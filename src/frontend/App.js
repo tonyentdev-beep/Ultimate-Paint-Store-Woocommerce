@@ -149,7 +149,7 @@ const App = ({ familyId }) => {
         if (!shouldFilter) return familyData.ps_products;
         
         if (isWoodStain) {
-            return familyData.ps_products.filter(p => p.color_name === selectedColor.name);
+            return (familyData.ps_products || []).filter(p => p.color_name === (selectedColor?.name || ''));
         }
         
         return familyData.ps_products.filter(p =>
@@ -384,8 +384,10 @@ const App = ({ familyId }) => {
         } else if (isBrush) {
             if (!selectedWidth || !matchedProduct) return;
         } else {
-            if (!selectedSize || !selectedColor || !matchedVariation) return;
+            if (!selectedSize || !selectedColor) return;
             if (!isWoodStain && !selectedSheen) return;
+            // Wood stains may have no WooCommerce variations — matchedProduct is sufficient
+            if (!matchedVariation && !matchedProduct) return;
         }
 
         if (selectedFulfillment === 'delivery' && (!deliveryAddress || !deliveryAddress.address)) {
@@ -459,8 +461,11 @@ const App = ({ familyId }) => {
         if (!familyData || !familyData.family) return false;
         if (isGenericTool) return !!matchedProduct;
         if (isBrush) return !!(selectedWidth && matchedProduct);
-        return !!(selectedSize && (isWoodStain || selectedSheen) && selectedColor && matchedVariation);
+        // Wood stains may have no WooCommerce variations — matchedProduct is sufficient
+        const hasMatch = isWoodStain ? !!(matchedVariation || matchedProduct) : !!matchedVariation;
+        return !!(selectedSize && (isWoodStain || selectedSheen) && selectedColor && hasMatch);
     }, [isGenericTool, isBrush, selectedWidth, matchedProduct, selectedSize, selectedSheen, selectedColor, matchedVariation, familyData, isWoodStain]);
+
 
     if (renderError) {
         return (

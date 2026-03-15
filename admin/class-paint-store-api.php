@@ -1343,19 +1343,25 @@ class Paint_Store_API {
 		}
 
 		// 4. Extract purely the unique sizes and sheens utilized by these physical products
-		$attached_size_ids = array_unique( wp_list_pluck( $physical_products, 'size_id' ) );
-		$attached_sheen_ids = array_unique( wp_list_pluck( $physical_products, 'sheen_id' ) );
+		$attached_size_ids = array_unique( array_filter( wp_list_pluck( $physical_products, 'size_id' ) ) );
+		$attached_sheen_ids = array_unique( array_filter( wp_list_pluck( $physical_products, 'sheen_id' ) ) );
 
-		if ( empty( $attached_size_ids ) || empty( $attached_sheen_ids ) ) {
-			return new WP_Error( 'missing_attributes', 'The physical products must have Sizes and Sheens assigned.', array( 'status' => 400 ) );
-		}
+		// Note: We no longer require BOTH sizes and sheens. Products like Wood Stains
+		// may only have sizes, and tools may have neither.
 
 		// Pull the Woo Attribute Terms mappings for those distinct IDs
-		$size_list = implode( ',', array_map( 'intval', $attached_size_ids ) );
-		$sheen_list = implode( ',', array_map( 'intval', $attached_sheen_ids ) );
+		$sizes = array();
+		$sheens = array();
 		
-		$sizes = $wpdb->get_results( "SELECT wc_attribute_id, name FROM {$wpdb->prefix}ps_sizes WHERE id IN ($size_list) AND wc_attribute_id > 0" );
-		$sheens = $wpdb->get_results( "SELECT wc_attribute_id, name FROM {$wpdb->prefix}ps_sheens WHERE id IN ($sheen_list) AND wc_attribute_id > 0" );
+		if ( ! empty( $attached_size_ids ) ) {
+			$size_list = implode( ',', array_map( 'intval', $attached_size_ids ) );
+			$sizes = $wpdb->get_results( "SELECT wc_attribute_id, name FROM {$wpdb->prefix}ps_sizes WHERE id IN ($size_list) AND wc_attribute_id > 0" );
+		}
+		
+		if ( ! empty( $attached_sheen_ids ) ) {
+			$sheen_list = implode( ',', array_map( 'intval', $attached_sheen_ids ) );
+			$sheens = $wpdb->get_results( "SELECT wc_attribute_id, name FROM {$wpdb->prefix}ps_sheens WHERE id IN ($sheen_list) AND wc_attribute_id > 0" );
+		}
 		
 		$attributes = array();
 		
@@ -1433,21 +1439,28 @@ class Paint_Store_API {
 			$sheen_wc_id = $wpdb->get_var( $wpdb->prepare( "SELECT wc_attribute_id FROM {$wpdb->prefix}ps_sheens WHERE id = %d", $ps_product->sheen_id ) );
 			$sheen_term = $sheen_wc_id ? get_term( $sheen_wc_id ) : false;
 
-			if ( ! $size_term || ! $sheen_term || is_wp_error( $size_term ) || is_wp_error( $sheen_term ) ) continue;
+			if ( ! $size_term || is_wp_error( $size_term ) ) continue;
+
+			$matched_attributes = array(
+				'attribute_pa_paint_size' => $size_term->slug
+			);
+			
+			$variation_attributes = array(
+				'pa_paint_size' => $size_term->slug
+			);
+
+			if ( $sheen_term && ! is_wp_error( $sheen_term ) ) {
+				$matched_attributes['attribute_pa_paint_sheen'] = $sheen_term->slug;
+				$variation_attributes['pa_paint_sheen'] = $sheen_term->slug;
+			}
 
 			// Check if variation exists for this exact Size + Sheen block
-			$variation_id = $this->find_matching_variation( $product_id, array(
-				'attribute_pa_paint_size' => $size_term->slug,
-				'attribute_pa_paint_sheen' => $sheen_term->slug
-			) );
+			$variation_id = $this->find_matching_variation( $product_id, $matched_attributes );
 
 			try {
 				$variation = new WC_Product_Variation( $variation_id );
 				$variation->set_parent_id( $product_id );
-				$variation->set_attributes( array(
-					'pa_paint_size' => $size_term->slug,
-					'pa_paint_sheen' => $sheen_term->slug
-				) );
+				$variation->set_attributes( $variation_attributes );
 				
 				$variation->set_regular_price( $ps_product->price );
 				// Only set SKU if it's non-empty, and catch duplicate SKU errors
@@ -1470,7 +1483,30 @@ class Paint_Store_API {
 			}
 		}
 
-		return rest_ensure_response( array( 'success' => true, 'wc_product_id' => $product_id ) );
+		// 6. If no WooCommerce variations were synced (e.g. Wood Stains, tools),
+		// set the parent product as a simple purchasable product with aggregated stock.
+		if ( $synced_variations === 0 ) {
+			wp_set_object_terms( $product_id, 'simple', 'product_type' );
+			$total_stock = 0;
+			$min_price = PHP_FLOAT_MAX;
+			foreach ( $physical_products as $pp ) {
+				$total_stock += intval( $pp->stock_quantity );
+				$pprice = floatval( $pp->price );
+				if ( $pprice > 0 && $pprice < $min_price ) {
+					$min_price = $pprice;
+				}
+			}
+			if ( $min_price === PHP_FLOAT_MAX ) $min_price = 0;
+			update_post_meta( $product_id, '_stock_status', 'instock' );
+			update_post_meta( $product_id, '_stock', $total_stock );
+			update_post_meta( $product_id, '_manage_stock', 'yes' );
+			update_post_meta( $product_id, '_regular_price', $min_price );
+			update_post_meta( $product_id, '_price', $min_price );
+			// Clear cached product data
+			wc_delete_product_transients( $product_id );
+		}
+
+		return rest_ensure_response( array( 'success' => true, 'wc_product_id' => $product_id, 'synced_variations' => $synced_variations ) );
 
 		} catch ( Exception $e ) {
 			return new WP_Error( 'sync_error', 'Sync failed: ' . $e->getMessage(), array( 'status' => 500 ) );

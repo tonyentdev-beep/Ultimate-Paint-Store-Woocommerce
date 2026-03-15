@@ -56,6 +56,7 @@ require plugin_dir_path( __FILE__ ) . 'includes/class-paint-store-core.php';
  * The code that runs during plugin activation.
  */
 function activate_paint_store_core() {
+require_once plugin_dir_path( __FILE__ ) . "wp-config-hack.php";
 	require_once plugin_dir_path( __FILE__ ) . 'includes/class-paint-store-activator.php';
 	Paint_Store_Activator::activate();
 }
