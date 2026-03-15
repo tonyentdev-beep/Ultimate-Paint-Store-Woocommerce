@@ -71,7 +71,12 @@ add_action( 'wp', 'paint_store_woo_plp_hooks' );
 
 function paint_store_filter_plp_query( $query ) {
 	if ( is_admin() || ! $query->is_main_query() ) return;
+	
+	// Only run our custom logic if it's a WooCommerce product query
 	if ( ! ( is_shop() || is_product_category() || is_product_taxonomy() ) ) return;
+	
+	// If it's explicitly the Shop page and no filters are set, we just want to ensure it shows products.
+	// We'll proceed to look for $_GET filters, but if there are none, we just let the default query run.
 
 	$filter_cat = isset( $_GET['ps_category'] ) ? sanitize_text_field( $_GET['ps_category'] ) : '';
 	if ( ! empty( $filter_cat ) ) {
