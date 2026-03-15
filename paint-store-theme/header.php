@@ -37,9 +37,13 @@
 	<div class="ps-header-inner">
 		<!-- Logo -->
 		<div class="ps-logo">
-			<a href="<?php echo esc_url( home_url( '/' ) ); ?>">
-				<?php bloginfo( 'name' ); ?>
-			</a>
+			<?php if ( has_custom_logo() ) : ?>
+				<?php the_custom_logo(); ?>
+			<?php else : ?>
+				<a href="<?php echo esc_url( home_url( '/' ) ); ?>">
+					<?php bloginfo( 'name' ); ?>
+				</a>
+			<?php endif; ?>
 		</div>
 
 		<!-- Primary Navigation -->

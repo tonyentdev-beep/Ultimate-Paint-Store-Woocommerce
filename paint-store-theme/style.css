@@ -705,7 +705,6 @@ img {
 .woocommerce .woocommerce-ordering,
 .woocommerce .woocommerce-result-count,
 .woocommerce-products-header,
-.woocommerce ul.products li.product>a:not(.ps-card-btn),
 .woocommerce ul.products li.product .woocommerce-loop-product__title,
 .woocommerce ul.products li.product .star-rating {
 	display: none !important;

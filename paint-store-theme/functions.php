@@ -16,6 +16,13 @@ function paint_store_theme_setup() {
 	add_theme_support( 'wc-product-gallery-slider' );
 	add_theme_support( 'html5', array( 'search-form', 'comment-form', 'gallery', 'caption' ) );
 
+	add_theme_support( 'custom-logo', array(
+		'height'      => 80,
+		'width'       => 250,
+		'flex-height' => true,
+		'flex-width'  => true,
+	) );
+
 	register_nav_menus( array(
 		'primary' => 'Primary Menu',
 		'footer'  => 'Footer Menu',
