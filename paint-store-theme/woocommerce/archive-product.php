@@ -103,18 +103,70 @@ $clear_url       = remove_query_arg( array( 'ps_category', 'ps_sheen' ) );
 	<!-- Product Listing -->
 	<div class="ps-plp-content">
 		<?php
-		global $wp_query;
-		echo "<!-- DEBUG: post_count = " . $wp_query->post_count . ", found_posts = " . $wp_query->found_posts . " -->";
+		// Build a robust custom query to bypass staging site WooCommerce catalog visibility glitches
+		$paged = ( get_query_var( 'paged' ) ) ? get_query_var( 'paged' ) : 1;
 		
-		if ( woocommerce_product_loop() ) {
+		$query_args = array(
+			'post_type'      => 'product',
+			'post_status'    => 'publish',
+			'posts_per_page' => 24,
+			'paged'          => $paged,
+			'orderby'        => 'title',
+			'order'          => 'ASC'
+		);
+
+		// Apply URL Filters
+		$tax_query = array( 'relation' => 'AND' );
+		
+		if ( isset( $_GET['ps_category'] ) && ! empty( $_GET['ps_category'] ) ) {
+			$tax_query[] = array(
+				'taxonomy' => 'product_cat',
+				'field'    => 'slug',
+				'terms'    => sanitize_text_field( $_GET['ps_category'] )
+			);
+		}
+		
+		if ( isset( $_GET['ps_sheen'] ) && ! empty( $_GET['ps_sheen'] ) ) {
+			$tax_query[] = array(
+				'taxonomy' => 'pa_paint_sheen',
+				'field'    => 'slug',
+				'terms'    => sanitize_text_field( $_GET['ps_sheen'] )
+			);
+		}
+
+		if ( count( $tax_query ) > 1 ) {
+			$query_args['tax_query'] = $tax_query;
+		}
+
+		$products_query = new WP_Query( $query_args );
+
+		if ( $products_query->have_posts() ) {
 			woocommerce_product_loop_start();
 
-			while ( have_posts() ) {
-				the_post();
+			while ( $products_query->have_posts() ) {
+				$products_query->the_post();
 				wc_get_template_part( 'content', 'product' );
 			}
 
 			woocommerce_product_loop_end();
+
+			// Custom Pagination
+			$total_pages = $products_query->max_num_pages;
+			if ( $total_pages > 1 ) {
+				$current_page = max( 1, get_query_var( 'paged' ) );
+				echo '<div class="ps-pagination" style="margin-top: 30px; text-align: center;">';
+				echo paginate_links( array(
+					'base'      => get_pagenum_link( 1 ) . '%_%',
+					'format'    => 'page/%#%',
+					'current'   => $current_page,
+					'total'     => $total_pages,
+					'prev_text' => '&laquo; Prev',
+					'next_text' => 'Next &raquo;',
+				) );
+				echo '</div>';
+			}
+
+			wp_reset_postdata();
 		} else {
 			do_action( 'woocommerce_no_products_found' );
 		}
@@ -127,8 +179,11 @@ function psToggleFilter(param, value, checked) {
 	var url = new URL(window.location.href);
 	if (checked) { url.searchParams.set(param, value); }
 	else { url.searchParams.delete(param); }
-	window.location.href = url.toString();
+	// reset pagination on filter
+	url.searchParams.delete('paged');
+	url.pathname = url.pathname.replace(/\/page\/[0-9]+/, '');
+	window.location.href = url.href;
 }
 </script>
 
-<?php get_footer(); ?>
+<?php get_footer( 'shop' ); ?>
