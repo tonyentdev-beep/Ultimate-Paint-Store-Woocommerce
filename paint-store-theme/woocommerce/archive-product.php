@@ -103,6 +103,9 @@ $clear_url       = remove_query_arg( array( 'ps_category', 'ps_sheen' ) );
 	<!-- Product Listing -->
 	<div class="ps-plp-content">
 		<?php
+		global $wp_query;
+		echo "<!-- DEBUG: post_count = " . $wp_query->post_count . ", found_posts = " . $wp_query->found_posts . " -->";
+		
 		if ( woocommerce_product_loop() ) {
 			woocommerce_product_loop_start();
 
