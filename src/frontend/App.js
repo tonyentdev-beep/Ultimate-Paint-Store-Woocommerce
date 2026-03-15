@@ -109,7 +109,7 @@ const App = ({ familyId }) => {
     const isWoodStain = useMemo(() => {
         if (!familyData || !familyData.family || !familyData.family.make_slug) return false;
         const slug = familyData.family.make_slug;
-        return slug === 'wood-stains-oil-based' || slug === 'wood-stains-water-based' || slug === 'wood-sealer';
+        return slug === 'wood-stains-oil-based' || slug === 'wood-stains-water-based' || slug === 'wood-sealer' || slug === 'wood-stain-markers';
     }, [familyData]);
 
     const isBrush = useMemo(() => {
@@ -458,8 +458,8 @@ const App = ({ familyId }) => {
         if (!familyData || !familyData.family) return false;
         if (isGenericTool) return !!matchedProduct;
         if (isBrush) return !!(selectedWidth && matchedProduct);
-        return !!(selectedSize && selectedSheen && selectedColor && matchedVariation);
-    }, [isGenericTool, isBrush, selectedWidth, matchedProduct, selectedSize, selectedSheen, selectedColor, matchedVariation, familyData]);
+        return !!(selectedSize && (isWoodStain || selectedSheen) && selectedColor && matchedVariation);
+    }, [isGenericTool, isBrush, selectedWidth, matchedProduct, selectedSize, selectedSheen, selectedColor, matchedVariation, familyData, isWoodStain]);
 
     if (renderError) {
         return (
