@@ -78,6 +78,7 @@ const Settings = () => {
         { label: 'BBD (Bds$)', value: 'BBD' },
         { label: 'XCD (EC$)', value: 'XCD' },
         { label: 'GYD (G$)', value: 'GYD' },
+        { label: 'GHS (GH₵)', value: 'GHS' },
     ];
 
     const unitOptions = [

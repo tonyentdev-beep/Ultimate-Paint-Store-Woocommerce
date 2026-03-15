@@ -109,7 +109,7 @@ const App = ({ familyId }) => {
     const isWoodStain = useMemo(() => {
         if (!familyData || !familyData.family || !familyData.family.make_slug) return false;
         const slug = familyData.family.make_slug;
-        return slug === 'wood-stains-oil-based' || slug === 'wood-stains-water-based' || slug === 'wood-sealer' || slug === 'wood-stain-markers';
+        return slug === 'wood-stains-oil-based' || slug === 'wood-stains-water-based' || slug === 'wood-sealer' || slug === 'wood-stain-markers' || slug === 'wood-protective-finish';
     }, [familyData]);
 
     const isBrush = useMemo(() => {
