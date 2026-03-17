@@ -120,12 +120,20 @@ function ps_theme_options_page() {
 // ==========================================
 
 function paint_store_theme_styles() {
-	wp_enqueue_style( 'paint-store-theme', get_stylesheet_uri(), array(), '1.0.0' );
+	wp_enqueue_style( 'paint-store-theme', get_stylesheet_uri(), array(), '1.1.0' );
 	
 	// Google Fonts
 	wp_enqueue_style( 'paint-store-fonts', 'https://fonts.googleapis.com/css2?family=Anton&family=DM+Sans:wght@400;500;600;700&display=swap', array(), null );
 }
 add_action( 'wp_enqueue_scripts', 'paint_store_theme_styles' );
+
+// Load Tailwind CSS exclusively on the My Account page for WooCommerce template overrides
+function paint_store_theme_tailwind() {
+	if ( function_exists( 'is_account_page' ) && is_account_page() ) {
+		echo '<script src="https://cdn.tailwindcss.com"></script>';
+	}
+}
+add_action( 'wp_head', 'paint_store_theme_tailwind', 5 );
 
 // ==========================================
 // WOOCOMMERCE: REMOVE DEFAULT STUFF ON PLP
