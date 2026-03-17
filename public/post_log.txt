@@ -1,0 +1,13 @@
+POST DATA:
+Array
+(
+    [action] => paint_store_add_to_cart
+    [product_id] => 122
+    [variation_id] => 0
+    [quantity] => 1
+    [color_hex] => STAIN
+    [color_image_url] => http://paint-store.local/wp-content/uploads/2026/03/62615378.avif
+    [color_name] => Dark Wallnut (Stain)
+    [item_price] => 200
+    [fulfillment_method] => pickup
+)

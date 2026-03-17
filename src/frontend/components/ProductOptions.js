@@ -168,7 +168,7 @@ const SheenCompareModal = ({ isOpen, onClose }) => {
     );
 };
 
-const ProductOptions = ({ attributes, selectedSize, setSelectedSize, selectedSheen, setSelectedSheen, selectedColor, shouldFilter, isWoodStain = false, selectedFulfillment, setSelectedFulfillment, matchedStockQty, deliveryAddress, onDeliveryAddressChange, sizePrices = {}, currencySymbol = '$' }) => {
+const ProductOptions = ({ attributes, selectedSize, setSelectedSize, selectedSheen, setSelectedSheen, selectedColor, shouldFilter, isWoodStain = false, isPrimer = false, selectedFulfillment, setSelectedFulfillment, matchedStockQty, deliveryAddress, onDeliveryAddressChange, sizePrices = {}, currencySymbol = '$' }) => {
     const hasSizes = attributes.sizes && attributes.sizes.length > 0;
     const hasSheens = attributes.sheens && attributes.sheens.length > 0;
     const [showSheenModal, setShowSheenModal] = useState(false);
@@ -256,7 +256,7 @@ const ProductOptions = ({ attributes, selectedSize, setSelectedSize, selectedShe
                 </div>
             )}
 
-            {hasSheens && (!isWoodStain || attributes.sheens.length > 1) && (
+            {!isPrimer && hasSheens && (!isWoodStain || attributes.sheens.length > 1) && (
                 <div style={{ marginBottom: '25px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                         <label style={{ fontWeight: 'bold' }}>

@@ -62,6 +62,8 @@ class Paint_Store_Activator {
 			description text,
 			family_id bigint(20) unsigned DEFAULT 0 NOT NULL,
 			brand_id bigint(20) unsigned DEFAULT 0 NOT NULL,
+			is_popular tinyint(1) NOT NULL DEFAULT 0,
+			is_color_of_week tinyint(1) NOT NULL DEFAULT 0,
 			PRIMARY KEY  (id),
 			KEY family_id (family_id),
 			KEY brand_id (brand_id)
@@ -263,7 +265,7 @@ class Paint_Store_Activator {
 			stock_quantity int(11) DEFAULT 0 NOT NULL,
 			color_name varchar(255) DEFAULT '' NOT NULL,
 			opacity varchar(50) DEFAULT '' NOT NULL,
-			stain_image_id bigint(20) unsigned DEFAULT 0 NOT NULL,
+			stain_image_ids text,
 			width_id bigint(20) unsigned DEFAULT 0 NOT NULL,
 			woo_product_id bigint(20) unsigned DEFAULT 0 NOT NULL,
 			PRIMARY KEY  (id),

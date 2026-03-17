@@ -8,7 +8,7 @@ const TopBar = ({ familyName, dynamicTitle, categories, displayPrice, isAdding, 
             <div className="ps-top-bar" style={{
                 background: '#fff',
                 position: 'sticky',
-                top: '80px',
+                top: '10px',
                 zIndex: 100,
                 width: '99vw',
                 maxWidth: '99vw',
@@ -24,7 +24,23 @@ const TopBar = ({ familyName, dynamicTitle, categories, displayPrice, isAdding, 
                 }}>
                     {/* Breadcrumb row */}
                     <div style={{ fontSize: '13px', color: '#00598e', fontWeight: 'bold' }}>
-                        Home / {(Array.isArray(categories) && categories.length > 0) ? categories.join(' / ') : 'Products'} / {familyName}
+                        <a href="/" style={{ textDecoration: 'none', color: '#00598e' }}>Home</a>{' / '}
+                        {(Array.isArray(categories) && categories.length > 0) ? (
+                            categories.map((cat, index) => (
+                                <span key={index}>
+                                    <a 
+                                        href={`/shop/?ps_category=${cat.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}
+                                        style={{ textDecoration: 'none', color: '#00598e' }}
+                                    >
+                                        {cat}
+                                    </a>
+                                    {' / '}
+                                </span>
+                            ))
+                        ) : (
+                            <span><a href="/shop/" style={{ textDecoration: 'none', color: '#00598e' }}>Products</a>{' / '}</span>
+                        )}
+                        <span style={{ color: '#666' }}>{familyName}</span>
                     </div>
 
                     {/* Title & Cart Row — visible on desktop only */}

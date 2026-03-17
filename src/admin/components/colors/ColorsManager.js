@@ -1,6 +1,6 @@
 import { useState, useMemo } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
-import { Button, TextControl, TextareaControl, SelectControl, PanelBody, PanelRow, CheckboxControl } from '@wordpress/components';
+import { Button, TextControl, TextareaControl, SelectControl, PanelBody, PanelRow, CheckboxControl, ToggleControl } from '@wordpress/components';
 
 const ITEMS_PER_PAGE = 25;
 
@@ -15,6 +15,8 @@ const ColorsManager = ({ colors, families, allBases, brands, fetchColors }) => {
     const [selectedCoordinatingColors, setSelectedCoordinatingColors] = useState([]);
     const [isSaving, setIsSaving] = useState(false);
     const [editingId, setEditingId] = useState(null);
+    const [isPopular, setIsPopular] = useState(false);
+    const [isColorOfWeek, setIsColorOfWeek] = useState(false);
 
     // Filter & pagination state
     const [searchText, setSearchText] = useState('');
@@ -38,7 +40,9 @@ const ColorsManager = ({ colors, families, allBases, brands, fetchColors }) => {
                 family_id: newColorFamilyId,
                 brand_id: newColorBrandId,
                 base_ids: selectedBases,
-                coordinating_color_ids: selectedCoordinatingColors
+                coordinating_color_ids: selectedCoordinatingColors,
+                is_popular: isPopular ? 1 : 0,
+                is_color_of_week: isColorOfWeek ? 1 : 0
             };
 
             if (editingId) {
@@ -64,6 +68,8 @@ const ColorsManager = ({ colors, families, allBases, brands, fetchColors }) => {
             setSelectedBases([]);
             setSelectedCoordinatingColors([]);
             setEditingId(null);
+            setIsPopular(false);
+            setIsColorOfWeek(false);
             fetchColors();
         } catch (error) {
             console.error('Error saving color:', error);
@@ -82,6 +88,8 @@ const ColorsManager = ({ colors, families, allBases, brands, fetchColors }) => {
         setNewColorBrandId(color.brand_id == 0 ? '' : color.brand_id);
         setSelectedBases(color.base_ids || []);
         setSelectedCoordinatingColors(color.coordinating_color_ids || []);
+        setIsPopular(parseInt(color.is_popular) === 1);
+        setIsColorOfWeek(parseInt(color.is_color_of_week) === 1);
     };
 
     const handleCancelEdit = () => {
@@ -94,6 +102,8 @@ const ColorsManager = ({ colors, families, allBases, brands, fetchColors }) => {
         setNewColorBrandId('');
         setSelectedBases([]);
         setSelectedCoordinatingColors([]);
+        setIsPopular(false);
+        setIsColorOfWeek(false);
     };
 
     const handleDelete = async (id) => {
@@ -291,6 +301,23 @@ const ColorsManager = ({ colors, families, allBases, brands, fetchColors }) => {
                     )}
                 </div>
 
+                <PanelRow>
+                    <div style={{ display: 'flex', gap: '30px', width: '100%' }}>
+                        <ToggleControl
+                            label="Popular Color"
+                            help="Tag this color as Popular to display via [popular_colors] shortcode."
+                            checked={isPopular}
+                            onChange={setIsPopular}
+                        />
+                        <ToggleControl
+                            label="Color of the Week"
+                            help="Tag this color as Color of the Week to display via [colors_of_the_week] shortcode."
+                            checked={isColorOfWeek}
+                            onChange={setIsColorOfWeek}
+                        />
+                    </div>
+                </PanelRow>
+
                 <div style={{ padding: '0 20px 20px', display: 'flex', gap: '10px' }}>
                     <Button
                         variant="primary"
@@ -381,6 +408,7 @@ const ColorsManager = ({ colors, families, allBases, brands, fetchColors }) => {
                             <th>Family</th>
                             <th>Color Hex</th>
                             <th>Compatible Bases</th>
+                            <th>Tags</th>
                             <th style={{ width: '150px' }}>Actions</th>
                         </tr>
                     </thead>
@@ -407,6 +435,16 @@ const ColorsManager = ({ colors, families, allBases, brands, fetchColors }) => {
                                         </div>
                                     </td>
                                     <td><em>{getBaseNames(color.base_ids)}</em></td>
+                                    <td>
+                                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                                            {parseInt(color.is_popular) === 1 && (
+                                                <span style={{ background: '#ffc107', color: '#000', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600 }}>Popular</span>
+                                            )}
+                                            {parseInt(color.is_color_of_week) === 1 && (
+                                                <span style={{ background: '#17a2b8', color: '#fff', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600 }}>Week</span>
+                                            )}
+                                        </div>
+                                    </td>
                                     <td>
                                         <div style={{ display: 'flex', gap: '10px' }}>
                                             <Button isSmall variant="secondary" onClick={() => handleEdit(color)}>Edit</Button>

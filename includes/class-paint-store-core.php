@@ -48,6 +48,8 @@ class Paint_Store_Core {
 		
 		// Add shortcode registration
 		$this->loader->add_shortcode( 'paint_store_builder', $plugin_public, 'render_builder_shortcode' );
+		$this->loader->add_shortcode( 'popular_colors', $plugin_public, 'render_popular_colors_shortcode' );
+		$this->loader->add_shortcode( 'colors_of_the_week', $plugin_public, 'render_colors_of_week_shortcode' );
 	}
 
 	private function define_api_hooks() {

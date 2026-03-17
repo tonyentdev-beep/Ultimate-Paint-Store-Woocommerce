@@ -124,10 +124,11 @@ class Paint_Store_Public {
 		$product_id   = isset( $_POST['product_id'] ) ? intval( $_POST['product_id'] ) : 0;
 		$variation_id = isset( $_POST['variation_id'] ) ? intval( $_POST['variation_id'] ) : 0;
 		$quantity     = isset( $_POST['quantity'] ) ? intval( $_POST['quantity'] ) : 1;
-		$color_hex    = isset( $_POST['color_hex'] ) ? sanitize_text_field( $_POST['color_hex'] ) : '';
-		$color_name   = isset( $_POST['color_name'] ) ? sanitize_text_field( $_POST['color_name'] ) : '';
-		$custom_width = isset( $_POST['ps_custom_width'] ) ? sanitize_text_field( $_POST['ps_custom_width'] ) : '';
-
+		$color_hex       = isset( $_POST['color_hex'] ) ? sanitize_text_field( $_POST['color_hex'] ) : '';
+		$color_image_url = isset( $_POST['color_image_url'] ) ? sanitize_url( $_POST['color_image_url'] ) : '';
+		$color_name      = isset( $_POST['color_name'] ) ? sanitize_text_field( $_POST['color_name'] ) : '';
+		$custom_width    = isset( $_POST['ps_custom_width'] ) ? sanitize_text_field( $_POST['ps_custom_width'] ) : '';
+		
 		if ( ! $product_id ) {
 			wp_send_json_error( array( 'message' => 'Product ID is required.' ) );
 		}
@@ -150,8 +151,9 @@ class Paint_Store_Public {
 
 		$cart_item_data = array(
 			'paint_custom_color' => array(
-				'name' => $color_name,
-				'hex'  => $color_hex
+				'name'  => $color_name,
+				'hex'   => $color_hex,
+				'image' => $color_image_url
 			),
 			'ps_custom_width' => $custom_width,
 			'ps_custom_price' => $item_price
@@ -219,4 +221,105 @@ class Paint_Store_Public {
 		}
 	}
 
+	// ========================================
+	// COLOR TAG SHORTCODES
+	// ========================================
+
+	public function render_popular_colors_shortcode( $atts ) {
+		$atts = shortcode_atts( array(
+			'columns' => 4,
+			'limit'   => 12,
+		), $atts, 'popular_colors' );
+
+		global $wpdb;
+		$table = $wpdb->prefix . 'ps_colors';
+		$limit = intval( $atts['limit'] );
+		$colors = $wpdb->get_results(
+			$wpdb->prepare( "SELECT * FROM $table WHERE is_popular = 1 LIMIT %d", $limit ),
+			ARRAY_A
+		);
+
+		return $this->render_color_cards_grid( $colors, intval( $atts['columns'] ), 'Popular Colors' );
+	}
+
+	public function render_colors_of_week_shortcode( $atts ) {
+		$atts = shortcode_atts( array(
+			'columns' => 4,
+			'limit'   => 12,
+		), $atts, 'colors_of_the_week' );
+
+		global $wpdb;
+		$table = $wpdb->prefix . 'ps_colors';
+		$limit = intval( $atts['limit'] );
+		$colors = $wpdb->get_results(
+			$wpdb->prepare( "SELECT * FROM $table WHERE is_color_of_week = 1 LIMIT %d", $limit ),
+			ARRAY_A
+		);
+
+		return $this->render_color_cards_grid( $colors, intval( $atts['columns'] ), 'Colors of the Week' );
+	}
+
+	private function render_color_cards_grid( $colors, $columns, $title ) {
+		if ( empty( $colors ) ) {
+			return '<p style="text-align:center;color:#888;padding:20px 0;">No ' . esc_html( strtolower( $title ) ) . ' at this time.</p>';
+		}
+
+		ob_start();
+		?>
+		<style>
+			.ps-color-grid { display: grid; gap: 20px; }
+			.ps-color-card {
+				display: block;
+				text-decoration: none;
+				color: inherit;
+				overflow: hidden;
+				border: 1px solid #e0e0e0;
+				background: #fff;
+				transition: transform 0.2s, box-shadow 0.2s;
+				cursor: pointer;
+			}
+			.ps-color-card:hover {
+				transform: translateY(-4px);
+				box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+			}
+			.ps-color-card-swatch {
+				width: 100%;
+				aspect-ratio: 4 / 3;
+				border-bottom: 1px solid rgba(0,0,0,0.05);
+			}
+			.ps-color-card-info {
+				padding: 15px;
+			}
+			.ps-color-card-name {
+				font-size: 16px;
+				font-weight: bold;
+				margin-bottom: 4px;
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
+			.ps-color-card-code {
+				font-size: 13px;
+				color: #666;
+			}
+		</style>
+		<div class="ps-color-grid" style="grid-template-columns: repeat(<?php echo esc_attr( $columns ); ?>, 1fr);">
+			<?php foreach ( $colors as $color ) :
+				$slug = ! empty( $color['slug'] ) ? $color['slug'] : $color['id'];
+				$hex  = ! empty( $color['hex_value'] ) ? $color['hex_value'] : '#f1f1f1';
+			?>
+			<a href="/colors/<?php echo esc_attr( $slug ); ?>/" class="ps-color-card">
+				<div class="ps-color-card-swatch" style="background-color: <?php echo esc_attr( $hex ); ?>;"></div>
+				<div class="ps-color-card-info">
+					<div class="ps-color-card-name"><?php echo esc_html( $color['name'] ); ?></div>
+					<div class="ps-color-card-code"><?php echo esc_html( $color['color_code'] ); ?></div>
+				</div>
+			</a>
+			<?php endforeach; ?>
+		</div>
+		<?php
+		return ob_get_clean();
+	}
+
 }
+

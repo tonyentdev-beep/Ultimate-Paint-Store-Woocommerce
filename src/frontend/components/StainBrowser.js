@@ -18,6 +18,7 @@ const StainBrowser = ({ psProducts, selectedStain, onStainSelect }) => {
                         name: normalizedName,
                         hex_value: 'STAIN', // Mock hex to satisfy downstream visualizer logic if needed
                         image_url: product.stain_image_url || '',
+                        stain_images: product.stain_images || [],
                         color_code: 'Stain', // Mock code
                         description: 'Wood Stain'
                     });

@@ -77,6 +77,7 @@ const App = ({ familyId }) => {
         }
     }, [familyData]);
 
+
     // Dynamic SEO meta description based on selected color
     useEffect(() => {
         if (!selectedColor || !selectedColor.description) return;
@@ -103,14 +104,69 @@ const App = ({ familyId }) => {
         };
     }, [selectedColor, familyData]);
 
-    // Do we have explicit physical products defined for this family?
-    const hasPhysicalProducts = familyData && familyData.ps_products && familyData.ps_products.length > 0;
-
-    // Detect if this product family is a Wood Stain
     const isWoodStain = useMemo(() => {
         if (!familyData || !familyData.family || !familyData.family.make_slug) return false;
         const slug = familyData.family.make_slug;
-        return slug === 'wood-stains-oil-based' || slug === 'wood-stains-water-based' || slug === 'wood-sealer' || slug === 'wood-stain-markers' || slug === 'wood-protective-finish';
+        return slug === 'wood-stains-oil-based' || slug === 'wood-stains-water-based' || slug === 'wood-sealer' || slug === 'wood-stain-markers' || slug === 'wood-protective-finish' || slug === 'wood-stains';
+    }, [familyData]);
+
+    // Pre-select stain from URL query parameter if landing from external link
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        if (!isWoodStain || !familyData || !familyData.ps_products) return;
+        
+        const params = new URLSearchParams(window.location.search);
+        const preselectName = params.get('preselect_stain');
+
+        if (preselectName && !selectedColor) {
+            // Find a product with this exact stain name
+            const matchingProduct = familyData.ps_products.find(p => p.color_name && p.color_name.toLowerCase() === preselectName.toLowerCase());
+            
+            if (matchingProduct) {
+                // Construct a fake selectedColor object that the UI expects for stains
+                const raw_stain_ids = matchingProduct.stain_image_ids || matchingProduct.stain_image_id || '';
+                let stain_images = [];
+                if (raw_stain_ids) {
+                    const ids_array = raw_stain_ids.toString().split(',');
+                    // This is a rough estimation for the frontend, full URLs are ideal but might be complex to reconstruct here.
+                    // Assuming the component can handle just the names/basic structure. 
+                    // To be safe, try to trigger the normal UI selection logic or just set name.
+                    // The App.js `activeGalleryImages` relies on selectedColor.stain_images or selectedColor.image_url
+                    // Note: In typical cases, StainBrowser renders tiles and when clicked sets selectedColor.
+                    // But if we bypass it, we need a robust selectedColor.
+                }
+
+                // Since we don't have the full WP attachment URLs here natively, we rely on StainBrowser having initialized its 'uniqueStains' in memo.
+                // However, App.js handles `selectedColor`.
+                // For a simpler approach, we just set the name, and let the UI resolve it if needed, OR we trigger a custom state flag and let StainBrowser handle the initial find.
+                // Let's build a minimal viable color object. StainBrowser uses name, hex_value, image_url, stain_images.
+                setSelectedColor({
+                    id: `stain_${matchingProduct.id}`,
+                    name: matchingProduct.color_name,
+                    hex_value: 'STAIN',
+                    image_url: '', // Image resolution happens via gallery logic or StainBrowser
+                    stain_images: [] // Ideally fetched or populated by StainBrowser
+                });
+            }
+        }
+    }, [isWoodStain, familyData, selectedColor]);
+
+    // Do we have explicit physical products defined for this family?
+    const hasPhysicalProducts = familyData && familyData.ps_products && familyData.ps_products.length > 0;
+
+    // Update activeImageUrl when a stain color is clicked so they aren't stuck on the base family image
+    useEffect(() => {
+        if (isWoodStain && selectedColor && selectedColor.stain_images && selectedColor.stain_images.length > 0) {
+            setActiveImageUrl(selectedColor.stain_images[0].url);
+        } else if (isWoodStain && selectedColor && selectedColor.image_url) {
+            setActiveImageUrl(selectedColor.image_url);
+        }
+    }, [selectedColor, isWoodStain]);
+
+    const isPrimer = useMemo(() => {
+        if (!familyData || !familyData.family || !familyData.family.make_slug) return false;
+        const slug = familyData.family.make_slug;
+        return slug === 'primers' || slug === 'primer';
     }, [familyData]);
 
     const isBrush = useMemo(() => {
@@ -127,21 +183,46 @@ const App = ({ familyId }) => {
         return isToolCategory && !isBrush;
     }, [familyData, isBrush]);
 
-    // Coating = default paint type (not stain, brush, or generic tool)
+    // Coating = default paint type (not stain, brush, generic tool, or primer)
     const isCoating = useMemo(() => {
-        return !isWoodStain && !isBrush && !isGenericTool;
-    }, [isWoodStain, isBrush, isGenericTool]);
+        return !isWoodStain && !isBrush && !isGenericTool && !isPrimer;
+    }, [isWoodStain, isBrush, isGenericTool, isPrimer]);
+
+    // Dynamically build the gallery images for the current state
+    const activeGalleryImages = useMemo(() => {
+        let baseImages = familyData?.family?.gallery_images || [];
+        
+        // If it's a wood stain and a color is selected, prepend its additional images
+        if (isWoodStain && selectedColor && selectedColor.stain_images && selectedColor.stain_images.length > 0) {
+            // First image is the primary swatch, subsequent images are gallery additions
+            const additionalImages = selectedColor.stain_images.slice(1);
+            if (additionalImages.length > 0) {
+                // The prompt says "the images coorelated to that physical product sku will now be at the top of that gallery"
+                baseImages = [...additionalImages, ...baseImages];
+            }
+        }
+        
+        // Ensure unique URLs
+        const uniqueUrls = new Set();
+        return baseImages.filter(img => {
+            if (!img || !img.url) return false;
+            if (uniqueUrls.has(img.url)) return false;
+            uniqueUrls.add(img.url);
+            return true;
+        });
+    }, [familyData, isWoodStain, selectedColor]);
+
 
     // Should we apply the smart filter?
     // For Paint: physical SKUs exist AND a color is selected AND the color has base associations
     // For Stains: physical SKUs exist AND a stain is selected
     const shouldFilter = useMemo(() => {
         if (!hasPhysicalProducts) return false;
-        if (isBrush || isGenericTool) return false;
+        if (isBrush || isGenericTool || isPrimer) return false; // Primers don't filter by color/base
         if (!selectedColor) return false;
         if (isWoodStain) return true;
         return selectedColor.base_ids && selectedColor.base_ids.length > 0;
-    }, [hasPhysicalProducts, selectedColor, isWoodStain, isBrush, isGenericTool]);
+    }, [hasPhysicalProducts, selectedColor, isWoodStain, isBrush, isGenericTool, isPrimer]);
 
     // Filter ps_products by the selected color's required base_ids (or stain name)
     const validProducts = useMemo(() => {
@@ -277,15 +358,15 @@ const App = ({ familyId }) => {
         }
 
         if (!selectedSize) return null;
-        if (!isWoodStain && !selectedSheen) return null;
+        if (!isWoodStain && !isPrimer && !selectedSheen) return null;
 
         return filteredVariations.find(v => {
             if (!v.attributes) return false;
             const sizeMatch = v.attributes.attribute_pa_paint_size === selectedSize;
-            const sheenMatch = isWoodStain ? (!selectedSheen || v.attributes.attribute_pa_paint_sheen === selectedSheen) : (v.attributes.attribute_pa_paint_sheen === selectedSheen);
+            const sheenMatch = (isWoodStain || isPrimer) ? (!selectedSheen || v.attributes.attribute_pa_paint_sheen === selectedSheen) : (v.attributes.attribute_pa_paint_sheen === selectedSheen);
             return sizeMatch && sheenMatch;
         });
-    }, [selectedSize, selectedSheen, selectedWidth, filteredVariations, isWoodStain, isBrush, isGenericTool]);
+    }, [selectedSize, selectedSheen, selectedWidth, filteredVariations, isWoodStain, isPrimer, isBrush, isGenericTool]);
 
     const matchedProduct = useMemo(() => {
         if (!validProducts) return null;
@@ -301,14 +382,14 @@ const App = ({ familyId }) => {
         }
 
         if (!selectedSize) return null;
-        if (!isWoodStain && !selectedSheen) return null;
+        if (!isWoodStain && !isPrimer && !selectedSheen) return null;
 
         return validProducts.find(p => {
             const sizeMatch = p.size_slug === selectedSize;
-            const sheenMatch = isWoodStain ? (!selectedSheen || p.sheen_slug === selectedSheen) : (p.sheen_slug === selectedSheen);
+            const sheenMatch = (isWoodStain || isPrimer) ? (!selectedSheen || p.sheen_slug === selectedSheen) : (p.sheen_slug === selectedSheen);
             return sizeMatch && sheenMatch;
         });
-    }, [selectedSize, selectedSheen, selectedWidth, validProducts, isWoodStain, isBrush, isGenericTool]);
+    }, [selectedSize, selectedSheen, selectedWidth, validProducts, isWoodStain, isPrimer, isBrush, isGenericTool]);
 
     // Stock quantity for the specifically matched SKU
     const matchedStockQty = matchedProduct ? parseInt(matchedProduct.stock_quantity, 10) || 0 : 0;
@@ -383,6 +464,8 @@ const App = ({ familyId }) => {
             if (!matchedProduct) return;
         } else if (isBrush) {
             if (!selectedWidth || !matchedProduct) return;
+        } else if (isPrimer) {
+            if (!selectedSize || (!matchedVariation && !matchedProduct)) return;
         } else {
             if (!selectedSize || !selectedColor) return;
             if (!isWoodStain && !selectedSheen) return;
@@ -410,8 +493,19 @@ const App = ({ familyId }) => {
             } else if (isBrush) {
                 formData.append('ps_custom_width', matchedProduct.width_name);
             } else {
-                formData.append('color_hex', selectedColor.hex_value);
-                formData.append('color_name', `${selectedColor.name} (${selectedColor.color_code})`);
+                if (selectedColor && selectedColor.hex_value) {
+                    formData.append('color_hex', selectedColor.hex_value);
+                }
+                if (selectedColor && selectedColor.image_url) {
+                    formData.append('color_image_url', selectedColor.image_url);
+                }
+                if (selectedColor && selectedColor.name) {
+                    let colorName = selectedColor.name;
+                    if (selectedColor.color_code) {
+                        colorName += ` (${selectedColor.color_code})`;
+                    }
+                    formData.append('color_name', colorName);
+                }
             }
             
             formData.append('item_price', matchedProduct?.price || matchedVariation?.price || 0);
@@ -445,6 +539,9 @@ const App = ({ familyId }) => {
                     jQuery(document.body).trigger('wc_fragment_refresh');
                     jQuery(document.body).trigger('added_to_cart');
                 }
+                if (typeof window.psOpenMiniCart === 'function') {
+                    window.psOpenMiniCart();
+                }
             } else {
                 setCartMessage(`❌ ${data.data?.message || 'Failed to add to cart.'}`);
             }
@@ -461,10 +558,11 @@ const App = ({ familyId }) => {
         if (!familyData || !familyData.family) return false;
         if (isGenericTool) return !!matchedProduct;
         if (isBrush) return !!(selectedWidth && matchedProduct);
+        if (isPrimer) return !!(selectedSize && (matchedVariation || matchedProduct));
         // Wood stains may have no WooCommerce variations — matchedProduct is sufficient
         const hasMatch = isWoodStain ? !!(matchedVariation || matchedProduct) : !!matchedVariation;
         return !!(selectedSize && (isWoodStain || selectedSheen) && selectedColor && hasMatch);
-    }, [isGenericTool, isBrush, selectedWidth, matchedProduct, selectedSize, selectedSheen, selectedColor, matchedVariation, familyData, isWoodStain]);
+    }, [isGenericTool, isBrush, isPrimer, selectedWidth, matchedProduct, selectedSize, selectedSheen, selectedColor, matchedVariation, familyData, isWoodStain]);
 
 
     if (renderError) {
@@ -528,14 +626,14 @@ const App = ({ familyId }) => {
                         {isCoating ? (
                             <>
                                 <div style={{ position: 'relative' }}>
-                                    {familyData.family.gallery_images && familyData.family.gallery_images.length > 1 && (
+                                    {activeGalleryImages.length > 1 && (
                                         <>
-                                            {familyData.family.gallery_images.findIndex(img => img.url === activeImageUrl) > 0 && (
+                                            {activeGalleryImages.findIndex(img => img.url === activeImageUrl) > 0 && (
                                                 <button
                                                     onClick={(e) => {
                                                         e.preventDefault();
-                                                        const idx = familyData.family.gallery_images.findIndex(img => img.url === activeImageUrl);
-                                                        setActiveImageUrl(familyData.family.gallery_images[idx - 1].url);
+                                                        const idx = activeGalleryImages.findIndex(img => img.url === activeImageUrl);
+                                                        setActiveImageUrl(activeGalleryImages[idx - 1].url);
                                                     }}
                                                     style={{
                                                         position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', zIndex: 10,
@@ -546,12 +644,12 @@ const App = ({ familyId }) => {
                                                     &#8592;
                                                 </button>
                                             )}
-                                            {familyData.family.gallery_images.findIndex(img => img.url === activeImageUrl) < familyData.family.gallery_images.length - 1 && (
+                                            {activeGalleryImages.findIndex(img => img.url === activeImageUrl) < activeGalleryImages.length - 1 && (
                                                 <button
                                                     onClick={(e) => {
                                                         e.preventDefault();
-                                                        const idx = familyData.family.gallery_images.findIndex(img => img.url === activeImageUrl);
-                                                        setActiveImageUrl(familyData.family.gallery_images[idx + 1].url);
+                                                        const idx = activeGalleryImages.findIndex(img => img.url === activeImageUrl);
+                                                        setActiveImageUrl(activeGalleryImages[idx + 1].url);
                                                     }}
                                                     style={{
                                                         position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', zIndex: 10,
@@ -566,7 +664,7 @@ const App = ({ familyId }) => {
                                     )}
                                     <Visualizer imageUrl={activeImageUrl} selectedColor={selectedColor} />
                                 </div>
-                                {familyData.family.gallery_images && familyData.family.gallery_images.length > 1 && (
+                                {activeGalleryImages.length > 1 && (
                                     <div style={{ position: 'relative', marginTop: '15px' }}>
                                         {galleryPage > 0 && (
                                             <button
@@ -582,7 +680,7 @@ const App = ({ familyId }) => {
                                         )}
                                         <div style={{ overflow: 'hidden', margin: '0 35px' }}>
                                             <div style={{ display: 'flex', gap: '8px', transition: 'transform 0.3s ease', transform: `translateX(-${galleryPage * 100}%)` }}>
-                                                {familyData.family.gallery_images.map((img, idx) => (
+                                                {activeGalleryImages.map((img, idx) => (
                                                     <img key={img.id} src={img.url} alt={`View ${idx + 1}`}
                                                         onClick={() => setActiveImageUrl(img.url)}
                                                         style={{
@@ -595,7 +693,7 @@ const App = ({ familyId }) => {
                                                 ))}
                                             </div>
                                         </div>
-                                        {galleryPage < Math.ceil(familyData.family.gallery_images.length / 4) - 1 && (
+                                        {galleryPage < Math.ceil(activeGalleryImages.length / 4) - 1 && (
                                             <button
                                                 onClick={(e) => { e.preventDefault(); setGalleryPage(prev => prev + 1); }}
                                                 style={{
@@ -614,7 +712,7 @@ const App = ({ familyId }) => {
                             /* ===== NON-COATING: Gallery Grid (4 images + View All) ===== */
                             <div>
                                 {(() => {
-                                    const images = familyData.family.gallery_images || [];
+                                    const images = activeGalleryImages;
                                     const visibleImages = showAllImages ? images : images.slice(0, 4);
                                     const hasMore = images.length > 4;
                                     return (
@@ -830,7 +928,7 @@ const App = ({ familyId }) => {
                                         selectedStain={selectedColor}
                                         onStainSelect={setSelectedColor}
                                     />
-                                ) : (
+                                ) : isPrimer ? null : (
                                     <ColorBrowser
                                         colors={colors}
                                         colorFamilies={colorFamilies}
@@ -852,6 +950,7 @@ const App = ({ familyId }) => {
                                         selectedColor={selectedColor}
                                         shouldFilter={shouldFilter}
                                         isWoodStain={isWoodStain}
+                                        isPrimer={isPrimer}
                                         selectedFulfillment={selectedFulfillment}
                                         setSelectedFulfillment={setSelectedFulfillment}
                                         matchedStockQty={matchedStockQty}

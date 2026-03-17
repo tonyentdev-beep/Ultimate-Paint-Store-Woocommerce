@@ -2,8 +2,9 @@ import { useState } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import { Button, TextControl, TextareaControl, SelectControl, PanelBody, PanelRow } from '@wordpress/components';
 
-const WOOD_STAIN_SLUGS = ['wood-stains-oil-based', 'wood-stains-water-based', 'wood-sealer'];
+const WOOD_STAIN_SLUGS = ['wood-stains-oil-based', 'wood-stains-water-based', 'wood-sealer', 'wood-stain-markers', 'wood-protective-finish'];
 const BRUSH_SLUGS = ['brushes'];
+const PRIMER_SLUGS = ['primers', 'primer'];
 
 const ProductsManager = ({
     products,
@@ -30,8 +31,7 @@ const ProductsManager = ({
     // Wood stain-specific fields
     const [colorName, setColorName] = useState('');
     const [opacity, setOpacity] = useState('');
-    const [stainImageId, setStainImageId] = useState(0);
-    const [stainImageUrl, setStainImageUrl] = useState('');
+    const [stainImages, setStainImages] = useState([]);
 
     const [isSaving, setIsSaving] = useState(false);
     const [editingId, setEditingId] = useState(null);
@@ -54,6 +54,7 @@ const ProductsManager = ({
     const selectedMake = selectedFamily ? (productMakes || []).find(m => String(m.id) === String(selectedFamily.make_id)) : null;
     const isWoodStain = selectedMake ? WOOD_STAIN_SLUGS.includes(selectedMake.slug) : false;
     const isBrush = selectedMake ? BRUSH_SLUGS.includes(selectedMake.slug) : false;
+    const isPrimer = selectedMake ? PRIMER_SLUGS.includes(selectedMake.slug) : false;
 
     const familyOptions = [
         { label: 'Select Product Family...', value: '' },
@@ -125,16 +126,30 @@ const ProductsManager = ({
     // WordPress media uploader for stain images
     const openStainImageUploader = () => {
         const frame = wp.media({
-            title: 'Select Stain Color Image',
-            multiple: false,
+            title: 'Select Stain Color Images',
+            multiple: true,
             library: { type: 'image' }
         });
         frame.on('select', () => {
-            const attachment = frame.state().get('selection').first().toJSON();
-            setStainImageId(attachment.id);
-            setStainImageUrl(attachment.url);
+            const attachments = frame.state().get('selection').map(a => a.toJSON());
+            const newImages = attachments.map(a => ({ id: a.id, url: a.url }));
+            
+            // Append avoiding duplicates
+            setStainImages(prev => {
+                const combined = [...prev, ...newImages];
+                const uniqueIds = new Set();
+                return combined.filter(img => {
+                    if (uniqueIds.has(img.id)) return false;
+                    uniqueIds.add(img.id);
+                    return true;
+                });
+            });
         });
         frame.open();
+    };
+
+    const removeStainImage = (idToRemove) => {
+        setStainImages(prev => prev.filter(img => img.id !== idToRemove));
     };
 
     const handleSave = async () => {
@@ -144,6 +159,8 @@ const ProductsManager = ({
             if (!widthId) { alert('Size (width) is required for brush SKUs.'); return; }
         } else if (isWoodStain) {
             if (!sizeId || !surfaceId) { alert('Size and Surface/Project Type are required.'); return; }
+        } else if (isPrimer) {
+            if (!sizeId || !surfaceId) { alert('Size and Surface/Project Type are required for primers.'); return; }
         } else {
             if (!baseId || !sizeId || !sheenId || !surfaceId) {
                 alert('All relation fields are required to map a physical product.');
@@ -155,9 +172,9 @@ const ProductsManager = ({
         try {
             const data = {
                 family_id: familyId,
-                base_id: (isWoodStain || isBrush) ? 0 : baseId,
+                base_id: (isWoodStain || isBrush || isPrimer) ? 0 : baseId,
                 size_id: isBrush ? 0 : sizeId,
-                sheen_id: (isWoodStain || isBrush) ? 0 : sheenId,
+                sheen_id: (isWoodStain || isBrush || isPrimer) ? 0 : sheenId,
                 surface_id: isBrush ? 0 : surfaceId,
                 width_id: isBrush ? widthId : 0,
                 sku: sku,
@@ -166,7 +183,7 @@ const ProductsManager = ({
                 stock_quantity: parseInt(stockQuantity, 10) || 0,
                 color_name: isWoodStain ? colorName : '',
                 opacity: isWoodStain ? opacity : '',
-                stain_image_id: isWoodStain ? stainImageId : 0
+                stain_image_ids: isWoodStain ? stainImages.map(img => img.id) : []
             };
 
             if (editingId) {
@@ -198,8 +215,7 @@ const ProductsManager = ({
         setStockQuantity((item.stock_quantity || 0).toString());
         setColorName(item.color_name || '');
         setOpacity(item.opacity || '');
-        setStainImageId(item.stain_image_id || 0);
-        setStainImageUrl(item.stain_image_url || '');
+        setStainImages(item.stain_images || []);
     };
 
     const handleCancelEdit = () => {
@@ -216,8 +232,7 @@ const ProductsManager = ({
         setStockQuantity('0');
         setColorName('');
         setOpacity('');
-        setStainImageId(0);
-        setStainImageUrl('');
+        setStainImages([]);
     };
 
     const handleDelete = async (id) => {
@@ -289,7 +304,9 @@ const ProductsManager = ({
         ? !!familyId && !!widthId && !isSaving
         : isWoodStain
             ? !!familyId && !!sizeId && !!surfaceId && !isSaving
-            : !!familyId && !!baseId && !!sizeId && !!sheenId && !!surfaceId && !isSaving;
+            : isPrimer
+                ? !!familyId && !!sizeId && !!surfaceId && !isSaving
+                : !!familyId && !!baseId && !!sizeId && !!sheenId && !!surfaceId && !isSaving;
 
     return (
         <div className="products-manager">
@@ -301,15 +318,16 @@ const ProductsManager = ({
                         <SelectControl label="Parent Product Family" value={familyId} options={familyOptions} onChange={(v) => { setFamilyId(v); }} />
                         {selectedMake && (
                             <p style={{ margin: '-8px 0 10px', fontSize: '12px', color: '#666' }}>
-                                Make: <strong style={{ background: isBrush ? '#e3f2fd' : isWoodStain ? '#fff3cd' : '#e8f5e9', padding: '2px 8px', borderRadius: '10px', fontSize: '11px' }}>{selectedMake.name}</strong>
+                                Make: <strong style={{ background: isBrush ? '#e3f2fd' : isWoodStain ? '#fff3cd' : isPrimer ? '#e1bee7' : '#e8f5e9', padding: '2px 8px', borderRadius: '10px', fontSize: '11px' }}>{selectedMake.name}</strong>
                                 {isWoodStain && <span style={{ marginLeft: '10px', color: '#8b6914', fontStyle: 'italic' }}>🪵 Wood Stain/Sealer form</span>}
                                 {isBrush && <span style={{ marginLeft: '10px', color: '#1565c0', fontStyle: 'italic' }}>🖌️ Brush SKU form</span>}
+                                {isPrimer && <span style={{ marginLeft: '10px', color: '#6a1b9a', fontStyle: 'italic' }}>💡 Primer form (Size only)</span>}
                             </p>
                         )}
                     </div>
                 </PanelRow>
 
-                {familyId && !isWoodStain && !isBrush && (
+                {familyId && !isWoodStain && !isBrush && !isPrimer && (
                     <>
                         {/* Architectural Paint Form — existing layout */}
                         <PanelRow>
@@ -334,6 +352,25 @@ const ProductsManager = ({
                     </>
                 )}
 
+                {familyId && isPrimer && (
+                    <>
+                        <PanelRow>
+                            <div style={{ width: '100%', background: '#faf5ff', border: '1px solid #d1c4e9', borderRadius: '6px', padding: '15px', marginBottom: '5px' }}>
+                                <h3 style={{ margin: '0 0 12px 0', fontSize: '15px', color: '#6a1b9a' }}>💡 Primer SKU Details</h3>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' }}>
+                                    <SelectControl label="Size" value={sizeId} options={sizeOptions} onChange={setSizeId} />
+                                    <SelectControl label="Surface/Project Type" value={surfaceId} options={surfaceOptions} onChange={setSurfaceId} />
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginTop: '15px' }}>
+                                    <TextControl label="SKU (Stock Keeping Unit)" value={sku} onChange={setSku} />
+                                    <TextControl type="number" step="0.01" label="Base Price ($)" value={price} onChange={setPrice} />
+                                    <TextControl type="number" step="1" label="Stock Quantity" value={stockQuantity} onChange={setStockQuantity} />
+                                </div>
+                            </div>
+                        </PanelRow>
+                    </>
+                )}
+
                 {familyId && isWoodStain && (
                     <>
                         {/* Wood Stain / Sealer Form */}
@@ -352,24 +389,26 @@ const ProductsManager = ({
                                     <TextControl type="number" step="1" label="Stock Quantity" value={stockQuantity} onChange={setStockQuantity} />
                                 </div>
                                 <div style={{ marginTop: '15px' }}>
-                                    <label style={{ display: 'block', fontWeight: 600, marginBottom: '8px' }}>Stain Color Image</label>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                        {stainImageUrl ? (
-                                            <div style={{ position: 'relative' }}>
-                                                <img src={stainImageUrl} alt="Stain color" style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '6px', border: '2px solid #e0c060' }} />
+                                    <label style={{ display: 'block', fontWeight: 600, marginBottom: '8px' }}>Stain Color Images (First image is primary variation swatch)</label>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '15px' }}>
+                                        {stainImages.map((img, index) => (
+                                            <div key={img.id} style={{ position: 'relative' }}>
+                                                <img src={img.url} alt={`Stain color ${index + 1}`} style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '6px', border: index === 0 ? '2px solid #2e7d32' : '2px solid #e0c060' }} />
+                                                {index === 0 && <span style={{ position: 'absolute', bottom: '-8px', left: '50%', transform: 'translateX(-50%)', background: '#2e7d32', color: '#fff', fontSize: '9px', padding: '2px 6px', borderRadius: '4px', whiteSpace: 'nowrap' }}>Primary</span>}
                                                 <button
-                                                    onClick={() => { setStainImageId(0); setStainImageUrl(''); }}
+                                                    onClick={() => removeStainImage(img.id)}
                                                     style={{ position: 'absolute', top: '-8px', right: '-8px', background: '#d63638', color: '#fff', border: 'none', borderRadius: '50%', width: '20px', height: '20px', cursor: 'pointer', fontSize: '12px', lineHeight: '20px', textAlign: 'center' }}
+                                                    title="Remove Image"
                                                 >×</button>
                                             </div>
-                                        ) : (
-                                            <div
-                                                onClick={openStainImageUploader}
-                                                style={{ width: '80px', height: '80px', border: '2px dashed #ccc', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#fafafa', fontSize: '24px', color: '#999' }}
-                                            >+</div>
-                                        )}
-                                        <Button variant="secondary" onClick={openStainImageUploader}>
-                                            {stainImageUrl ? 'Change Image' : 'Upload Image'}
+                                        ))}
+                                        <div
+                                            onClick={openStainImageUploader}
+                                            style={{ width: '80px', height: '80px', border: '2px dashed #ccc', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#fafafa', fontSize: '24px', color: '#999' }}
+                                            title="Add Images"
+                                        >+</div>
+                                        <Button variant="secondary" onClick={openStainImageUploader} style={{ marginLeft: '10px' }}>
+                                            {stainImages.length > 0 ? 'Add More Images' : 'Upload Images'}
                                         </Button>
                                     </div>
                                 </div>
@@ -490,6 +529,7 @@ const ProductsManager = ({
                         const itemMakeSlug = getFamilyMakeSlug(item.family_id);
                         const itemIsStain = WOOD_STAIN_SLUGS.includes(itemMakeSlug);
                         const itemIsBrush = BRUSH_SLUGS.includes(itemMakeSlug);
+                        const itemIsPrimer = PRIMER_SLUGS.includes(itemMakeSlug);
                         return (
                             <tr key={item.id}>
                                 <td>{item.id}</td>
@@ -499,20 +539,27 @@ const ProductsManager = ({
                                         <span style={{ background: '#e3f2fd', color: '#1565c0', padding: '2px 6px', borderRadius: '10px', fontSize: '10px', fontWeight: 600 }}>🖌️ Brush</span>
                                     ) : itemIsStain ? (
                                         <span style={{ background: '#fff3cd', color: '#856404', padding: '2px 6px', borderRadius: '10px', fontSize: '10px', fontWeight: 600 }}>🪵 Stain</span>
+                                    ) : itemIsPrimer ? (
+                                        <span style={{ background: '#f3e5f5', color: '#6a1b9a', padding: '2px 6px', borderRadius: '10px', fontSize: '10px', fontWeight: 600 }}>💡 Primer</span>
                                     ) : (
                                         <span style={{ background: '#e8f5e9', color: '#2e7d32', padding: '2px 6px', borderRadius: '10px', fontSize: '10px', fontWeight: 600 }}>🎨 Paint</span>
                                     )}
                                 </td>
-                                <td>{itemIsBrush ? '—' : itemIsStain ? (item.color_name || '—') : getBaseName(item.base_id)}</td>
+                                <td>{itemIsBrush || itemIsPrimer ? '—' : itemIsStain ? (item.color_name || '—') : getBaseName(item.base_id)}</td>
                                 <td>{itemIsBrush ? getWidthName(item.width_id) : getSizeName(item.size_id)}</td>
-                                <td>{itemIsBrush ? '—' : itemIsStain ? (item.opacity || '—') : getSheenName(item.sheen_id)}</td>
+                                <td>{itemIsBrush || itemIsPrimer ? '—' : itemIsStain ? (item.opacity || '—') : getSheenName(item.sheen_id)}</td>
                                 <td>{getSurfaceName(item.surface_id)}</td>
                                 <td><code>{item.sku || '-'}</code></td>
                                 <td>${parseFloat(item.price).toFixed(2)}</td>
                                 <td>{item.stock_quantity}</td>
                                 <td>
                                     {itemIsStain && item.stain_image_url ? (
-                                        <img src={item.stain_image_url} alt={item.color_name} style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }} />
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                            <img src={item.stain_image_url} alt={item.color_name} style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }} />
+                                            {item.stain_images && item.stain_images.length > 1 && (
+                                                <span style={{ fontSize: '10px', color: '#666', fontWeight: 600 }}>+{item.stain_images.length - 1}</span>
+                                            )}
+                                        </div>
                                     ) : (
                                         <span style={{ color: '#ddd', fontSize: '11px' }}>—</span>
                                     )}

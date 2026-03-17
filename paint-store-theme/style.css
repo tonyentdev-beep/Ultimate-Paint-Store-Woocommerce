@@ -1066,59 +1066,6 @@ img {
 	color: #005a9c !important;
 }
 
-/* Accordion Details */
-.ps-cart-item-details-accordion {
-	border-top: 1px solid #e0e0e0;
-	background: #fff;
-}
-
-.ps-cart-item-details-header {
-	padding: 16px 20px;
-	font-size: 14px;
-	font-weight: 700;
-	color: #000;
-	display: flex;
-	justify-content: space-between;
-	cursor: pointer;
-	user-select: none;
-}
-
-.ps-cart-item-details-header:hover {
-	background: #fdfdfd;
-}
-
-.ps-cart-item-details-content {
-	padding: 0 20px 20px;
-	display: block;
-}
-
-.ps-cart-item-details-accordion.closed .ps-cart-item-details-content {
-	display: none;
-}
-
-.ps-cart-item-details-accordion.closed .ps-accordion-icon {
-	transform: rotate(180deg);
-}
-
-.ps-accordion-icon {
-	color: #0076D6;
-	font-size: 12px;
-}
-
-.ps-metadata-table {
-	width: 100%;
-	font-size: 13px;
-	border-collapse: collapse;
-}
-
-.ps-metadata-table th {
-	text-align: left;
-	color: #000;
-	padding: 5px 15px 5px 0;
-	width: 80px;
-	font-weight: 700;
-}
-
 .ps-metadata-table td {
 	color: #444;
 	padding: 5px 0;

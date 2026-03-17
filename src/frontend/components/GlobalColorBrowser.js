@@ -16,6 +16,7 @@ export default function GlobalColorBrowser() {
     const [searchQuery, setSearchQuery] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [selectedFamilyId, setSelectedFamilyId] = useState(0);
+    const [selectedTag, setSelectedTag] = useState('');
 
     const { toggleFavorite, isFavorite } = useFavorites();
 
@@ -46,7 +47,14 @@ export default function GlobalColorBrowser() {
     // Handle family selection
     const handleFamilyClick = (familyId) => {
         setSelectedFamilyId(familyId === selectedFamilyId ? 0 : familyId);
-        setPage(1); // Reset to page 1
+        setSelectedTag(''); // Clear tag filter when selecting a family
+        setPage(1);
+    };
+
+    const handleTagClick = (tag) => {
+        setSelectedTag(tag === selectedTag ? '' : tag);
+        setSelectedFamilyId(0); // Clear family filter when selecting a tag
+        setPage(1);
     };
 
     // Fetch Colors with filters
@@ -58,6 +66,9 @@ export default function GlobalColorBrowser() {
                 
                 if (selectedFamilyId > 0) {
                     path += `&family_id=${selectedFamilyId}`;
+                }
+                if (selectedTag) {
+                    path += `&tag=${selectedTag}`;
                 }
                 if (debouncedSearch) {
                     path += `&search=${encodeURIComponent(debouncedSearch)}`;
@@ -83,7 +94,7 @@ export default function GlobalColorBrowser() {
         };
 
         fetchColors();
-    }, [page, perPage, selectedFamilyId, debouncedSearch]);
+    }, [page, perPage, selectedFamilyId, selectedTag, debouncedSearch]);
 
     // Scroll to top on page change
     useEffect(() => {
@@ -160,6 +171,77 @@ export default function GlobalColorBrowser() {
                                     &times;
                                 </button>
                             )}
+                        </div>
+                    </div>
+
+                    <div style={{ marginBottom: '30px' }}>
+                        <h3 style={{ fontSize: '18px', fontWeight: 'bold', borderBottom: '2px solid #00598e', paddingBottom: '10px', marginBottom: '15px' }}>
+                            Quick Filters
+                        </h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <button
+                                onClick={() => handleTagClick('popular')}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '10px',
+                                    padding: '10px 15px',
+                                    background: selectedTag === 'popular' ? '#fff8e1' : 'transparent',
+                                    border: '1px solid',
+                                    borderColor: selectedTag === 'popular' ? '#ffc107' : '#eee',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    textAlign: 'left',
+                                    fontWeight: selectedTag === 'popular' ? '600' : '400',
+                                    color: selectedTag === 'popular' ? '#e6a800' : '#333',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                <span style={{ fontSize: '16px' }}>⭐</span>
+                                <span>Popular Colors</span>
+                            </button>
+                            <button
+                                onClick={() => handleTagClick('color_of_week')}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '10px',
+                                    padding: '10px 15px',
+                                    background: selectedTag === 'color_of_week' ? '#e0f7fa' : 'transparent',
+                                    border: '1px solid',
+                                    borderColor: selectedTag === 'color_of_week' ? '#17a2b8' : '#eee',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    textAlign: 'left',
+                                    fontWeight: selectedTag === 'color_of_week' ? '600' : '400',
+                                    color: selectedTag === 'color_of_week' ? '#0097a7' : '#333',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                <span style={{ fontSize: '16px' }}>🗓️</span>
+                                <span>Colors of the Week</span>
+                            </button>
+                            <button
+                                onClick={() => handleTagClick('wood_stains')}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '10px',
+                                    padding: '10px 15px',
+                                    background: selectedTag === 'wood_stains' ? '#f4ece1' : 'transparent',
+                                    border: '1px solid',
+                                    borderColor: selectedTag === 'wood_stains' ? '#8b5a2b' : '#eee',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    textAlign: 'left',
+                                    fontWeight: selectedTag === 'wood_stains' ? '600' : '400',
+                                    color: selectedTag === 'wood_stains' ? '#6b4423' : '#333',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                <span style={{ fontSize: '16px' }}>🪵</span>
+                                <span>Wood Stains</span>
+                            </button>
                         </div>
                     </div>
 
@@ -350,6 +432,7 @@ export default function GlobalColorBrowser() {
                                 onClick={() => {
                                     setSearchQuery('');
                                     setSelectedFamilyId(0);
+                                    setSelectedTag('');
                                 }}
                                 style={{ marginTop: '20px', padding: '10px 20px', background: '#00598e', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                             >

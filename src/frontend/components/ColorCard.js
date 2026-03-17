@@ -6,7 +6,7 @@ export default function ColorCard({ color }) {
 
     return (
         <a 
-            href={`/colors/${color.slug ? color.slug : color.id}/`}
+            href={color.product_url ? color.product_url : `/colors/${color.slug ? color.slug : color.id}/`}
             style={{
                 display: 'block',
                 textDecoration: 'none',
@@ -30,7 +30,7 @@ export default function ColorCard({ color }) {
             <div style={{ position: 'relative', width: '100%' }}>
                 <div style={{ 
                     aspectRatio: '4 / 3', 
-                    background: color.hex_value || '#f1f1f1',
+                    background: color.image_url ? `url(${color.image_url}) center/cover no-repeat` : (color.hex_value || '#f1f1f1'),
                     borderBottom: '1px solid rgba(0,0,0,0.05)',
                     width: '100%'
                 }}></div>
