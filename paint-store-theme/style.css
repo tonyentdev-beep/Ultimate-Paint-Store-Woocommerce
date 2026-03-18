@@ -1329,7 +1329,7 @@ img {
    ========================================== */
 .woocommerce-account .woocommerce-MyAccount-navigation {
 	float: none !important;
-	width: 100vw !important;
+	width: 100% !important;
 }
 
 .woocommerce-account .woocommerce-MyAccount-content {

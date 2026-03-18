@@ -13,18 +13,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-do_action( 'woocommerce_before_account_navigation' );
-?>
-
-<nav class="woocommerce-MyAccount-navigation bg-white rounded-xl shadow-sm border border-gray-100 p-2 md:p-3 mb-6 md:mb-8">
-	<ul class="flex flex-row flex-wrap gap-2 md:gap-3 !pl-0 !m-0 !list-none items-center justify-start">
+<nav class="woocommerce-MyAccount-navigation w-full bg-white px-4 md:px-8 py-3">
+	<ul class="flex flex-row flex-wrap gap-2 md:gap-4 !pl-0 !m-0 !list-none items-center justify-start max-w-7xl mx-auto">
 		<?php foreach ( wc_get_account_menu_items() as $endpoint => $label ) : ?>
 			<?php
 				$is_active = wc_get_account_menu_item_classes( $endpoint );
 				// wc_get_account_menu_item_classes returns a string containing 'is-active' if true.
 				$active_class = strpos( $is_active, 'is-active' ) !== false 
-					? 'bg-[#0b1d3a] text-white font-medium shadow-sm hover:bg-blue-900' 
-					: 'text-gray-600 hover:bg-gray-50 hover:text-[#0b1d3a]';
+					? 'bg-[#0b1d3a] text-white font-medium shadow-sm hover:bg-blue-900 rounded-full' 
+					: 'text-gray-600 hover:bg-gray-50 hover:text-[#0b1d3a] rounded-full';
 			?>
 			<li class="<?php echo esc_attr( wc_get_account_menu_item_classes( $endpoint ) ); ?> !mb-0 text-red-500">
 				<a href="<?php echo esc_url( wc_get_account_endpoint_url( $endpoint ) ); ?>" 
