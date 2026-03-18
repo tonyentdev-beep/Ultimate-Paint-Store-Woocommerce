@@ -1323,3 +1323,25 @@ img {
 		margin-top: 20px;
 	}
 }
+
+/* ==========================================
+   WOOCOMMERCE MY ACCOUNTOVERRIDES
+   ========================================== */
+.woocommerce-account .woocommerce-MyAccount-navigation {
+	float: none !important;
+	width: 100% !important;
+}
+
+.woocommerce-account .woocommerce-MyAccount-content {
+	float: none !important;
+	width: 100% !important;
+}
+
+/* Ensure the nav list remains horizontal on all screens */
+.woocommerce-account .woocommerce-MyAccount-navigation ul {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	padding-left: 0;
+	margin-bottom: 0;
+}
