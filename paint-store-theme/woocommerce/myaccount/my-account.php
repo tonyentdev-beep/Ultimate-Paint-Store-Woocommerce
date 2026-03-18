@@ -24,16 +24,16 @@ defined( 'ABSPATH' ) || exit;
 		<p class="mt-2 text-gray-500">Manage your orders, addresses, and account details.</p>
 	</header>
 
-	<!-- Main Two-Column Layout -->
-	<div class="flex flex-col lg:flex-row gap-8 lg:gap-12 w-full max-w-7xl mx-auto items-start">
+	<!-- Main Single-Column Layout -->
+	<div class="flex flex-col gap-6 w-full max-w-6xl mx-auto items-start">
 		
-		<!-- Left Sidebar: Navigation -->
-		<aside class="w-full lg:w-1/4 shrink-0">
+		<!-- Top Inner Nav Bar -->
+		<aside class="w-full">
 			<?php do_action( 'woocommerce_account_navigation' ); ?>
 		</aside>
 
-		<!-- Right Content Area -->
-		<main class="w-full lg:w-3/4">
+		<!-- Main Content Area -->
+		<main class="w-full">
 			<div class="woocommerce-MyAccount-content bg-white rounded-xl shadow-sm border border-gray-100 p-6 md:p-8 lg:p-10 min-h-[500px]">
 				<?php
 				/**
