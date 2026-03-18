@@ -13,6 +13,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+do_action( 'woocommerce_before_account_navigation' );
+?>
+
 <nav class="woocommerce-MyAccount-navigation w-full bg-white px-4 md:px-8 py-3">
 	<ul class="flex flex-row flex-wrap gap-2 md:gap-4 !pl-0 !m-0 !list-none items-center justify-start max-w-7xl mx-auto">
 		<?php foreach ( wc_get_account_menu_items() as $endpoint => $label ) : ?>
